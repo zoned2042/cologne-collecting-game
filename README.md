@@ -1,0 +1,1 @@
+# cologne-collecting-game
