@@ -193,7 +193,7 @@ const BottleCraft = (() => {
   function creed(item, o = {}) {
     const k = kit();
     const [foot, mid, upper] = bands(CREED_PROFILE, [0.045, 0.44]).map((pts) => lathe(pts, 0, CREED_Z));
-    const goldMat = o.gold ? solid({ color: '#d9b45a', metal: 1, rough: 0.22, coat: 0, env: 2.4 }) : null;
+    const goldMat = o.gold ? solid({ color: typeof o.gold === 'string' ? o.gold : '#d9b45a', metal: 1, rough: o.metalRough || 0.22, coat: 0, env: 2.4 }) : null;
     if (o.fade) { gradient(mid, o.fade, '#ffffff', 0.9); gradient(upper, o.fadeMid || '#ffffff', '#ffffff'); }
     const tinted = o.glassTint ? glass({ tint: o.glassTint, op: o.glassOp || 0.85 }) : null;
     const lowerMat = goldMat || (o.lower === 'black' ? solid({ color: '#0a0a0a', rough: 0.15 }) : o.lower ? glass({ tint: o.lower, op: o.lowerOp || 0.75 }) : o.fade ? glass({ grad: true, op: 0.82 }) : tinted || glass({ op: 0.2 }));
