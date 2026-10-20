@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sillage Collector</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Work your way from decant packer to CEO and build the biggest fragrance collection on Earth, then show it off in a 3D showroom.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..800;1,6..96,400..800&family=IBM+Plex+Mono:wght@400;500&family=Jost:wght@300..600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <p class="wordmark">Sillage</p>
+      <p class="tagline" id="catalog-count">Real fragrances from the world’s houses</p>
+    </div>
+    <dl class="stats" aria-label="Your status">
+      <div class="stat cash"><dt>Cash</dt><dd id="stat-cash">$0</dd></div>
+      <div class="stat"><dt>Calendar</dt><dd id="stat-day">Day 1</dd></div>
+      <div class="stat"><dt>Bottles</dt><dd id="stat-bottles">0</dd></div>
+      <div class="stat"><dt>Shelf value</dt><dd id="stat-value">$0</dd></div>
+      <div class="stat"><dt>Rank</dt><dd id="stat-rank">Sample Sniffer</dd></div>
+    </dl>
+    <div class="toggles">
+      <button class="icon-btn" id="btn-sfx" data-action="toggle-sfx" aria-pressed="true" title="Sound effects">SFX</button>
+      <button class="icon-btn" id="btn-music" data-action="toggle-music" aria-pressed="true" title="Showroom music">Music</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Game sections">
+    <button role="tab" data-tab="work">Work</button>
+    <button role="tab" data-tab="boutique">Boutique</button>
+    <button role="tab" data-tab="vault">Vault</button>
+    <button role="tab" data-tab="collection">Collection</button>
+    <button role="tab" data-tab="showroom">Showroom</button>
+    <button role="tab" data-tab="career">Career</button>
+    <button role="tab" data-tab="trophies">Trophies</button>
+  </nav>
+
+  <p class="goal" id="goal"></p>
+
+  <main>
+    <section class="tab" id="tab-work" hidden></section>
+
+    <section class="tab" id="tab-boutique" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">Today’s deals · <span id="deals-day">Day 1</span></p><h1>The Boutique</h1></div>
+        <p class="muted">Prices drift a little every day. Eight bottles are marked down each morning.</p>
+      </div>
+      <div class="grid deals" id="deals"></div>
+
+      <div class="filters">
+        <label class="f-search"><span>Search</span><input id="f-q" type="search" placeholder="Aventus, Byredo, oud…" autocomplete="off"></label>
+        <label><span>House</span><select id="f-house"></select></label>
+        <label><span>Family</span><select id="f-family"></select></label>
+        <label><span>Tier</span><select id="f-tier"></select></label>
+        <label><span>Sort</span><select id="f-sort"><option value="value">Price, low to high</option><option value="dear">Price, high to low</option><option value="house">House</option><option value="name">Name</option></select></label>
+        <label class="f-check"><input id="f-hide" type="checkbox"><span>Hide owned</span></label>
+      </div>
+      <p class="muted count" id="shop-count"></p>
+      <div class="grid" id="shop-grid"></div>
+      <button class="btn btn-ghost more" id="shop-more" data-action="shop-more" hidden>Show more</button>
+    </section>
+
+    <section class="tab" id="tab-vault" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">Discontinued &amp; legendary</p><h1>The Vault</h1></div>
+        <p class="muted">Bottles no boutique sells anymore. Three lots go under the hammer each day; anything else trades on the grey market at a markup. Vintage value climbs every day you hold it.</p>
+      </div>
+      <div class="lots" id="lots"></div>
+      <h2 class="sub">Grey market</h2>
+      <div class="grid" id="vault-grid"></div>
+    </section>
+
+    <section class="tab" id="tab-collection" hidden>
+      <div class="section-head"><div><p class="eyebrow">Your shelves</p><h1>Collection</h1></div><a class="btn btn-primary" href="#showroom" data-tab="showroom">Open the 3D showroom</a></div>
+      <div class="summary" id="coll-summary"></div>
+      <div class="coll-layout">
+        <div class="coll-main">
+          <div class="coll-bar"><p class="muted" id="coll-filter-note"></p>
+            <label class="inline"><span>Sort</span><select id="c-sort"><option value="value">Most valuable</option><option value="house">By house</option><option value="recent">Most recent</option></select></label></div>
+          <div class="grid" id="coll-grid"></div>
+          <button class="btn btn-ghost more" id="coll-more" data-action="coll-more" hidden>Show more</button>
+        </div>
+        <aside class="coll-side">
+          <article class="panel"><p class="eyebrow">House progress</p><div class="houses" id="houses"></div></article>
+          <article class="panel"><p class="eyebrow">Clone Wars</p><p class="muted small">Own an original and the well-known bottle inspired by it.</p><ul class="clones" id="clones"></ul></article>
+        </aside>
+      </div>
+    </section>
+
+    <section class="tab tab-showroom" id="tab-showroom" hidden>
+      <div class="stage" id="stage">
+        <div class="stage3d" id="stage3d"></div>
+        <div class="hud" id="hud">
+          <div class="hero-card" id="hero-card" hidden></div>
+          <div class="hud-actions">
+            <button class="btn btn-primary" id="btn-tour" data-action="tour">Show-off tour</button>
+            <button class="btn" data-action="spray">Spray</button>
+            <button class="btn" data-action="wide">Wide view</button>
+            <button class="btn" data-action="reset">Reset view</button>
+            <button class="btn" data-action="photo">Photo mode</button>
+          </div>
+          <p class="hud-hint">Drag to look around · scroll or pinch to zoom · click a bottle to bring it to the pedestal · click the pedestal bottle to spray</p>
+          <div class="tooltip" id="tip" hidden></div>
+          <div class="empty-note" id="empty-note" hidden><h2>The shelves are waiting</h2><p>Buy a bottle in the Boutique and it will appear here.</p><a class="btn btn-primary" href="#boutique" data-tab="boutique">Go to the Boutique</a></div>
+        </div>
+        <div class="tour-card" id="tour-card" hidden></div>
+        <button class="btn photo-exit" data-action="photo">Exit photo mode</button>
+        <div class="fallback" id="fallback" hidden><h2>The 3D showroom needs WebGL</h2><p>Your browser couldn’t start it. Your collection is still listed on the Collection tab.</p></div>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-career" hidden>
+      <div class="section-head"><div><p class="eyebrow">From kitchen table to boardroom</p><h1>Career</h1></div><p class="muted">Each job pays more and rewards a different scent family. Wear a matching signature for +30%.</p></div>
+      <div class="career-layout">
+        <div class="jobs" id="jobs"></div>
+        <aside class="panel"><p class="eyebrow">Education &amp; buy-ins</p><ul class="courses" id="courses"></ul></aside>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-trophies" hidden>
+      <div class="section-head"><div><p class="eyebrow" id="trophy-count"></p><h1>Trophies</h1></div><button class="btn btn-ghost" data-action="reset-game">Start over</button></div>
+      <ul class="trophies" id="trophies"></ul>
+    </section>
+  </main>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="modal" class="modal" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/showroom.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
