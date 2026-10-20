@@ -200,6 +200,9 @@ const Showroom = (() => {
   }
 
   function makeBottle(item) {
+    // Bottles modelled from their real design come from BottleCraft; the rest use the house archetype.
+    const craft = typeof BottleCraft !== 'undefined' && BottleCraft.build(item);
+    if (craft) { craft.group.userData = { item, top: craft.top }; return { group: craft.group, pick: craft.pick }; }
     const house = HOUSE_BY_ID[item.house];
     const s = getShape(house.shape);
     const icon = ICONIC[item.key] || {};
@@ -313,13 +316,14 @@ const Showroom = (() => {
 
   function buildEnvironment(r = renderer) {
     const env = new T.Scene();
-    const shell = new T.Mesh(new T.BoxGeometry(20, 20, 20), new T.MeshBasicMaterial({ color: col('#0d0a08'), side: T.BackSide }));
+    const shell = new T.Mesh(new T.BoxGeometry(20, 20, 20), new T.MeshBasicMaterial({ color: col('#2a221c'), side: T.BackSide }));
     env.add(shell);
     const panel = (w, h, col, k, x, y, z, ry = 0, rx = 0) => {
       const m = new T.MeshBasicMaterial({ color: new T.Color(col).multiplyScalar(k), side: T.DoubleSide });
       const p = new T.Mesh(new T.PlaneGeometry(w, h), m); p.position.set(x, y, z); p.rotation.set(rx, ry, 0); env.add(p);
     };
     panel(8, 3, '#fff1dc', 3.2, 0, 9, 0, 0, Math.PI / 2);
+    panel(3, 8, '#ffe9cc', 1.8, -6, 2, 7, Math.PI * 0.75);
     panel(1.2, 12, '#ffd2a0', 2.6, -9, 1, -3, Math.PI / 2);
     panel(1.2, 12, '#ffd2a0', 2.6, 9, 1, 3, -Math.PI / 2);
     panel(10, 0.8, '#ffe0c0', 1.2, 0, 3, -9.5);
