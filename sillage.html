@@ -344,7 +344,7 @@ body[data-view="showroom"] .goal { display: none; }
 .auc-log b { font-family: var(--f-mono); font-weight: 400; }
 .auc-result { font-family: var(--f-display); font-style: italic; font-size: var(--step-1); }
 
-#toasts { position: fixed; z-index: 60; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; width: min(340px, calc(100vw - 32px)); pointer-events: none; }
+#toasts { position: fixed; z-index: 90; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; width: min(340px, calc(100vw - 32px)); pointer-events: none; }
 .toast { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 10px; background: rgba(28, 20, 16, 0.96); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45); font-size: 0.85rem; animation: toastIn 0.35s ease both; }
 .toast b { font-weight: 500; }
 .toast span { color: var(--muted); }
@@ -357,6 +357,32 @@ body[data-view="showroom"] .goal { display: none; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } }
 .float-num { position: fixed; z-index: 70; transform: translateX(-50%); font-family: var(--f-mono); font-size: 1.3rem; color: var(--good); pointer-events: none; animation: floatUp 1.3s ease-out forwards; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8); }
 @keyframes floatUp { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -70px; } }
+
+/* ---------- unboxing ---------- */
+.unbox { position: fixed; inset: 0; z-index: 80; background: #080605; animation: ubIn 0.4s ease both; }
+.unbox.leaving { animation: ubOut 0.38s ease both; }
+@keyframes ubIn { from { opacity: 0; } }
+@keyframes ubOut { to { opacity: 0; } }
+body.unboxing { overflow: hidden; }
+.unbox-stage { position: absolute; inset: 0; }
+.unbox-canvas { display: block; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
+.unbox-eyebrow { position: absolute; left: 0; right: 0; top: calc(28px + env(safe-area-inset-top, 0px)); text-align: center; font-size: 0.78rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--brass); pointer-events: none; padding-inline: 16px; }
+.unbox-prompt { position: absolute; left: 50%; bottom: calc(48px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-family: var(--f-display); font-style: italic; font-size: var(--step-2); color: var(--text); pointer-events: none; white-space: nowrap; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+.unbox-card { position: absolute; left: max(32px, env(safe-area-inset-left, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); width: min(420px, calc(100% - 64px)); display: flex; flex-direction: column; gap: 8px; opacity: 0; }
+.unbox-card.show { animation: cardIn 0.7s ease forwards; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.unbox-card h2 { font-size: clamp(2rem, 5vw, 3.6rem); font-style: italic; line-height: 1; text-shadow: 0 4px 30px rgba(0, 0, 0, 0.9); }
+.unbox-actions { position: absolute; right: max(32px, env(safe-area-inset-right, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; animation: cardIn 0.6s 0.2s ease both; }
+.unbox-actions .btn:not(.btn-primary) { background: rgba(16, 11, 9, 0.6); }
+.unbox-skip { position: absolute; right: max(20px, env(safe-area-inset-right, 0px)); top: calc(18px + env(safe-area-inset-top, 0px)); }
+@media (max-width: 760px) {
+  .unbox-card { left: 16px; right: 16px; width: auto; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); align-items: center; text-align: center; }
+  .unbox-card .tags { justify-content: center; }
+  .unbox-actions { left: 16px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .unbox-actions .btn { padding: 8px 14px; font-size: 0.8rem; }
+  .unbox-eyebrow { top: calc(64px + env(safe-area-inset-top, 0px)); }
+}
 
 /* ---------- responsive ---------- */
 @media (max-width: 1000px) {
@@ -401,6 +427,7 @@ body[data-view="showroom"] .goal { display: none; }
     <div class="toggles">
       <button class="icon-btn" id="btn-sfx" data-action="toggle-sfx" aria-pressed="true" title="Sound effects">SFX</button>
       <button class="icon-btn" id="btn-music" data-action="toggle-music" aria-pressed="true" title="Showroom music">Music</button>
+      <button class="icon-btn" id="btn-unbox" data-action="toggle-unbox" aria-pressed="true" title="Play the unboxing scene for new bottles">Unbox</button>
     </div>
   </header>
 
@@ -506,7 +533,20 @@ body[data-view="showroom"] .goal { display: none; }
 <div id="toasts" aria-live="polite"></div>
 <div id="modal" class="modal" hidden></div>
 
-<!-- three.js r128 (MIT License, https://threejs.org) -->
+<div id="unbox" class="unbox" hidden>
+  <div class="unbox-stage"></div>
+  <p class="unbox-eyebrow" id="ub-eyebrow"></p>
+  <p class="unbox-prompt" id="ub-prompt" hidden>Tap the box to open it</p>
+  <div class="unbox-card" id="ub-card" hidden></div>
+  <div class="unbox-actions" id="ub-actions" hidden>
+    <button class="btn" data-action="unbox-spray">Spray it</button>
+    <button class="btn" id="ub-wear" data-action="unbox-wear">Wear it</button>
+    <button class="btn btn-primary" data-action="unbox-done">Put it on the shelf</button>
+  </div>
+  <button class="btn btn-ghost unbox-skip" data-action="unbox-skip">Skip</button>
+</div>
+
+<!-- three.js r128, MIT License, https://threejs.org -->
 <script>
 /**
  * @license
@@ -1273,6 +1313,56 @@ const TIERS = {
   legendary: { label: 'Legendary', pts: 60 },
 };
 
+/* Iconic bottles: the real-life glass colour of famous designs, so they read true in 3D.
+ * glass = tint of the glass, dense = how opaque that glass is (dark glass hides the juice),
+ * juice = juice colour where it is part of the look, cap = cap finish override.
+ */
+const ICONIC = {
+  'creed|Aventus': { glass: '#121212', dense: 0.82 },
+  'creed|Aventus 10th Anniversary': { glass: '#121212', dense: 0.82, cap: 'gold' },
+  'creed|Absolu Aventus': { glass: '#121212', dense: 0.82, cap: 'gold' },
+  'creed|Viking': { glass: '#7a1015', dense: 0.6 },
+  'dior|Sauvage Eau de Toilette': { glass: '#1c2c4c', dense: 0.72 },
+  'dior|Sauvage Eau de Parfum': { glass: '#1c2c4c', dense: 0.72 },
+  'dior|Sauvage Parfum': { glass: '#1c2c4c', dense: 0.72 },
+  'dior|Sauvage Elixir': { glass: '#131a2a', dense: 0.82 },
+  'chanel|Bleu de Chanel Eau de Toilette': { glass: '#141c30', dense: 0.82 },
+  'chanel|Bleu de Chanel Eau de Parfum': { glass: '#141c30', dense: 0.82 },
+  'chanel|Bleu de Chanel Parfum': { glass: '#141c30', dense: 0.82 },
+  'mfk|Baccarat Rouge 540': { juice: '#f0b48a' },
+  'tomford|Oud Wood': { glass: '#3b2414', dense: 0.7 },
+  'tomford|Tobacco Vanille': { glass: '#4a2a12', dense: 0.7 },
+  'tomford|Tuscan Leather': { glass: '#3a1d10', dense: 0.72 },
+  'tomford|Lost Cherry': { glass: '#7d0a16', dense: 0.65 },
+  'tomford|Neroli Portofino': { glass: '#2a5f9a', dense: 0.55 },
+  'tomford|Black Orchid': { glass: '#0e0e10', dense: 0.86 },
+  'tomford|Ombré Leather': { glass: '#0e0e10', dense: 0.86 },
+  'versace|Eros': { glass: '#2aa3a8', dense: 0.55 },
+  'versace|Eros Flame': { glass: '#9a1414', dense: 0.6 },
+  'versace|Dylan Blue': { glass: '#13285a', dense: 0.72 },
+  'armani|Armani Code': { glass: '#0f0f12', dense: 0.86 },
+  'armani|Acqua di Giò Profumo': { glass: '#0f0f12', dense: 0.86 },
+  'armani|Acqua di Giò Eau de Toilette': { glass: '#e8eef2', dense: 0.45 },
+  'ysl|Y Eau de Parfum': { glass: '#141a2e', dense: 0.8 },
+  "ysl|La Nuit de L'Homme": { glass: '#1c1c22', dense: 0.78 },
+  'vr|Spicebomb': { glass: '#1a1a1a', dense: 0.76 },
+  'vr|Spicebomb Extreme': { glass: '#0f0f0f', dense: 0.86 },
+  'jpg|Le Male': { glass: '#7fb3dc', dense: 0.35 },
+  'jpg|Ultra Male': { glass: '#151520', dense: 0.8 },
+  'jpg|Le Male Elixir': { glass: '#c79a3a', dense: 0.55 },
+  'valentino|Uomo Born in Roma': { glass: '#151515', dense: 0.8 },
+  'valentino|Uomo Born in Roma Intense': { glass: '#1b2a5c', dense: 0.8 },
+  'polo|Polo': { glass: '#1d4a2a', dense: 0.75 },
+  'polo|Polo Blue': { glass: '#1e4d8a', dense: 0.55 },
+  'polo|Polo Red': { glass: '#8a1416', dense: 0.6 },
+  'polo|Polo Black': { glass: '#101010', dense: 0.85 },
+  'afnan|9pm': { glass: '#141414', dense: 0.8 },
+  'armaf|Club de Nuit Intense Man': { glass: '#121212', dense: 0.85 },
+  'lattafa|Khamrah': { glass: '#4a1a10', dense: 0.7 },
+  'prada|Luna Rossa Carbon': { glass: '#2a2d33', dense: 0.62 },
+  'dg|Light Blue pour Homme': { glass: '#9cc7e6', dense: 0.42 },
+};
+
 </script>
 <script>
 /* Sillage — synthesized sound effects and showroom music (Web Audio, no files). */
@@ -1375,6 +1465,42 @@ const SFX = (() => {
       src.connect(bp); bp.connect(g); g.connect(sfxBus); src.start(t); src.stop(t + 1.2);
     },
     gavel() { const t = ctx.currentTime; tone(120, t, 0.2, { type: 'square', vol: 0.12, wet: 0.3 }); tone(90, t + 0.02, 0.25, { vol: 0.15, wet: 0.3 }); },
+    // Box landing on velvet: a soft low thump.
+    thud() {
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.25);
+      g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.4);
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.15);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.25, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      src.connect(lp); lp.connect(ng); ng.connect(sfxBus); src.start(t);
+    },
+    // Lid coming off a snug box: a short suction pop.
+    lidpop() {
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.12);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.2);
+    },
+    // Tissue paper: a cluster of short crinkles.
+    rustle() {
+      const t = ctx.currentTime;
+      for (let i = 0; i < 9; i++) {
+        const st = t + Math.random() * 0.55;
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.08);
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2500 + Math.random() * 4000; bp.Q.value = 1.5;
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, st); g.gain.linearRampToValueAtTime(0.12 + Math.random() * 0.1, st + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.05 + Math.random() * 0.05);
+        src.connect(bp); bp.connect(g); g.connect(sfxBus); src.start(st);
+      }
+    },
+    // Sparkles: a quick glittering run.
+    shimmer() {
+      const t = ctx.currentTime;
+      for (let i = 0; i < 14; i++) tone(2093 * Math.pow(2, (i % 7) / 7 + Math.floor(i / 7) * 0.5), t + i * 0.035, 0.6, { type: 'triangle', vol: 0.035, wet: 0.8 });
+    },
     tick() { const t = ctx.currentTime; tone(1600, t, 0.03, { type: 'square', vol: 0.03, wet: 0 }); },
     reveal() {
       const t = ctx.currentTime;
@@ -1455,7 +1581,7 @@ const SFX = (() => {
 const Showroom = (() => {
   const ROWS = 6, ROW_Y0 = 0.34, ROW_GAP = 0.56, COL_GAP = 0.44;
   const SHELF_SCALE = 0.36, HERO_SCALE = 0.72, HERO_Y = 1.0;
-  let T = null, renderer, scene, camera, host, canvas;
+  let T = window.THREE || null, renderer, scene, camera, host, canvas;
   let active = false, raf = 0, last = 0, ok = false;
   let R = 5.4, builtR = 0;
   let room, bottleGroup, signGroup, heroHalo, dust, mist, pointLight;
@@ -1466,7 +1592,8 @@ const Showroom = (() => {
   const cur = { yaw: 0, pitch: 0.1, dist: 3.6, tx: 0, ty: 1.25, tz: 0 };
   let lastInput = 0, tour = null, cb = {};
   const shapeCache = {}, matCache = {}, labelCache = {};
-  let fontsReady = Promise.resolve();
+  // Box and label textures are drawn on canvas, so wait for the web fonts before drawing.
+  const fontsReady = (document.fonts && document.fonts.load) ? Promise.all([document.fonts.load('600 64px "Bodoni Moda"'), document.fonts.load('italic 500 52px "Bodoni Moda"'), document.fonts.load('500 22px Jost')]).catch(() => {}) : Promise.resolve();
 
   /* ---------- helpers ---------- */
   // r128 treats hex colours as linear; convert so sRGB output shows the intended colour.
@@ -1616,9 +1743,16 @@ const Showroom = (() => {
       envMapIntensity: 2.4, depthWrite: false, flatShading: !!flat,
     }));
   }
-  function liquidMat(family, flat) {
-    return mat('liq-' + family + (flat ? 'F' : ''), () => {
-      const c = col(FAMILIES[family].color);
+  // Coloured glass for iconic bottles; darker glass is more opaque, like the real thing.
+  function tintedGlassMat(tint, dense, flat) {
+    return mat('glass-' + tint + dense + (flat ? 'F' : ''), () => new T.MeshPhysicalMaterial({
+      color: col(tint), metalness: 0.1, roughness: 0.06, transparent: true, opacity: dense, clearcoat: 1, clearcoatRoughness: 0.03,
+      envMapIntensity: 2.2, depthWrite: false, flatShading: !!flat,
+    }));
+  }
+  function liquidMat(family, flat, juice) {
+    return mat('liq-' + (juice || family) + (flat ? 'F' : ''), () => {
+      const c = col(juice || FAMILIES[family].color);
       return new T.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.3, roughness: 0.18, metalness: 0, transparent: true, opacity: 0.94, flatShading: !!flat });
     });
   }
@@ -1645,17 +1779,19 @@ const Showroom = (() => {
   function makeBottle(item) {
     const house = HOUSE_BY_ID[item.house];
     const s = getShape(house.shape);
+    const icon = ICONIC[item.key] || {};
+    const cap = icon.cap || house.cap;
     const g = new T.Group();
     let body;
     if (s.opaque) {
-      body = new T.Mesh(s.body, capMat(house.cap));
+      body = new T.Mesh(s.body, capMat(cap));
     } else {
-      const liquid = new T.Mesh(s.liquid, liquidMat(item.family, s.flat)); liquid.renderOrder = 1; g.add(liquid);
-      body = new T.Mesh(s.body, glassMat(s.flat)); body.renderOrder = 2;
+      const liquid = new T.Mesh(s.liquid, liquidMat(item.family, s.flat, icon.juice)); liquid.renderOrder = 1; g.add(liquid);
+      body = new T.Mesh(s.body, icon.glass ? tintedGlassMat(icon.glass, icon.dense || 0.6, s.flat) : glassMat(s.flat)); body.renderOrder = 2;
     }
     g.add(body);
     for (const [geo, role] of s.parts) {
-      const m = role === 'cap' ? capMat(house.cap) : role === 'black' ? capMat('black') : capMat(house.cap === 'silver' || house.cap === 'white' || house.cap === 'blue' ? 'silver' : 'gold');
+      const m = role === 'cap' ? capMat(cap) : role === 'black' ? capMat('black') : capMat(cap === 'silver' || cap === 'white' || cap === 'blue' ? 'silver' : 'gold');
       g.add(new T.Mesh(geo, m));
     }
     if (s.labelGeo) g.add(new T.Mesh(s.labelGeo, labelMat(item.house)));
@@ -1752,7 +1888,7 @@ const Showroom = (() => {
     scene.add(room);
   }
 
-  function buildEnvironment() {
+  function buildEnvironment(r = renderer) {
     const env = new T.Scene();
     const shell = new T.Mesh(new T.BoxGeometry(20, 20, 20), new T.MeshBasicMaterial({ color: col('#0d0a08'), side: T.BackSide }));
     env.add(shell);
@@ -1765,22 +1901,14 @@ const Showroom = (() => {
     panel(1.2, 12, '#ffd2a0', 2.6, 9, 1, 3, -Math.PI / 2);
     panel(10, 0.8, '#ffe0c0', 1.2, 0, 3, -9.5);
     panel(10, 0.8, '#ffb07a', 1.2, 0, -2, 9.5, Math.PI);
-    const pm = new T.PMREMGenerator(renderer);
+    const pm = new T.PMREMGenerator(r);
     const tex = pm.fromScene(env, 0.035).texture;
     pm.dispose();
     return tex;
   }
 
-  function buildAtmosphere() {
-    // Floating dust motes catching the light.
-    const N = 700, pos = new Float32Array(N * 3);
-    for (let i = 0; i < N; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 6; pos[i * 3] = Math.sin(a) * r; pos[i * 3 + 1] = Math.random() * 4.6; pos[i * 3 + 2] = Math.cos(a) * r; }
-    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
-    dust = new T.Points(g, new T.PointsMaterial({ size: 0.022, map: radialTexture([[0, 'rgba(255,240,220,1)'], [1, 'rgba(255,240,220,0)']]), transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending, color: col('#ffe6c4') }));
-    scene.add(dust);
-
-    // Atomizer mist: a particle pool with per-particle alpha and size.
-    const M = 520;
+  /* Atomizer mist: a particle pool with per-particle alpha and size. Shared with the unboxing scene. */
+  function createMist(M = 520) {
     const mp = new Float32Array(M * 3), ma = new Float32Array(M), ms = new Float32Array(M);
     const mg = new T.BufferGeometry();
     mg.setAttribute('position', new T.BufferAttribute(mp, 3));
@@ -1792,10 +1920,47 @@ const Showroom = (() => {
       vertexShader: 'attribute float aAlpha; attribute float aSize; uniform float pr; varying float vA; void main(){ vA=aAlpha; vec4 mv=modelViewMatrix*vec4(position,1.); gl_PointSize=aSize*pr*(320.0/-mv.z); gl_Position=projectionMatrix*mv; }',
       fragmentShader: 'uniform vec3 color; uniform sampler2D map; varying float vA; void main(){ vec4 t=texture2D(map, gl_PointCoord); gl_FragColor=vec4(color, t.a*vA); }',
     });
-    mist = new T.Points(mg, mm); mist.frustumCulled = false;
-    mist.userData.p = Array.from({ length: M }, () => ({ life: 0, max: 1, vx: 0, vy: 0, vz: 0 }));
-    mist.userData.next = 0;
-    scene.add(mist);
+    const points = new T.Points(mg, mm); points.frustumCulled = false;
+    const P = Array.from({ length: M }, () => ({ life: 1, max: 1, vx: 0, vy: 0, vz: 0, delay: 0 }));
+    let next = 0;
+    return {
+      points,
+      setPixelRatio(v) { mm.uniforms.pr.value = v; },
+      emit(origin, dir, family, count = 180) {
+        mm.uniforms.color.value.set(FAMILIES[family].color).lerp(new T.Color('#ffffff'), 0.55);
+        for (let i = 0; i < count; i++) {
+          const j = next; next = (j + 1) % M;
+          const q = P[j]; const sp = 0.9 + Math.random() * 1.6;
+          q.life = 0; q.max = 1.4 + Math.random() * 1.6; q.delay = Math.random() * 0.22;
+          q.vx = dir.x * sp + (Math.random() - 0.5) * 0.5; q.vy = 0.25 + (Math.random() - 0.3) * 0.45; q.vz = dir.z * sp + (Math.random() - 0.5) * 0.5;
+          mp[j * 3] = origin.x; mp[j * 3 + 1] = origin.y; mp[j * 3 + 2] = origin.z;
+        }
+      },
+      update(dt) {
+        for (let i = 0; i < M; i++) {
+          const q = P[i];
+          if (q.life >= q.max) { ma[i] = 0; continue; }
+          if (q.delay > 0) { q.delay -= dt; ma[i] = 0; continue; }
+          q.life += dt; const f = q.life / q.max;
+          const drag = Math.pow(0.18, dt);
+          q.vx *= drag; q.vz *= drag; q.vy = q.vy * drag - dt * 0.05;
+          mp[i * 3] += q.vx * dt; mp[i * 3 + 1] += q.vy * dt; mp[i * 3 + 2] += q.vz * dt;
+          ma[i] = Math.min(1, f * 8) * (1 - f) * 0.42; ms[i] = 0.05 + f * 0.6;
+        }
+        mg.attributes.position.needsUpdate = true; mg.attributes.aAlpha.needsUpdate = true; mg.attributes.aSize.needsUpdate = true;
+      },
+    };
+  }
+
+  function buildAtmosphere() {
+    // Floating dust motes catching the light.
+    const N = 700, pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 6; pos[i * 3] = Math.sin(a) * r; pos[i * 3 + 1] = Math.random() * 4.6; pos[i * 3 + 2] = Math.cos(a) * r; }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
+    dust = new T.Points(g, new T.PointsMaterial({ size: 0.022, map: radialTexture([[0, 'rgba(255,240,220,1)'], [1, 'rgba(255,240,220,0)']]), transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending, color: col('#ffe6c4') }));
+    scene.add(dust);
+
+    mist = createMist(); scene.add(mist.points);
 
     heroHalo = new T.Sprite(new T.SpriteMaterial({ map: radialTexture([[0, 'rgba(255,255,255,0.8)'], [0.35, 'rgba(255,255,255,0.18)'], [1, 'rgba(255,255,255,0)']]), transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
     heroHalo.scale.set(1.6, 1.6, 1); heroHalo.position.set(0, 1.35, 0); heroHalo.visible = false; scene.add(heroHalo);
@@ -1834,7 +1999,6 @@ const Showroom = (() => {
     bindInput();
     new ResizeObserver(resize).observe(host);
     resize();
-    if (document.fonts && document.fonts.load) fontsReady = Promise.all([document.fonts.load('600 64px "Bodoni Moda"'), document.fonts.load('500 22px Jost')]).catch(() => {});
     ok = true;
     return true;
   }
@@ -1844,7 +2008,7 @@ const Showroom = (() => {
     const w = host.clientWidth || 1, h = host.clientHeight || 1;
     renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.fov = w / h < 1 ? 68 : 50; camera.updateProjectionMatrix();
-    if (mist) mist.material.uniforms.pr.value = renderer.getPixelRatio() * (h / 900);
+    if (mist) mist.setPixelRatio(renderer.getPixelRatio() * (h / 900));
   }
 
   /* ---------- collection layout ---------- */
@@ -1923,18 +2087,10 @@ const Showroom = (() => {
 
   function spray() {
     if (!hero || hero.flying) return false;
-    const p = mist.userData.p, pos = mist.geometry.attributes.position.array;
     const top = hero.group.userData.top * HERO_SCALE;
     const camDir = new T.Vector3(camera.position.x, 0, camera.position.z).normalize();
     const nozzle = new T.Vector3(0, HERO_Y + top - 0.04, 0).addScaledVector(camDir, 0.08);
-    mist.material.uniforms.color.value.set(FAMILIES[hero.item.family].color).lerp(new T.Color('#ffffff'), 0.55);
-    for (let i = 0; i < 180; i++) {
-      const j = mist.userData.next; mist.userData.next = (j + 1) % p.length;
-      const q = p[j]; const sp = 0.9 + Math.random() * 1.6;
-      q.life = 0; q.max = 1.4 + Math.random() * 1.6; q.delay = Math.random() * 0.22;
-      q.vx = camDir.x * sp + (Math.random() - 0.5) * 0.5; q.vy = 0.25 + (Math.random() - 0.3) * 0.45; q.vz = camDir.z * sp + (Math.random() - 0.5) * 0.5;
-      pos[j * 3] = nozzle.x; pos[j * 3 + 1] = nozzle.y; pos[j * 3 + 2] = nozzle.z;
-    }
+    mist.emit(nozzle, camDir, hero.item.family);
     const g = hero.group; const y0 = HERO_Y;
     tween(0.35, (k) => { g.position.y = y0 - Math.sin(k * Math.PI) * 0.04; });
     return true;
@@ -2060,26 +2216,15 @@ const Showroom = (() => {
     dust.geometry.attributes.position.needsUpdate = true;
     dust.rotation.y += dt * 0.01;
 
-    // Mist.
-    const mp = mist.geometry.attributes.position.array, ma = mist.geometry.attributes.aAlpha.array, ms = mist.geometry.attributes.aSize.array;
-    const P = mist.userData.p;
-    for (let i = 0; i < P.length; i++) {
-      const q = P[i];
-      if (q.life >= q.max) { ma[i] = 0; continue; }
-      if (q.delay > 0) { q.delay -= dt; ma[i] = 0; continue; }
-      q.life += dt; const f = q.life / q.max;
-      const drag = Math.pow(0.18, dt);
-      q.vx *= drag; q.vz *= drag; q.vy = q.vy * drag - dt * 0.05;
-      mp[i * 3] += q.vx * dt; mp[i * 3 + 1] += q.vy * dt; mp[i * 3 + 2] += q.vz * dt;
-      ma[i] = Math.min(1, f * 8) * (1 - f) * 0.42; ms[i] = 0.05 + f * 0.6;
-    }
-    mist.geometry.attributes.position.needsUpdate = true; mist.geometry.attributes.aAlpha.needsUpdate = true; mist.geometry.attributes.aSize.needsUpdate = true;
+    mist.update(dt);
 
     pointLight.intensity = 1.3 + Math.sin(now * 0.0007) * 0.08;
     renderer.render(scene, camera);
   }
 
   return {
+    // Building blocks for the unboxing scene.
+    lib: { makeBottle, buildEnvironment, radialTexture, labelMat, beamMaterial, createMist, col, get fontsReady() { return fontsReady; } },
     init,
     get ok() { return ok; },
     setItems,
@@ -2090,6 +2235,359 @@ const Showroom = (() => {
     heroItem() { return hero ? hero.item : null; },
     resetView() { stopTour(); orbit.yaw = 0; orbit.pitch = 0.1; orbit.dist = Math.min(3.6, R - 0.9); orbit.ty = 1.25; lastInput = performance.now(); },
     wide() { stopTour(); orbit.pitch = 0.42; orbit.dist = R - 0.9; orbit.ty = 1.9; lastInput = performance.now(); },
+  };
+})();
+
+</script>
+<script>
+/* Sillage — unboxing. Every new bottle arrives in its house's retail box:
+ * the box drops onto a velvet plinth, you tap it, the lid flies off and the
+ * bottle rises out on a column of light. Rarer bottles get a bigger reveal.
+ */
+const Unbox = (() => {
+  const W = 0.95, D = 0.72, HB = 1.05, HL = 0.34, IN_SCALE = 0.8, OUT_SCALE = 1.0;
+  const RAYS = { value: 6, designer: 9, niche: 12, luxury: 16, haute: 22, legendary: 28 };
+  const SPARKS = { value: 40, designer: 70, niche: 110, luxury: 160, haute: 240, legendary: 320 };
+  let T, L, renderer, scene, camera, root, host, canvas;
+  let ok = false, tried = false, active = false, raf = 0, last = 0;
+  let cur = null; const queue = [];
+  let rays, halo, sparks, mist, spot, rim, plinthRing;
+  let cb = {};
+  const esc = (v) => String(v).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+  const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+  const bounce = (k) => { const n = 7.5625, d = 2.75; if (k < 1 / d) return n * k * k; if (k < 2 / d) return n * (k -= 1.5 / d) * k + 0.75; if (k < 2.5 / d) return n * (k -= 2.25 / d) * k + 0.9375; return n * (k -= 2.625 / d) * k + 0.984375; };
+
+  function init() {
+    tried = true;
+    T = window.THREE; L = typeof Showroom !== 'undefined' && Showroom.lib;
+    root = document.getElementById('unbox'); host = root.querySelector('.unbox-stage');
+    if (!T || !L) return false;
+    try { renderer = new T.WebGLRenderer({ antialias: true }); } catch (e) { return false; }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.outputEncoding = T.sRGBEncoding;
+    renderer.toneMapping = T.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    canvas = renderer.domElement; canvas.className = 'unbox-canvas';
+    host.appendChild(canvas);
+
+    scene = new T.Scene();
+    scene.background = L.col('#080605');
+    scene.environment = L.buildEnvironment(renderer);
+    camera = new T.PerspectiveCamera(40, 1, 0.05, 40);
+
+    scene.add(new T.HemisphereLight('#ffe8cc', '#100a07', 0.45));
+    spot = new T.SpotLight('#ffe2bb', 3.4, 12, 0.5, 0.7, 1.2); spot.position.set(0.6, 5, 2.2); spot.target.position.set(0, 0.8, 0); scene.add(spot, spot.target);
+    rim = new T.PointLight('#ffd08a', 0, 6, 1.4); rim.position.set(0, 1.6, -1.2); scene.add(rim);
+    const fill = new T.PointLight('#9fc2ff', 0.35, 8, 1.5); fill.position.set(-2.2, 1.4, 1.5); scene.add(fill);
+
+    // Velvet plinth with a brass rim.
+    const velvet = new T.MeshStandardMaterial({ color: L.col('#3a0f18'), roughness: 0.92, metalness: 0 });
+    const plinth = new T.Mesh(new T.CylinderGeometry(1.75, 1.85, 0.32, 96), velvet); plinth.position.y = -0.16; scene.add(plinth);
+    plinthRing = new T.Mesh(new T.TorusGeometry(1.75, 0.018, 8, 160), new T.MeshStandardMaterial({ color: L.col('#c79a55'), metalness: 1, roughness: 0.25 }));
+    plinthRing.rotation.x = Math.PI / 2; scene.add(plinthRing);
+    const pool = new T.Mesh(new T.PlaneGeometry(5, 5), new T.MeshBasicMaterial({ map: L.radialTexture([[0, 'rgba(255,214,160,0.3)'], [0.5, 'rgba(255,190,120,0.06)'], [1, 'rgba(0,0,0,0)']]), transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
+    pool.rotation.x = -Math.PI / 2; pool.position.y = 0.003; scene.add(pool);
+
+    // Light rays fanning out behind the bottle.
+    rays = new T.Group(); rays.position.set(0, 1.75, -0.7); scene.add(rays);
+    halo = new T.Sprite(new T.SpriteMaterial({ map: L.radialTexture([[0, 'rgba(255,255,255,0.9)'], [0.3, 'rgba(255,255,255,0.22)'], [1, 'rgba(255,255,255,0)']]), transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 }));
+    halo.scale.set(2.6, 2.6, 1); halo.position.set(0, 1.75, -0.4); scene.add(halo);
+
+    // Sparkle burst out of the box.
+    const N = 340, pos = new Float32Array(N * 3);
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
+    sparks = new T.Points(g, new T.PointsMaterial({ size: 0.06, map: L.radialTexture([[0, 'rgba(255,250,235,1)'], [0.25, 'rgba(255,220,150,0.8)'], [1, 'rgba(255,200,120,0)']]), transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: L.col('#ffd98f'), opacity: 0 }));
+    sparks.frustumCulled = false; sparks.userData.v = new Float32Array(N * 3); sparks.userData.n = 0; scene.add(sparks);
+
+    mist = L.createMist(360); scene.add(mist.points);
+
+    canvas.addEventListener('click', () => { if (cur && (cur.phase === 'wait' || cur.phase === 'drop')) open(); });
+    new ResizeObserver(resize).observe(host);
+    ok = true;
+    return true;
+  }
+
+  function resize() {
+    if (!renderer) return;
+    const w = host.clientWidth || 1, h = host.clientHeight || 1;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.fov = w / h < 1 ? 58 : 40; camera.updateProjectionMatrix();
+    mist.setPixelRatio(renderer.getPixelRatio() * (h / 900));
+  }
+
+  /* ---------- the box ---------- */
+  function lum(hex) { const c = new T.Color(hex); return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; }
+
+  function boxFace(item, kind) {
+    const h = HOUSE_BY_ID[item.house];
+    const c = document.createElement('canvas'); c.width = 512; c.height = kind === 'top' ? 390 : 512;
+    const g = c.getContext('2d');
+    g.fillStyle = h.lbg; g.fillRect(0, 0, c.width, c.height);
+    const gold = item.tier === 'legendary' || item.tier === 'haute';
+    g.strokeStyle = gold ? '#d8ae54' : h.lfg; g.globalAlpha = gold ? 0.95 : 0.5; g.lineWidth = gold ? 6 : 3;
+    g.strokeRect(22, 22, c.width - 44, c.height - 44); g.globalAlpha = 1;
+    g.fillStyle = h.lfg; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const fit = (text, weight, size, maxW, family) => {
+      let s = size; g.font = `${weight} ${s}px ${family}`;
+      while (g.measureText(text).width > maxW && s > 14) { s -= 2; g.font = `${weight} ${s}px ${family}`; }
+      return s;
+    };
+    const serif = '"Bodoni Moda", Didot, "Bodoni 72", Georgia, serif';
+    const sans = 'Jost, Futura, "Century Gothic", sans-serif';
+    if (kind === 'top') {
+      fit(h.name.toUpperCase(), 600, 64, 420, serif); g.fillText(h.name.toUpperCase(), 256, 170);
+      g.font = `500 20px ${sans}`; g.globalAlpha = 0.75; g.fillText(h.origin.toUpperCase(), 256, 240); g.globalAlpha = 1;
+    } else {
+      g.font = `500 22px ${sans}`; g.globalAlpha = 0.8; g.fillText(h.name.toUpperCase(), 256, 120); g.globalAlpha = 1;
+      // Wrap long fragrance names onto two lines.
+      const words = item.name.split(' '); let l1 = item.name, l2 = '';
+      g.font = `italic 500 52px ${serif}`;
+      if (g.measureText(item.name).width > 420 && words.length > 1) {
+        let best = 1, bestW = Infinity;
+        for (let i = 1; i < words.length; i++) { const a = words.slice(0, i).join(' '), b = words.slice(i).join(' '); const w = Math.max(g.measureText(a).width, g.measureText(b).width); if (w < bestW) { bestW = w; best = i; } }
+        l1 = words.slice(0, best).join(' '); l2 = words.slice(best).join(' ');
+      }
+      if (l2) { const s = Math.min(fit(l1, 'italic 500', 52, 420, serif), fit(l2, 'italic 500', 52, 420, serif)); g.font = `italic 500 ${s}px ${serif}`; g.fillText(l1, 256, 236); g.fillText(l2, 256, 236 + s * 1.1); }
+      else { fit(l1, 'italic 500', 56, 420, serif); g.fillText(l1, 256, 260); }
+      g.font = `500 18px ${sans}`; g.globalAlpha = 0.7;
+      g.fillText('100 ml ℮ 3.4 FL. OZ.', 256, 430); g.globalAlpha = 1;
+    }
+    const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 8;
+    return t;
+  }
+
+  function buildBox(item) {
+    const h = HOUSE_BY_ID[item.house];
+    const gold = item.tier === 'legendary' || item.tier === 'haute';
+    const plain = new T.MeshStandardMaterial({ color: L.col(h.lbg), roughness: gold ? 0.35 : 0.6, metalness: gold ? 0.35 : 0.05, side: T.DoubleSide });
+    const hide = new T.MeshBasicMaterial({ visible: false });
+    const front = new T.MeshStandardMaterial({ map: boxFace(item, 'front'), roughness: 0.5 });
+    const top = new T.MeshStandardMaterial({ map: boxFace(item, 'top'), roughness: 0.45 });
+    const satin = new T.MeshStandardMaterial({ color: L.col(lum(h.lbg) > 0.35 ? '#141012' : '#efe2cc'), roughness: 0.32, metalness: 0.25, side: T.BackSide });
+    const group = new T.Group();
+    // BoxGeometry faces: +x, -x, +y, -y, +z, -z.
+    const base = new T.Mesh(new T.BoxGeometry(W, HB, D), [plain, plain, hide, plain, front, plain]); base.position.y = HB / 2;
+    const lining = new T.Mesh(new T.BoxGeometry(W - 0.04, HB - 0.02, D - 0.04), satin); lining.position.y = HB / 2 + 0.01;
+    const lid = new T.Mesh(new T.BoxGeometry(W + 0.04, HL, D + 0.04), [plain, plain, top, hide, plain, plain]);
+    const lidRest = HB + 0.1 - HL / 2; lid.position.y = lidRest;
+    group.add(base, lining, lid);
+    return { group, lid, lidRest, mats: [plain, hide, front, top, satin] };
+  }
+
+  function buildRays(item) {
+    rays.children.slice().forEach((r) => { rays.remove(r); r.geometry.dispose(); r.material.dispose(); });
+    const n = RAYS[item.tier] || 8;
+    const color = item.tier === 'legendary' || item.tier === 'haute' ? '#fff0c8' : FAMILIES[item.family].color;
+    for (let i = 0; i < n; i++) {
+      const len = 2.4 + Math.random() * 1.6, wid = 0.08 + Math.random() * 0.16;
+      const geo = new T.PlaneGeometry(wid, len); geo.translate(0, len / 2, 0);
+      const mat = new T.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
+        uniforms: { color: { value: L.col(color) }, opacity: { value: 0 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+        fragmentShader: 'uniform vec3 color; uniform float opacity; varying vec2 vUv; void main(){ float a=pow(1.0-vUv.y,1.6)*sin(vUv.x*3.14159)*opacity; gl_FragColor=vec4(color,a); }',
+      });
+      const m = new T.Mesh(geo, mat); m.rotation.z = (i / n) * Math.PI * 2 + Math.random() * 0.2; m.userData.base = 0.25 + Math.random() * 0.35;
+      rays.add(m);
+    }
+  }
+
+  function burst(item) {
+    const n = SPARKS[item.tier] || 60;
+    const p = sparks.geometry.attributes.position.array, v = sparks.userData.v;
+    for (let i = 0; i < p.length / 3; i++) {
+      if (i < n) {
+        p[i * 3] = (Math.random() - 0.5) * W * 0.8; p[i * 3 + 1] = HB; p[i * 3 + 2] = (Math.random() - 0.5) * D * 0.8;
+        const a = Math.random() * Math.PI * 2, sp = 0.6 + Math.random() * 1.6;
+        v[i * 3] = Math.cos(a) * sp * 0.6; v[i * 3 + 1] = 2 + Math.random() * 2.6; v[i * 3 + 2] = Math.sin(a) * sp * 0.6;
+      } else { p[i * 3 + 1] = -50; v[i * 3] = v[i * 3 + 1] = v[i * 3 + 2] = 0; }
+    }
+    sparks.geometry.attributes.position.needsUpdate = true;
+    sparks.userData.t = 0; sparks.material.opacity = 1;
+    sparks.material.color.copy(L.col(item.tier === 'legendary' || item.tier === 'haute' ? '#ffe2a0' : FAMILIES[item.family].color).lerp(new T.Color('#ffffff'), 0.4));
+  }
+
+  /* ---------- sequence ---------- */
+  function play(item, info, callbacks) {
+    if (!tried && !init()) return false;
+    if (!ok) return false;
+    queue.push({ item, info: info || {}, cb: callbacks || {} });
+    // Box art is drawn on canvas with the web fonts, so wait for them on the first delivery.
+    Promise.resolve(L.fontsReady).then(() => { if (!cur && queue.length) next(); });
+    return true;
+  }
+
+  function next() {
+    const job = queue.shift();
+    if (!job) { stop(); return; }
+    const { item, info } = job; cb = job.cb;
+    if (cur) teardown();
+    const box = buildBox(item);
+    const bottle = L.makeBottle(item).group;
+    bottle.scale.setScalar(IN_SCALE); bottle.position.y = 0.04; bottle.visible = false;
+    box.group.add(bottle);
+    scene.add(box.group);
+    box.group.position.y = 3.4; box.group.rotation.y = -1.8;
+    buildRays(item);
+    halo.material.color.copy(L.col(FAMILIES[item.family].color)).lerp(new T.Color('#ffffff'), 0.4); halo.material.opacity = 0;
+    rim.color.copy(L.col(FAMILIES[item.family].color)); rim.intensity = 0;
+    cur = { item, info, box, bottle, phase: 'drop', t: 0, ty: 0.75 };
+    renderCard(item, info);
+    root.hidden = false; root.classList.remove('leaving');
+    document.body.classList.add('unboxing');
+    resize();
+    if (!active) { active = true; last = performance.now(); raf = requestAnimationFrame(frame); }
+    SFX.play('whoosh');
+  }
+
+  function renderCard(item, info) {
+    const h = HOUSE_BY_ID[item.house];
+    root.querySelector('#ub-eyebrow').textContent = `A delivery from ${h.name}`;
+    root.querySelector('#ub-prompt').hidden = true;
+    root.querySelector('#ub-actions').hidden = true;
+    const card = root.querySelector('#ub-card'); card.hidden = true; card.classList.remove('show');
+    card.innerHTML = `<p class="eyebrow">${item.tier === 'legendary' ? 'Legendary acquisition' : 'New on your shelf'}</p>
+      <p class="house">${esc(h.name)} · ${esc(h.origin)}</p>
+      <h2>${esc(item.name)}</h2>
+      <p class="tags"><span class="fam fam-${item.family}">${FAMILIES[item.family].label}</span><span class="tier">${TIERS[item.tier].label}</span>${item.disc ? '<span class="tier vint">Discontinued</span>' : ''}</p>
+      ${info.batch ? `<p class="batch">Batch ${info.batch}${info.paid != null ? ' · Paid $' + Math.round(info.paid).toLocaleString('en-US') : ''}</p>` : ''}`;
+    if (cb.onWearState) cb.onWearState(item);
+  }
+
+  function open() {
+    if (!cur || cur.phase === 'open' || cur.phase === 'rise' || cur.phase === 'show') return;
+    if (cur.phase === 'drop') { cur.box.group.position.y = 0; cur.box.group.rotation.y = -0.4; }
+    cur.phase = 'open'; cur.t = 0;
+    root.querySelector('#ub-prompt').hidden = true;
+    SFX.play('lidpop'); setTimeout(() => SFX.play('rustle'), 120);
+  }
+
+  function spray() {
+    if (!cur || cur.phase !== 'show') return false;
+    const top = cur.bottle.userData.top * OUT_SCALE;
+    const origin = new T.Vector3(0, cur.bottle.position.y + cur.box.group.position.y + top - 0.04, 0.12);
+    const dir = new T.Vector3(camera.position.x, 0, camera.position.z).normalize();
+    mist.emit(origin, dir, cur.item.family, 200);
+    cur.kick = 0.35;
+    return true;
+  }
+
+  function close() {
+    if (!cur) return;
+    root.classList.add('leaving');
+    const done = cur.cb && cur.cb.onClose;
+    setTimeout(() => { teardown(); if (queue.length) next(); else stop(); }, 380);
+    if (done) done();
+  }
+
+  function teardown() {
+    if (!cur) return;
+    scene.remove(cur.box.group);
+    // Box geometry and box materials are per-delivery; bottle geometry/materials are shared caches.
+    cur.box.group.children.forEach((m) => { if (m !== cur.bottle && m.geometry) m.geometry.dispose(); });
+    cur.box.mats.forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
+    cur = null;
+  }
+
+  function stop() {
+    active = false; cancelAnimationFrame(raf);
+    root.hidden = true; root.classList.remove('leaving');
+    document.body.classList.remove('unboxing');
+  }
+
+  /* ---------- loop ---------- */
+  function frame(now) {
+    if (!active) return;
+    raf = requestAnimationFrame(frame);
+    // A looser clamp than the showroom so the sequence still finishes on slow devices.
+    const dt = Math.min(0.1, (now - last) / 1000 || 0.016); last = now;
+    const c = cur;
+    if (c) {
+      c.t += dt;
+      const g = c.box.group;
+      if (c.phase === 'drop') {
+        const k = Math.min(1, c.t / 1.15);
+        g.position.y = 3.4 * (1 - bounce(k)); g.rotation.y = -1.8 + 1.4 * easeOut(k);
+        if (!c.landed && k > 0.36) { c.landed = true; SFX.play('thud'); }
+        if (k >= 1) { c.phase = 'wait'; c.t = 0; root.querySelector('#ub-prompt').hidden = false; }
+      } else if (c.phase === 'wait') {
+        // Anticipation: the lid twitches now and then.
+        const w = c.t % 1.6;
+        c.box.lid.position.y = c.box.lidRest + (w < 0.25 ? Math.sin(w / 0.25 * Math.PI) * 0.03 : 0);
+        c.box.lid.rotation.z = w < 0.25 ? Math.sin(w / 0.25 * Math.PI * 2) * 0.02 : 0;
+        if (c.t > 6) open();
+      } else if (c.phase === 'open') {
+        const k = Math.min(1, c.t / 1.1);
+        g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 5);
+        const lid = c.box.lid;
+        if (k < 0.28) {
+          const q = k / 0.28; lid.position.y = c.box.lidRest + easeOut(q) * 0.22; lid.rotation.z = Math.sin(q * Math.PI * 3) * 0.04;
+        } else {
+          const q = ease((k - 0.28) / 0.72);
+          lid.position.set(q * 1.5, c.box.lidRest + 0.22 + Math.sin(q * Math.PI) * 0.9 - q * (c.box.lidRest + 0.22 - 0.12), q * 0.5);
+          lid.rotation.set(q * 0.3, 0, -q * 2.9);
+          if (!c.burst) { c.burst = true; c.bottle.visible = true; burst(c.item); SFX.play('shimmer'); SFX.play('whoosh'); }
+        }
+        rim.intensity = k * 2.2;
+        if (k >= 1) {
+          c.phase = 'rise'; c.t = 0;
+          SFX.play('reveal');
+          if (['luxury', 'haute', 'legendary'].includes(c.item.tier)) setTimeout(() => SFX.play('unlock'), 350);
+        }
+      } else if (c.phase === 'rise') {
+        const k = Math.min(1, c.t / 1.7); const e = ease(k);
+        c.bottle.position.y = 0.04 + e * (HB + 0.2);
+        c.bottle.scale.setScalar(IN_SCALE + (OUT_SCALE - IN_SCALE) * e);
+        c.bottle.rotation.y = e * Math.PI * 2;
+        c.ty = 0.75 + e * 0.75;
+        halo.material.opacity = e * 0.85;
+        rays.children.forEach((r) => { r.material.uniforms.opacity.value = r.userData.base * e; });
+        if (k >= 1) {
+          c.phase = 'show'; c.t = 0;
+          const card = root.querySelector('#ub-card'); card.hidden = false; void card.offsetWidth; card.classList.add('show');
+          root.querySelector('#ub-actions').hidden = false;
+        }
+      } else if (c.phase === 'show') {
+        c.bottle.rotation.y += dt * 0.6;
+        c.bottle.position.y = HB + 0.24 + Math.sin(c.t * 1.6) * 0.03 - (c.kick ? Math.sin((0.35 - c.kick) / 0.35 * Math.PI) * 0.04 : 0);
+        if (c.kick) c.kick = Math.max(0, c.kick - dt);
+        rays.children.forEach((r) => { r.material.uniforms.opacity.value = r.userData.base * (0.85 + Math.sin(c.t * 2 + r.rotation.z * 3) * 0.15); });
+      }
+      halo.position.y = c.bottle.position.y + 0.55;
+      rays.position.y = c.bottle.position.y + 0.55;
+    }
+    rays.rotation.z += dt * 0.12;
+
+    // Sparkles fall under gravity and fade.
+    if (sparks.material.opacity > 0) {
+      const p = sparks.geometry.attributes.position.array, v = sparks.userData.v;
+      sparks.userData.t += dt;
+      for (let i = 0; i < p.length; i += 3) {
+        v[i + 1] -= dt * 2.6; v[i] *= Math.pow(0.6, dt); v[i + 2] *= Math.pow(0.6, dt);
+        p[i] += v[i] * dt; p[i + 1] += v[i + 1] * dt; p[i + 2] += v[i + 2] * dt;
+      }
+      sparks.geometry.attributes.position.needsUpdate = true;
+      sparks.material.opacity = Math.max(0, 1 - sparks.userData.t / 2.6);
+      sparks.material.size = 0.05 + Math.sin(sparks.userData.t * 30) * 0.012;
+    }
+    mist.update(dt);
+
+    // Camera: slow drift around the plinth.
+    const ty = c ? c.ty : 0.75;
+    const portrait = camera.aspect < 1;
+    const dist = portrait ? 5.6 : 4.3;
+    const yaw = Math.sin(now * 0.00018) * 0.22;
+    camera.position.set(Math.sin(yaw) * dist, ty + 0.75, Math.cos(yaw) * dist);
+    camera.lookAt(0, ty, 0);
+    renderer.render(scene, camera);
+  }
+
+  return {
+    play, open, spray, close,
+    get item() { return cur ? cur.item : null; },
+    get busy() { return !!cur; },
+    skip() { if (cur) { queue.length = 0; close(); } },
   };
 })();
 
@@ -2165,7 +2663,7 @@ const Showroom = (() => {
       v: 1, cash: 250, day: 1, shift: 0, job: 'packer', xp: {}, courses: {}, owned: {}, signature: null, desk: 0,
       stats: { shifts: 0, earned: 0, spent: 0, perfect: 0, sold: 0, matches: 0, auctions: 0 },
       ach: {}, notified: {}, market: null, last: Date.now(), seed: Math.random().toString(36).slice(2, 8),
-      settings: { sfx: true, music: true },
+      settings: { sfx: true, music: true, unbox: true },
     };
   }
   let S = freshState();
@@ -2386,6 +2884,7 @@ const Showroom = (() => {
     $('#goal').innerHTML = nextGoal();
     $('#btn-sfx').setAttribute('aria-pressed', S.settings.sfx);
     $('#btn-music').setAttribute('aria-pressed', S.settings.music);
+    $('#btn-unbox').setAttribute('aria-pressed', S.settings.unbox);
   }
 
   function nextGoal() {
@@ -2637,8 +3136,20 @@ const Showroom = (() => {
     S.owned[id] = { day: S.day, paid: price, batch: batchCode(S.seed + id + S.day), from };
     ui.showroomDirty = true;
     SFX.play('buy');
-    toast(`<b>Added to your shelf</b><span>${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} for ${money(price)}.</span>`, 'good');
+    if (!unbox(it)) toast(`<b>Added to your shelf</b><span>${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} for ${money(price)}.</span>`, 'good');
     checkProgress(); save(); renderHeader(); renderCurrent();
+  }
+
+  /* ---------- unboxing ---------- */
+  // Plays the unboxing scene for a new bottle; returns false when it is off or WebGL is unavailable.
+  function unbox(it) {
+    if (!S.settings.unbox || typeof Unbox === 'undefined') return false;
+    const o = S.owned[it.id];
+    return Unbox.play(it, { paid: o && o.paid, batch: o && o.batch }, { onWearState: syncUnboxWear });
+  }
+  function syncUnboxWear(it) {
+    const b = $('#ub-wear'); if (!b) return;
+    const on = S.signature === it.id; b.textContent = on ? 'Wearing' : 'Wear it'; b.classList.toggle('on', on);
   }
 
   /* ---------- VAULT tab ---------- */
@@ -2716,6 +3227,7 @@ const Showroom = (() => {
         S.owned[a.it.id] = { day: S.day, paid: a.price, batch: batchCode(S.seed + a.it.id + S.day), from: 'auction' };
         ui.showroomDirty = true;
         a.result = `Hammer down. ${a.it.name} is yours for ${money(a.price)}.`;
+        a.won = a.it;
         SFX.play('gavel'); setTimeout(() => SFX.play('unlock'), 200);
         checkProgress();
       } else {
@@ -2739,7 +3251,9 @@ const Showroom = (() => {
       // Walking away forfeits your position; the lot goes to the room.
       auction.end = 0; if (auction.leader === 'you') auction.leader = null; tickAuction();
     }
+    const won = auction && auction.won;
     auction = null; $('#modal').hidden = true; $('#modal').innerHTML = '';
+    if (won) unbox(won);
   }
 
   /* ---------- COLLECTION tab ---------- */
@@ -2965,6 +3479,15 @@ const Showroom = (() => {
     reset: () => { Showroom.resetView(); SFX.play('click'); },
     photo: () => { $('#stage').classList.toggle('photo'); SFX.play('click'); },
     'toggle-sfx': () => { S.settings.sfx = !S.settings.sfx; SFX.setSfx(S.settings.sfx); save(); renderHeader(); },
+    'toggle-unbox': () => { S.settings.unbox = !S.settings.unbox; SFX.play('click'); save(); renderHeader(); },
+    'unbox-spray': () => { if (Unbox.spray()) SFX.play('spray'); },
+    'unbox-wear': () => {
+      const it = Unbox.item; if (!it || !owns(it.id)) return;
+      S.signature = S.signature === it.id ? null : it.id; SFX.play(S.signature ? 'spray' : 'click');
+      syncUnboxWear(it); checkProgress(); save(); renderHeader(); if (ui.tab === 'work') renderWork();
+    },
+    'unbox-done': () => { SFX.play('clink'); Unbox.close(); },
+    'unbox-skip': () => { Unbox.skip(); },
     'toggle-music': () => {
       S.settings.music = !S.settings.music; SFX.setMusic(S.settings.music);
       if (S.settings.music && ui.tab === 'showroom') SFX.startMusic();
@@ -2984,6 +3507,11 @@ const Showroom = (() => {
     if (el && !el.disabled && actions[el.dataset.action]) { e.preventDefault(); actions[el.dataset.action](el); }
   });
   document.addEventListener('keydown', (e) => {
+    if (typeof Unbox !== 'undefined' && Unbox.busy) {
+      if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); Unbox.open(); }
+      if (e.key === 'Escape') Unbox.skip();
+      return;
+    }
     if (e.code === 'Space' && ui.tab === 'work' && ui.work.phase === 'timing' && !e.target.closest('input,select,textarea')) { e.preventDefault(); spritz(); }
     if (e.key === 'Escape' && !$('#modal').hidden) closeModal();
   });

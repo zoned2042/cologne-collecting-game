@@ -2,7 +2,9 @@
 
 Work your way from decant packer to group CEO and build the biggest fragrance collection on Earth, then show it off in a 3D showroom.
 
-Open `index.html` in a browser (or serve the folder with any static server). No build step.
+**Quickest way to play:** download `sillage.html` and double-click it. It's the whole game in one file and works offline.
+
+To work on the code, open `index.html` (it loads three.js from a CDN). After changing anything, rebuild the single file with `python3 tools/build_single.py`.
 
 ## What's in it
 
@@ -15,7 +17,9 @@ Open `index.html` in a browser (or serve the folder with any static server). No 
 - **Decant desk**: passive income that grows with your collection.
 - **Collection**: house completion progress, Clone Wars (owning an original and the well-known bottle inspired by it), batch codes and selling.
 - **3D showroom** (Three.js): a rotunda of lit shelves grouped by house with procedural bottles for each house's style. Click any bottle to fly it to the spotlit pedestal, spray it for an atomizer mist, or run the show-off tour, a cinematic walk through your ten most valuable bottles.
-- **Sound**: synthesized effects (glass clinks, atomizer spray, register, gavel) and an ambient showroom score, all generated with Web Audio.
+- **Unboxing**: every new bottle arrives in a retail box in its house's colours with the fragrance name on the front. Tap it, the lid pops off, and the bottle rises out on a fan of light with sparkles. Haute and legendary bottles come in gold-foil boxes with a bigger reveal. Turn it off with the Unbox button in the header.
+- **Iconic bottles**: famous designs show their real glass colour, like black Aventus, blue Sauvage and Bleu de Chanel, red Lost Cherry, teal Eros and green Polo.
+- **Sound**: synthesized effects (glass clinks, atomizer spray, register, gavel, box thud, lid pop, tissue rustle) and an ambient showroom score, all generated with Web Audio.
 - Progress saves in your browser automatically.
 
 Prices are approximate full-bottle retail in USD and serve as the game's market values.

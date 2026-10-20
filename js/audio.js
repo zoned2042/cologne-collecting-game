@@ -98,6 +98,42 @@ const SFX = (() => {
       src.connect(bp); bp.connect(g); g.connect(sfxBus); src.start(t); src.stop(t + 1.2);
     },
     gavel() { const t = ctx.currentTime; tone(120, t, 0.2, { type: 'square', vol: 0.12, wet: 0.3 }); tone(90, t + 0.02, 0.25, { vol: 0.15, wet: 0.3 }); },
+    // Box landing on velvet: a soft low thump.
+    thud() {
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.25);
+      g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.4);
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.15);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.25, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      src.connect(lp); lp.connect(ng); ng.connect(sfxBus); src.start(t);
+    },
+    // Lid coming off a snug box: a short suction pop.
+    lidpop() {
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.12);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.2);
+    },
+    // Tissue paper: a cluster of short crinkles.
+    rustle() {
+      const t = ctx.currentTime;
+      for (let i = 0; i < 9; i++) {
+        const st = t + Math.random() * 0.55;
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.08);
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2500 + Math.random() * 4000; bp.Q.value = 1.5;
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, st); g.gain.linearRampToValueAtTime(0.12 + Math.random() * 0.1, st + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.05 + Math.random() * 0.05);
+        src.connect(bp); bp.connect(g); g.connect(sfxBus); src.start(st);
+      }
+    },
+    // Sparkles: a quick glittering run.
+    shimmer() {
+      const t = ctx.currentTime;
+      for (let i = 0; i < 14; i++) tone(2093 * Math.pow(2, (i % 7) / 7 + Math.floor(i / 7) * 0.5), t + i * 0.035, 0.6, { type: 'triangle', vol: 0.035, wet: 0.8 });
+    },
     tick() { const t = ctx.currentTime; tone(1600, t, 0.03, { type: 'square', vol: 0.03, wet: 0 }); },
     reveal() {
       const t = ctx.currentTime;

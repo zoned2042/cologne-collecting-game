@@ -4,7 +4,7 @@
 const Showroom = (() => {
   const ROWS = 6, ROW_Y0 = 0.34, ROW_GAP = 0.56, COL_GAP = 0.44;
   const SHELF_SCALE = 0.36, HERO_SCALE = 0.72, HERO_Y = 1.0;
-  let T = null, renderer, scene, camera, host, canvas;
+  let T = window.THREE || null, renderer, scene, camera, host, canvas;
   let active = false, raf = 0, last = 0, ok = false;
   let R = 5.4, builtR = 0;
   let room, bottleGroup, signGroup, heroHalo, dust, mist, pointLight;
@@ -15,7 +15,8 @@ const Showroom = (() => {
   const cur = { yaw: 0, pitch: 0.1, dist: 3.6, tx: 0, ty: 1.25, tz: 0 };
   let lastInput = 0, tour = null, cb = {};
   const shapeCache = {}, matCache = {}, labelCache = {};
-  let fontsReady = Promise.resolve();
+  // Box and label textures are drawn on canvas, so wait for the web fonts before drawing.
+  const fontsReady = (document.fonts && document.fonts.load) ? Promise.all([document.fonts.load('600 64px "Bodoni Moda"'), document.fonts.load('italic 500 52px "Bodoni Moda"'), document.fonts.load('500 22px Jost')]).catch(() => {}) : Promise.resolve();
 
   /* ---------- helpers ---------- */
   // r128 treats hex colours as linear; convert so sRGB output shows the intended colour.
@@ -165,9 +166,16 @@ const Showroom = (() => {
       envMapIntensity: 2.4, depthWrite: false, flatShading: !!flat,
     }));
   }
-  function liquidMat(family, flat) {
-    return mat('liq-' + family + (flat ? 'F' : ''), () => {
-      const c = col(FAMILIES[family].color);
+  // Coloured glass for iconic bottles; darker glass is more opaque, like the real thing.
+  function tintedGlassMat(tint, dense, flat) {
+    return mat('glass-' + tint + dense + (flat ? 'F' : ''), () => new T.MeshPhysicalMaterial({
+      color: col(tint), metalness: 0.1, roughness: 0.06, transparent: true, opacity: dense, clearcoat: 1, clearcoatRoughness: 0.03,
+      envMapIntensity: 2.2, depthWrite: false, flatShading: !!flat,
+    }));
+  }
+  function liquidMat(family, flat, juice) {
+    return mat('liq-' + (juice || family) + (flat ? 'F' : ''), () => {
+      const c = col(juice || FAMILIES[family].color);
       return new T.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.3, roughness: 0.18, metalness: 0, transparent: true, opacity: 0.94, flatShading: !!flat });
     });
   }
@@ -194,17 +202,19 @@ const Showroom = (() => {
   function makeBottle(item) {
     const house = HOUSE_BY_ID[item.house];
     const s = getShape(house.shape);
+    const icon = ICONIC[item.key] || {};
+    const cap = icon.cap || house.cap;
     const g = new T.Group();
     let body;
     if (s.opaque) {
-      body = new T.Mesh(s.body, capMat(house.cap));
+      body = new T.Mesh(s.body, capMat(cap));
     } else {
-      const liquid = new T.Mesh(s.liquid, liquidMat(item.family, s.flat)); liquid.renderOrder = 1; g.add(liquid);
-      body = new T.Mesh(s.body, glassMat(s.flat)); body.renderOrder = 2;
+      const liquid = new T.Mesh(s.liquid, liquidMat(item.family, s.flat, icon.juice)); liquid.renderOrder = 1; g.add(liquid);
+      body = new T.Mesh(s.body, icon.glass ? tintedGlassMat(icon.glass, icon.dense || 0.6, s.flat) : glassMat(s.flat)); body.renderOrder = 2;
     }
     g.add(body);
     for (const [geo, role] of s.parts) {
-      const m = role === 'cap' ? capMat(house.cap) : role === 'black' ? capMat('black') : capMat(house.cap === 'silver' || house.cap === 'white' || house.cap === 'blue' ? 'silver' : 'gold');
+      const m = role === 'cap' ? capMat(cap) : role === 'black' ? capMat('black') : capMat(cap === 'silver' || cap === 'white' || cap === 'blue' ? 'silver' : 'gold');
       g.add(new T.Mesh(geo, m));
     }
     if (s.labelGeo) g.add(new T.Mesh(s.labelGeo, labelMat(item.house)));
@@ -301,7 +311,7 @@ const Showroom = (() => {
     scene.add(room);
   }
 
-  function buildEnvironment() {
+  function buildEnvironment(r = renderer) {
     const env = new T.Scene();
     const shell = new T.Mesh(new T.BoxGeometry(20, 20, 20), new T.MeshBasicMaterial({ color: col('#0d0a08'), side: T.BackSide }));
     env.add(shell);
@@ -314,22 +324,14 @@ const Showroom = (() => {
     panel(1.2, 12, '#ffd2a0', 2.6, 9, 1, 3, -Math.PI / 2);
     panel(10, 0.8, '#ffe0c0', 1.2, 0, 3, -9.5);
     panel(10, 0.8, '#ffb07a', 1.2, 0, -2, 9.5, Math.PI);
-    const pm = new T.PMREMGenerator(renderer);
+    const pm = new T.PMREMGenerator(r);
     const tex = pm.fromScene(env, 0.035).texture;
     pm.dispose();
     return tex;
   }
 
-  function buildAtmosphere() {
-    // Floating dust motes catching the light.
-    const N = 700, pos = new Float32Array(N * 3);
-    for (let i = 0; i < N; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 6; pos[i * 3] = Math.sin(a) * r; pos[i * 3 + 1] = Math.random() * 4.6; pos[i * 3 + 2] = Math.cos(a) * r; }
-    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
-    dust = new T.Points(g, new T.PointsMaterial({ size: 0.022, map: radialTexture([[0, 'rgba(255,240,220,1)'], [1, 'rgba(255,240,220,0)']]), transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending, color: col('#ffe6c4') }));
-    scene.add(dust);
-
-    // Atomizer mist: a particle pool with per-particle alpha and size.
-    const M = 520;
+  /* Atomizer mist: a particle pool with per-particle alpha and size. Shared with the unboxing scene. */
+  function createMist(M = 520) {
     const mp = new Float32Array(M * 3), ma = new Float32Array(M), ms = new Float32Array(M);
     const mg = new T.BufferGeometry();
     mg.setAttribute('position', new T.BufferAttribute(mp, 3));
@@ -341,10 +343,47 @@ const Showroom = (() => {
       vertexShader: 'attribute float aAlpha; attribute float aSize; uniform float pr; varying float vA; void main(){ vA=aAlpha; vec4 mv=modelViewMatrix*vec4(position,1.); gl_PointSize=aSize*pr*(320.0/-mv.z); gl_Position=projectionMatrix*mv; }',
       fragmentShader: 'uniform vec3 color; uniform sampler2D map; varying float vA; void main(){ vec4 t=texture2D(map, gl_PointCoord); gl_FragColor=vec4(color, t.a*vA); }',
     });
-    mist = new T.Points(mg, mm); mist.frustumCulled = false;
-    mist.userData.p = Array.from({ length: M }, () => ({ life: 0, max: 1, vx: 0, vy: 0, vz: 0 }));
-    mist.userData.next = 0;
-    scene.add(mist);
+    const points = new T.Points(mg, mm); points.frustumCulled = false;
+    const P = Array.from({ length: M }, () => ({ life: 1, max: 1, vx: 0, vy: 0, vz: 0, delay: 0 }));
+    let next = 0;
+    return {
+      points,
+      setPixelRatio(v) { mm.uniforms.pr.value = v; },
+      emit(origin, dir, family, count = 180) {
+        mm.uniforms.color.value.set(FAMILIES[family].color).lerp(new T.Color('#ffffff'), 0.55);
+        for (let i = 0; i < count; i++) {
+          const j = next; next = (j + 1) % M;
+          const q = P[j]; const sp = 0.9 + Math.random() * 1.6;
+          q.life = 0; q.max = 1.4 + Math.random() * 1.6; q.delay = Math.random() * 0.22;
+          q.vx = dir.x * sp + (Math.random() - 0.5) * 0.5; q.vy = 0.25 + (Math.random() - 0.3) * 0.45; q.vz = dir.z * sp + (Math.random() - 0.5) * 0.5;
+          mp[j * 3] = origin.x; mp[j * 3 + 1] = origin.y; mp[j * 3 + 2] = origin.z;
+        }
+      },
+      update(dt) {
+        for (let i = 0; i < M; i++) {
+          const q = P[i];
+          if (q.life >= q.max) { ma[i] = 0; continue; }
+          if (q.delay > 0) { q.delay -= dt; ma[i] = 0; continue; }
+          q.life += dt; const f = q.life / q.max;
+          const drag = Math.pow(0.18, dt);
+          q.vx *= drag; q.vz *= drag; q.vy = q.vy * drag - dt * 0.05;
+          mp[i * 3] += q.vx * dt; mp[i * 3 + 1] += q.vy * dt; mp[i * 3 + 2] += q.vz * dt;
+          ma[i] = Math.min(1, f * 8) * (1 - f) * 0.42; ms[i] = 0.05 + f * 0.6;
+        }
+        mg.attributes.position.needsUpdate = true; mg.attributes.aAlpha.needsUpdate = true; mg.attributes.aSize.needsUpdate = true;
+      },
+    };
+  }
+
+  function buildAtmosphere() {
+    // Floating dust motes catching the light.
+    const N = 700, pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 6; pos[i * 3] = Math.sin(a) * r; pos[i * 3 + 1] = Math.random() * 4.6; pos[i * 3 + 2] = Math.cos(a) * r; }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
+    dust = new T.Points(g, new T.PointsMaterial({ size: 0.022, map: radialTexture([[0, 'rgba(255,240,220,1)'], [1, 'rgba(255,240,220,0)']]), transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending, color: col('#ffe6c4') }));
+    scene.add(dust);
+
+    mist = createMist(); scene.add(mist.points);
 
     heroHalo = new T.Sprite(new T.SpriteMaterial({ map: radialTexture([[0, 'rgba(255,255,255,0.8)'], [0.35, 'rgba(255,255,255,0.18)'], [1, 'rgba(255,255,255,0)']]), transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
     heroHalo.scale.set(1.6, 1.6, 1); heroHalo.position.set(0, 1.35, 0); heroHalo.visible = false; scene.add(heroHalo);
@@ -383,7 +422,6 @@ const Showroom = (() => {
     bindInput();
     new ResizeObserver(resize).observe(host);
     resize();
-    if (document.fonts && document.fonts.load) fontsReady = Promise.all([document.fonts.load('600 64px "Bodoni Moda"'), document.fonts.load('500 22px Jost')]).catch(() => {});
     ok = true;
     return true;
   }
@@ -393,7 +431,7 @@ const Showroom = (() => {
     const w = host.clientWidth || 1, h = host.clientHeight || 1;
     renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.fov = w / h < 1 ? 68 : 50; camera.updateProjectionMatrix();
-    if (mist) mist.material.uniforms.pr.value = renderer.getPixelRatio() * (h / 900);
+    if (mist) mist.setPixelRatio(renderer.getPixelRatio() * (h / 900));
   }
 
   /* ---------- collection layout ---------- */
@@ -472,18 +510,10 @@ const Showroom = (() => {
 
   function spray() {
     if (!hero || hero.flying) return false;
-    const p = mist.userData.p, pos = mist.geometry.attributes.position.array;
     const top = hero.group.userData.top * HERO_SCALE;
     const camDir = new T.Vector3(camera.position.x, 0, camera.position.z).normalize();
     const nozzle = new T.Vector3(0, HERO_Y + top - 0.04, 0).addScaledVector(camDir, 0.08);
-    mist.material.uniforms.color.value.set(FAMILIES[hero.item.family].color).lerp(new T.Color('#ffffff'), 0.55);
-    for (let i = 0; i < 180; i++) {
-      const j = mist.userData.next; mist.userData.next = (j + 1) % p.length;
-      const q = p[j]; const sp = 0.9 + Math.random() * 1.6;
-      q.life = 0; q.max = 1.4 + Math.random() * 1.6; q.delay = Math.random() * 0.22;
-      q.vx = camDir.x * sp + (Math.random() - 0.5) * 0.5; q.vy = 0.25 + (Math.random() - 0.3) * 0.45; q.vz = camDir.z * sp + (Math.random() - 0.5) * 0.5;
-      pos[j * 3] = nozzle.x; pos[j * 3 + 1] = nozzle.y; pos[j * 3 + 2] = nozzle.z;
-    }
+    mist.emit(nozzle, camDir, hero.item.family);
     const g = hero.group; const y0 = HERO_Y;
     tween(0.35, (k) => { g.position.y = y0 - Math.sin(k * Math.PI) * 0.04; });
     return true;
@@ -609,26 +639,15 @@ const Showroom = (() => {
     dust.geometry.attributes.position.needsUpdate = true;
     dust.rotation.y += dt * 0.01;
 
-    // Mist.
-    const mp = mist.geometry.attributes.position.array, ma = mist.geometry.attributes.aAlpha.array, ms = mist.geometry.attributes.aSize.array;
-    const P = mist.userData.p;
-    for (let i = 0; i < P.length; i++) {
-      const q = P[i];
-      if (q.life >= q.max) { ma[i] = 0; continue; }
-      if (q.delay > 0) { q.delay -= dt; ma[i] = 0; continue; }
-      q.life += dt; const f = q.life / q.max;
-      const drag = Math.pow(0.18, dt);
-      q.vx *= drag; q.vz *= drag; q.vy = q.vy * drag - dt * 0.05;
-      mp[i * 3] += q.vx * dt; mp[i * 3 + 1] += q.vy * dt; mp[i * 3 + 2] += q.vz * dt;
-      ma[i] = Math.min(1, f * 8) * (1 - f) * 0.42; ms[i] = 0.05 + f * 0.6;
-    }
-    mist.geometry.attributes.position.needsUpdate = true; mist.geometry.attributes.aAlpha.needsUpdate = true; mist.geometry.attributes.aSize.needsUpdate = true;
+    mist.update(dt);
 
     pointLight.intensity = 1.3 + Math.sin(now * 0.0007) * 0.08;
     renderer.render(scene, camera);
   }
 
   return {
+    // Building blocks for the unboxing scene.
+    lib: { makeBottle, buildEnvironment, radialTexture, labelMat, beamMaterial, createMist, col, get fontsReady() { return fontsReady; } },
     init,
     get ok() { return ok; },
     setItems,

@@ -68,7 +68,7 @@
       v: 1, cash: 250, day: 1, shift: 0, job: 'packer', xp: {}, courses: {}, owned: {}, signature: null, desk: 0,
       stats: { shifts: 0, earned: 0, spent: 0, perfect: 0, sold: 0, matches: 0, auctions: 0 },
       ach: {}, notified: {}, market: null, last: Date.now(), seed: Math.random().toString(36).slice(2, 8),
-      settings: { sfx: true, music: true },
+      settings: { sfx: true, music: true, unbox: true },
     };
   }
   let S = freshState();
@@ -289,6 +289,7 @@
     $('#goal').innerHTML = nextGoal();
     $('#btn-sfx').setAttribute('aria-pressed', S.settings.sfx);
     $('#btn-music').setAttribute('aria-pressed', S.settings.music);
+    $('#btn-unbox').setAttribute('aria-pressed', S.settings.unbox);
   }
 
   function nextGoal() {
@@ -540,8 +541,20 @@
     S.owned[id] = { day: S.day, paid: price, batch: batchCode(S.seed + id + S.day), from };
     ui.showroomDirty = true;
     SFX.play('buy');
-    toast(`<b>Added to your shelf</b><span>${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} for ${money(price)}.</span>`, 'good');
+    if (!unbox(it)) toast(`<b>Added to your shelf</b><span>${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} for ${money(price)}.</span>`, 'good');
     checkProgress(); save(); renderHeader(); renderCurrent();
+  }
+
+  /* ---------- unboxing ---------- */
+  // Plays the unboxing scene for a new bottle; returns false when it is off or WebGL is unavailable.
+  function unbox(it) {
+    if (!S.settings.unbox || typeof Unbox === 'undefined') return false;
+    const o = S.owned[it.id];
+    return Unbox.play(it, { paid: o && o.paid, batch: o && o.batch }, { onWearState: syncUnboxWear });
+  }
+  function syncUnboxWear(it) {
+    const b = $('#ub-wear'); if (!b) return;
+    const on = S.signature === it.id; b.textContent = on ? 'Wearing' : 'Wear it'; b.classList.toggle('on', on);
   }
 
   /* ---------- VAULT tab ---------- */
@@ -619,6 +632,7 @@
         S.owned[a.it.id] = { day: S.day, paid: a.price, batch: batchCode(S.seed + a.it.id + S.day), from: 'auction' };
         ui.showroomDirty = true;
         a.result = `Hammer down. ${a.it.name} is yours for ${money(a.price)}.`;
+        a.won = a.it;
         SFX.play('gavel'); setTimeout(() => SFX.play('unlock'), 200);
         checkProgress();
       } else {
@@ -642,7 +656,9 @@
       // Walking away forfeits your position; the lot goes to the room.
       auction.end = 0; if (auction.leader === 'you') auction.leader = null; tickAuction();
     }
+    const won = auction && auction.won;
     auction = null; $('#modal').hidden = true; $('#modal').innerHTML = '';
+    if (won) unbox(won);
   }
 
   /* ---------- COLLECTION tab ---------- */
@@ -868,6 +884,15 @@
     reset: () => { Showroom.resetView(); SFX.play('click'); },
     photo: () => { $('#stage').classList.toggle('photo'); SFX.play('click'); },
     'toggle-sfx': () => { S.settings.sfx = !S.settings.sfx; SFX.setSfx(S.settings.sfx); save(); renderHeader(); },
+    'toggle-unbox': () => { S.settings.unbox = !S.settings.unbox; SFX.play('click'); save(); renderHeader(); },
+    'unbox-spray': () => { if (Unbox.spray()) SFX.play('spray'); },
+    'unbox-wear': () => {
+      const it = Unbox.item; if (!it || !owns(it.id)) return;
+      S.signature = S.signature === it.id ? null : it.id; SFX.play(S.signature ? 'spray' : 'click');
+      syncUnboxWear(it); checkProgress(); save(); renderHeader(); if (ui.tab === 'work') renderWork();
+    },
+    'unbox-done': () => { SFX.play('clink'); Unbox.close(); },
+    'unbox-skip': () => { Unbox.skip(); },
     'toggle-music': () => {
       S.settings.music = !S.settings.music; SFX.setMusic(S.settings.music);
       if (S.settings.music && ui.tab === 'showroom') SFX.startMusic();
@@ -887,6 +912,11 @@
     if (el && !el.disabled && actions[el.dataset.action]) { e.preventDefault(); actions[el.dataset.action](el); }
   });
   document.addEventListener('keydown', (e) => {
+    if (typeof Unbox !== 'undefined' && Unbox.busy) {
+      if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); Unbox.open(); }
+      if (e.key === 'Escape') Unbox.skip();
+      return;
+    }
     if (e.code === 'Space' && ui.tab === 'work' && ui.work.phase === 'timing' && !e.target.closest('input,select,textarea')) { e.preventDefault(); spritz(); }
     if (e.key === 'Escape' && !$('#modal').hidden) closeModal();
   });

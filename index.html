@@ -28,6 +28,7 @@
     <div class="toggles">
       <button class="icon-btn" id="btn-sfx" data-action="toggle-sfx" aria-pressed="true" title="Sound effects">SFX</button>
       <button class="icon-btn" id="btn-music" data-action="toggle-music" aria-pressed="true" title="Showroom music">Music</button>
+      <button class="icon-btn" id="btn-unbox" data-action="toggle-unbox" aria-pressed="true" title="Play the unboxing scene for new bottles">Unbox</button>
     </div>
   </header>
 
@@ -133,10 +134,24 @@
 <div id="toasts" aria-live="polite"></div>
 <div id="modal" class="modal" hidden></div>
 
+<div id="unbox" class="unbox" hidden>
+  <div class="unbox-stage"></div>
+  <p class="unbox-eyebrow" id="ub-eyebrow"></p>
+  <p class="unbox-prompt" id="ub-prompt" hidden>Tap the box to open it</p>
+  <div class="unbox-card" id="ub-card" hidden></div>
+  <div class="unbox-actions" id="ub-actions" hidden>
+    <button class="btn" data-action="unbox-spray">Spray it</button>
+    <button class="btn" id="ub-wear" data-action="unbox-wear">Wear it</button>
+    <button class="btn btn-primary" data-action="unbox-done">Put it on the shelf</button>
+  </div>
+  <button class="btn btn-ghost unbox-skip" data-action="unbox-skip">Skip</button>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/catalog.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/showroom.js"></script>
+<script src="js/unbox.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
