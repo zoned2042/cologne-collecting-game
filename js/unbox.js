@@ -130,7 +130,7 @@ const Unbox = (() => {
     const lid = new T.Mesh(new T.BoxGeometry(W + 0.04, HL, D + 0.04), [plain, plain, top, hide, plain, plain]);
     const lidRest = HB + 0.1 - HL / 2; lid.position.y = lidRest;
     group.add(base, lining, lid);
-    return { group, lid, lidRest, mats: [plain, hide, front, top, satin] };
+    return { group, lid, lidRest, mats: [plain, hide, front, top, satin], hb: HB, w: W, d: D, lift: 0.22, openTime: 1.1, split: 0.28, landY: 0.12, landRot: -2.9, landX: 1.5 };
   }
 
   function buildRays(item) {
@@ -151,12 +151,12 @@ const Unbox = (() => {
     }
   }
 
-  function burst(item) {
+  function burst(item, box) {
     const n = SPARKS[item.tier] || 60;
     const p = sparks.geometry.attributes.position.array, v = sparks.userData.v;
     for (let i = 0; i < p.length / 3; i++) {
       if (i < n) {
-        p[i * 3] = (Math.random() - 0.5) * W * 0.8; p[i * 3 + 1] = HB; p[i * 3 + 2] = (Math.random() - 0.5) * D * 0.8;
+        p[i * 3] = (Math.random() - 0.5) * box.w * 0.8; p[i * 3 + 1] = box.hb; p[i * 3 + 2] = (Math.random() - 0.5) * box.d * 0.8;
         const a = Math.random() * Math.PI * 2, sp = 0.6 + Math.random() * 1.6;
         v[i * 3] = Math.cos(a) * sp * 0.6; v[i * 3 + 1] = 2 + Math.random() * 2.6; v[i * 3 + 2] = Math.sin(a) * sp * 0.6;
       } else { p[i * 3 + 1] = -50; v[i * 3] = v[i * 3 + 1] = v[i * 3 + 2] = 0; }
@@ -181,8 +181,12 @@ const Unbox = (() => {
     if (!job) { stop(); return; }
     const { item, info } = job; cb = job.cb;
     if (cur) teardown();
-    const box = buildBox(item);
+    // The bottle goes first: it primes the bottle toolkit the box artwork is painted with.
     const bottle = L.makeBottle(item).group;
+    // Real boxes fit snugly around their bottle, so measure it at its in-box scale.
+    bottle.updateMatrixWorld(true);
+    const bb = new T.Box3().setFromObject(bottle), sz = bb.getSize(new T.Vector3());
+    const box = (typeof BoxCraft !== 'undefined' && BoxCraft.build(item, { w: sz.x, d: sz.z, h: sz.y + 0.04 })) || buildBox(item);
     bottle.scale.setScalar(IN_SCALE); bottle.position.y = 0.04; bottle.visible = false;
     box.group.add(bottle);
     scene.add(box.group);
@@ -239,11 +243,13 @@ const Unbox = (() => {
     if (done) done();
   }
 
+  function isBottle(m) { for (let p = m; p; p = p.parent) if (p === cur.bottle) return true; return false; }
+
   function teardown() {
     if (!cur) return;
     scene.remove(cur.box.group);
     // Box geometry and box materials are per-delivery; bottle geometry/materials are shared caches.
-    cur.box.group.children.forEach((m) => { if (m !== cur.bottle && m.geometry) m.geometry.dispose(); });
+    cur.box.group.traverse((m) => { if (m.geometry && !isBottle(m)) m.geometry.dispose(); });
     cur.box.mats.forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
     cur = null;
   }
@@ -276,16 +282,18 @@ const Unbox = (() => {
         c.box.lid.rotation.z = w < 0.25 ? Math.sin(w / 0.25 * Math.PI * 2) * 0.02 : 0;
         if (c.t > 6) open();
       } else if (c.phase === 'open') {
-        const k = Math.min(1, c.t / 1.1);
+        const b = c.box, k = Math.min(1, c.t / b.openTime);
         g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 5);
-        const lid = c.box.lid;
-        if (k < 0.28) {
-          const q = k / 0.28; lid.position.y = c.box.lidRest + easeOut(q) * 0.22; lid.rotation.z = Math.sin(q * Math.PI * 3) * 0.04;
+        const lid = b.lid, up = b.lidRest + b.lift;
+        if (k < b.split) {
+          const q = k / b.split; lid.position.y = b.lidRest + easeOut(q) * b.lift; lid.rotation.z = Math.sin(q * Math.PI * 3) * 0.04;
+          // Show the bottle as soon as a sleeve has lifted clear of it.
+          if (b.lift > 0.5 && q > 0.6) c.bottle.visible = true;
         } else {
-          const q = ease((k - 0.28) / 0.72);
-          lid.position.set(q * 1.5, c.box.lidRest + 0.22 + Math.sin(q * Math.PI) * 0.9 - q * (c.box.lidRest + 0.22 - 0.12), q * 0.5);
-          lid.rotation.set(q * 0.3, 0, -q * 2.9);
-          if (!c.burst) { c.burst = true; c.bottle.visible = true; burst(c.item); SFX.play('shimmer'); SFX.play('whoosh'); }
+          const q = ease((k - b.split) / (1 - b.split));
+          lid.position.set(q * b.landX, up + Math.sin(q * Math.PI) * 0.9 - q * (up - b.landY), q * 0.5);
+          lid.rotation.set(q * 0.3, 0, q * b.landRot);
+          if (!c.burst) { c.burst = true; c.bottle.visible = true; burst(c.item, b); SFX.play('shimmer'); SFX.play('whoosh'); }
         }
         rim.intensity = k * 2.2;
         if (k >= 1) {
@@ -295,7 +303,7 @@ const Unbox = (() => {
         }
       } else if (c.phase === 'rise') {
         const k = Math.min(1, c.t / 1.7); const e = ease(k);
-        c.bottle.position.y = 0.04 + e * (HB + 0.2);
+        c.bottle.position.y = 0.04 + e * (c.box.hb + 0.2);
         c.bottle.scale.setScalar(IN_SCALE + (OUT_SCALE - IN_SCALE) * e);
         c.bottle.rotation.y = e * Math.PI * 2;
         c.ty = 0.75 + e * 0.75;
@@ -308,7 +316,7 @@ const Unbox = (() => {
         }
       } else if (c.phase === 'show') {
         c.bottle.rotation.y += dt * 0.6;
-        c.bottle.position.y = HB + 0.24 + Math.sin(c.t * 1.6) * 0.03 - (c.kick ? Math.sin((0.35 - c.kick) / 0.35 * Math.PI) * 0.04 : 0);
+        c.bottle.position.y = c.box.hb + 0.24 + Math.sin(c.t * 1.6) * 0.03 - (c.kick ? Math.sin((0.35 - c.kick) / 0.35 * Math.PI) * 0.04 : 0);
         if (c.kick) c.kick = Math.max(0, c.kick - dt);
         rays.children.forEach((r) => { r.material.uniforms.opacity.value = r.userData.base * (0.85 + Math.sin(c.t * 2 + r.rotation.z * 3) * 0.15); });
       }

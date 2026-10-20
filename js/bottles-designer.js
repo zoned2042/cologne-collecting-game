@@ -63,6 +63,7 @@
       case 'cyl': geo = cyl(W / 2, (o.wb || W) / 2, H, 0, o.seg || 48); if (o.seg && o.seg < 12) geo.rotateY(Math.PI / o.seg); geo.scale(1, 1, D / W); break;
       case 'lathe': geo = lathe(o.pts, 0, 1, o.seg || 48); if (o.seg && o.seg < 12) geo.rotateY(Math.PI / o.seg); geo.scale(1, 1, D / W); break;
       case 'sphere': geo = sphere(1, H / 2, W / 2, H / 2, D / 2); break;
+      case 'profile': geo = profile(o.pts, D, o.round || 0.03); break;
     }
     if (o.grad) gradient(geo, o.grad[0], o.grad[1], o.gc || 0.8);
     const flat = !!(o.seg && o.seg < 12);
@@ -83,6 +84,21 @@
     return k.done();
   }
   const S = (o) => () => Q(o);
+  // A front-view outline extruded to depth d, corners rounded by rr, standing on y = 0.
+  function profile(pts, d, rr) {
+    const t = T(), sh = new t.Shape(), n = pts.length, bv = Math.min(0.02, d / 4);
+    const at = (i) => pts[(i + n) % n];
+    for (let i = 0; i < n; i++) {
+      const [x, y] = at(i), [px, py] = at(i - 1), [nx, ny] = at(i + 1);
+      const l1 = Math.hypot(px - x, py - y), l2 = Math.hypot(nx - x, ny - y), r = Math.min(rr, l1 / 2, l2 / 2);
+      const ax = x + (px - x) / l1 * r, ay = y + (py - y) / l1 * r, bx = x + (nx - x) / l2 * r, by = y + (ny - y) / l2 * r;
+      if (i) sh.lineTo(ax, ay); else sh.moveTo(ax, ay);
+      sh.quadraticCurveTo(x, y, bx, by);
+    }
+    const g = new t.ExtrudeGeometry(sh, { depth: d - 2 * bv, bevelEnabled: true, bevelThickness: bv, bevelSize: bv * 0.8, bevelSegments: 3, curveSegments: 10 });
+    g.computeBoundingBox(); g.translate(0, -g.boundingBox.min.y, -(d - 2 * bv) / 2);
+    return g;
+  }
   const disc = (r, y, z, mat, depth = 0.02) => { const g = new (T().CylinderGeometry)(r, r, depth, 40); g.rotateX(Math.PI / 2); g.translate(0, y, z); return [g, mat]; };
 
   /* ---------- Afnan ---------- */
@@ -747,5 +763,6 @@
   });
 
   // Every Louis Vuitton bottle shares the same silhouette, so unlisted ones get it too.
+  Object.assign(BottleCraft.tools, { Q, S, matOf, profile, disc });
   BottleCraft.houseFallback('lv', lv({ bottom: '#e8c08a', top: '#f6ecdc' }));
 })();
