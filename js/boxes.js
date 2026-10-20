@@ -27,7 +27,7 @@ const BoxCraft = (() => {
   // fit: the bottle's size inside the box; a spec's own w/d/h/r are minimums, pad is the slack around the bottle.
   function build(item, fit = { w: 0.5, d: 0.3, h: 0.8 }) {
     T = window.THREE;
-    const fn = SPECS[item.key] || SPECS[item.house];
+    const fn = SPECS[item.key] || SPECS[item.house] || SPECS['*'];
     if (!T || !fn) return null;
     const s = Object.assign({}, fn(item, fit)), pad = s.pad != null ? s.pad : 0.07;
     if (s.shape === 'round') {
@@ -89,6 +89,7 @@ const BoxCraft = (() => {
 
   /* Rect: a carton base with a telescoping lid. */
   function rect(s) {
+    if (s.open === 'flap') return carton(s);
     const W = s.w, D = s.d, H = s.h, LH = s.lid, HB = H - LH, mats = [];
     const m = (o) => { const x = mat(o); mats.push(x); return x; };
     const paper = m(s.paper), side = s.side ? m(s.side) : paper, lining = m(s.lining || '#efe2cc');
@@ -116,6 +117,33 @@ const BoxCraft = (() => {
     return { group, lid, lidRest, mats, hb: H, w: W, d: D, lift: 0.22, openTime: 1.1, split: 0.28, landY: 0.12, landRot: -2.9, landX: 1.5 };
   }
 
+  /* Carton: one tall box with a tuck flap hinged at the back of the top. */
+  function carton(s) {
+    const W = s.w, D = s.d, H = s.h, mats = [];
+    const m = (o) => { const x = mat(o); mats.push(x); return x; };
+    const paper = m(s.paper), side = s.side ? m(s.side) : paper, lining = m(s.lining || s.paper);
+    lining.side = T.BackSide;
+    const hide = new T.MeshBasicMaterial({ visible: false }); mats.push(hide);
+    const group = new T.Group();
+    const FRONT = s.front ? paint(W, H, s.front) : null, TOP = s.top ? paint(W, D, s.top) : null, SIDE = s.sideArt ? paint(D, H, s.sideArt) : null;
+    [FRONT, TOP, SIDE].forEach((t) => t && mats.push(t));
+    const base = new T.Mesh(new T.BoxGeometry(W, H, D), [side, side, hide, paper, paper, paper]); base.position.y = H / 2;
+    const inner = new T.Mesh(new T.BoxGeometry(W - 0.012, H - 0.006, D - 0.012), lining); inner.position.y = H / 2 + 0.003;
+    group.add(base, inner);
+    const face = (tex, w, h, x, y, z, ry) => { const p = new T.Mesh(new T.PlaneGeometry(w, h), decal(tex)); p.rotation.y = ry; p.position.set(x, y, z); p.renderOrder = 2; group.add(p); mats.push(p.material); };
+    if (FRONT) { face(FRONT, W, H, 0, H / 2, D / 2 + 0.002, 0); if (s.back !== false) face(FRONT, W, H, 0, H / 2, -D / 2 - 0.002, Math.PI); }
+    if (SIDE) { face(SIDE, D, H, W / 2 + 0.002, H / 2, 0, Math.PI / 2); face(SIDE, D, H, -W / 2 - 0.002, H / 2, 0, -Math.PI / 2); }
+    // The flap pivots on the back top edge; its tongue tucks down inside the front wall.
+    const lid = new T.Group(); lid.position.set(0, H, -D / 2);
+    const plate = new T.Mesh(new T.BoxGeometry(W, 0.008, D), [side, side, paper, lining, paper, paper]); plate.position.set(0, 0.004, D / 2);
+    const tongue = new T.Mesh(new T.PlaneGeometry(W - 0.02, Math.min(0.12, H * 0.12)), lining); tongue.material.side = T.DoubleSide;
+    tongue.position.set(0, -Math.min(0.06, H * 0.06), D - 0.008);
+    lid.add(plate, tongue);
+    if (TOP) { const p = new T.Mesh(new T.PlaneGeometry(W, D), decal(TOP)); p.rotation.x = -Math.PI / 2; p.position.set(0, 0.0085, D / 2); lid.add(p); mats.push(p.material); }
+    group.add(lid);
+    return { group, lid, lidRest: H, flap: true, mats, hb: H, w: W, d: D, lift: 0, openTime: 1.2, split: 0.3, landY: 0, landRot: 0, landX: 0 };
+  }
+
   /* ---------- Louis Vuitton: the white cylinder with a gold collar ---------- */
   SPECS.lv = (item) => {
     const extrait = /Symphony|Cosmic Cloud|Dancing Blossom|Rhapsody|Stellar Times/.test(item.name);
@@ -135,5 +163,6 @@ const BoxCraft = (() => {
     build,
     add(specs) { Object.assign(SPECS, specs); },
     has(item) { return !!(SPECS[item.key] || SPECS[item.house]); },
+    get specs() { return SPECS; },
   };
 })();

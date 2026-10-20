@@ -278,14 +278,22 @@ const Unbox = (() => {
       } else if (c.phase === 'wait') {
         // Anticipation: the lid twitches now and then.
         const w = c.t % 1.6;
-        c.box.lid.position.y = c.box.lidRest + (w < 0.25 ? Math.sin(w / 0.25 * Math.PI) * 0.03 : 0);
-        c.box.lid.rotation.z = w < 0.25 ? Math.sin(w / 0.25 * Math.PI * 2) * 0.02 : 0;
+        if (c.box.flap) c.box.lid.rotation.x = w < 0.25 ? -Math.sin(w / 0.25 * Math.PI) * 0.12 : 0;
+        else {
+          c.box.lid.position.y = c.box.lidRest + (w < 0.25 ? Math.sin(w / 0.25 * Math.PI) * 0.03 : 0);
+          c.box.lid.rotation.z = w < 0.25 ? Math.sin(w / 0.25 * Math.PI * 2) * 0.02 : 0;
+        }
         if (c.t > 6) open();
       } else if (c.phase === 'open') {
         const b = c.box, k = Math.min(1, c.t / b.openTime);
         g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 5);
         const lid = b.lid, up = b.lidRest + b.lift;
-        if (k < b.split) {
+        if (b.flap) {
+          // Tuck-flap carton: the top flap swings open on its back hinge with a little bounce.
+          const q = Math.min(1, k / 0.55);
+          lid.rotation.x = -(easeOut(q) * 2.35 + Math.sin(q * Math.PI) * 0.25);
+          if (!c.burst && k > 0.3) { c.burst = true; c.bottle.visible = true; burst(c.item, b); SFX.play('shimmer'); SFX.play('whoosh'); }
+        } else if (k < b.split) {
           const q = k / b.split; lid.position.y = b.lidRest + easeOut(q) * b.lift; lid.rotation.z = Math.sin(q * Math.PI * 3) * 0.04;
           // Show the bottle as soon as a sleeve has lifted clear of it.
           if (b.lift > 0.5 && q > 0.6) c.bottle.visible = true;
