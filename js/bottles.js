@@ -123,7 +123,8 @@ const BottleCraft = (() => {
 
   /* ---------- painted artwork ---------- */
   function paint(wu, hu, draw, px = 768) {
-    const c = document.createElement('canvas'); c.width = px; c.height = Math.max(8, Math.round(px * hu / wu));
+    px = Math.min(px, Math.round(2048 * wu / hu)); // keep tall strips within texture limits
+    const c = document.createElement('canvas'); c.width = Math.max(8, px); c.height = Math.max(8, Math.round(px * hu / wu));
     const g = c.getContext('2d'); const W = c.width, H = c.height;
     const P = {
       g, W, H,
@@ -192,27 +193,44 @@ const BottleCraft = (() => {
   function creed(item, o = {}) {
     const k = kit();
     const [foot, mid, upper] = bands(CREED_PROFILE, [0.045, 0.44]).map((pts) => lathe(pts, 0, CREED_Z));
-    const lowerMat = o.lower === 'black' ? solid({ color: '#0a0a0a', rough: 0.15 }) : o.lower ? glass({ tint: o.lower, op: o.lowerOp || 0.75 }) : glass({ op: 0.2 });
-    const upperMat = o.upper ? solid({ color: o.upper, rough: 0.2 }) : glass({ op: 0.2 });
+    const goldMat = o.gold ? solid({ color: '#d9b45a', metal: 1, rough: 0.22, coat: 0, env: 2.4 }) : null;
+    if (o.fade) { gradient(mid, o.fade, '#ffffff', 0.9); gradient(upper, o.fadeMid || '#ffffff', '#ffffff'); }
+    const tinted = o.glassTint ? glass({ tint: o.glassTint, op: o.glassOp || 0.85 }) : null;
+    const lowerMat = goldMat || (o.lower === 'black' ? solid({ color: '#0a0a0a', rough: 0.15 }) : o.lower ? glass({ tint: o.lower, op: o.lowerOp || 0.75 }) : o.fade ? glass({ grad: true, op: 0.82 }) : tinted || glass({ op: 0.2 }));
+    const upperMat = goldMat || (o.upper ? solid({ color: o.upper, rough: 0.2 }) : o.fade ? glass({ grad: true, op: 0.3 }) : tinted || glass({ op: 0.2 }));
     k.glassBody(upper, upperMat, null);
-    if (!o.upper) {
+    if (!o.upper && !o.gold) {
       const jc = C(o.juice || FAMILIES[item.family].color);
       const jg = lathe(CREED_PROFILE, 0, CREED_Z); jg.scale(0.88, 0.84, 0.88); jg.translate(0, 0.03, 0);
       k.part(jg, new T.MeshStandardMaterial({ color: jc, emissive: jc, emissiveIntensity: 0.22, roughness: 0.2, transparent: true, opacity: 0.9 }), 1);
     }
-    k.part(mid, lowerMat, o.lower === 'black' ? 0 : 2); k.part(foot, glass({ op: 0.3 }), 2);
+    k.part(mid, lowerMat, o.lower === 'black' || o.gold ? 0 : 2); k.part(foot, goldMat || glass({ op: 0.3 }), 2);
     const ink = o.ink || '#141414';
     k.wrap(0.293, 0.14, 0.515, 1.8, paint(1.8 * 0.293, 0.14, (P) => {
       P.text('CREED', 0.5, 0.4, 0.66, ink, { font: 'roman', weight: 600, track: 0.08, maxW: 0.78 });
       P.line(0.3, 0.86, 0.7, 0.98, ink, 0.05); P.line(0.7, 0.86, 0.3, 0.98, ink, 0.05);
     }), { sz: CREED_Z });
-    k.wrap(0.3, 0.17, 0.25, 1.0, paint(0.3, 0.17, (P) => {
-      P.rect(0.02, 0.05, 0.96, 0.9, o.labelBg || '#e9ebee', 0.04);
+    if (o.panel) {
+      // Creed's arched label panel with the house crest.
+      const pi = o.panel.ink || '#ffffff';
+      k.wrap(0.3, 0.3, 0.25, 1.05, paint(0.3, 0.3, (P) => {
+        P.path([[0.06, 0.98], [0.06, 0.12], [0.3, 0.04], [0.5, 0.0], [0.7, 0.04], [0.94, 0.12], [0.94, 0.98]], o.panel.bg);
+        for (const dx of [-0.07, 0, 0.07]) P.ellipse(0.5 + dx, 0.24, 0.03, 0.06, dx * 4, pi);
+        P.rect(0.4, 0.31, 0.2, 0.025, pi);
+        const words = (o.title || item.name.toUpperCase()).split(' ');
+        const mid2 = Math.ceil(words.length / 2);
+        if (words.length > 2) { P.text(words.slice(0, mid2).join(' '), 0.5, 0.5, 0.09, pi, { font: 'helv', weight: 600, track: 0.08, maxW: 0.8 }); P.text(words.slice(mid2).join(' '), 0.5, 0.61, 0.09, pi, { font: 'helv', weight: 600, track: 0.08, maxW: 0.8 }); }
+        else P.text(words.join(' '), 0.5, 0.55, 0.1, pi, { font: 'helv', weight: 600, track: 0.08, maxW: 0.8 });
+        P.text('DE PÈRE EN FILS DEPUIS 1760', 0.5, 0.8, 0.04, pi, { font: 'helv', track: 0.05, maxW: 0.8 });
+      }), { sz: CREED_Z });
+    } else k.wrap(0.3, 0.17, 0.25, 1.0, paint(0.3, 0.17, (P) => {
+      if (o.labelBg !== 'none') P.rect(0.02, 0.05, 0.96, 0.9, o.labelBg || '#e9ebee', 0.04);
       if (o.horse) { P.circle(0.5, 0.42, 0.18, '#2a2a2a'); P.path([[0.38, 0.55], [0.5, 0.25], [0.62, 0.55]], '#e9ebee'); }
-      P.text(o.title || item.name.toUpperCase(), 0.5, o.horse ? 0.8 : 0.5, o.horse ? 0.16 : 0.22, '#1a1a1a', { font: 'roman', weight: 600, track: 0.06, maxW: 0.86 });
+      P.text(o.title || item.name.toUpperCase(), 0.5, o.horse ? 0.8 : 0.5, o.horse ? 0.16 : 0.22, o.titleInk || '#1a1a1a', { font: 'roman', weight: 600, track: 0.06, maxW: 0.86 });
     }), { sz: CREED_Z });
     k.part(cyl(0.08, 0.08, 0.04, 0.8, 32), fin(o.collar || 'silver'));
-    k.part(lathe([[0, 0], [0.12, 0], [0.135, 0.04], [0.125, 0.2], [0.09, 0.29], [0, 0.31]], 0.84, 1, 8), solid({ color: o.cap || '#0d0d0d', rough: 0.12, flat: true }));
+    if (o.capFin) k.part(lathe([[0, 0], [0.115, 0], [0.13, 0.03], [0.112, 0.25], [0.1, 0.29], [0, 0.29]], 0.84, 1, 40), fin(o.capFin));
+    else k.part(lathe([[0, 0], [0.12, 0], [0.135, 0.04], [0.125, 0.2], [0.09, 0.29], [0, 0.31]], 0.84, 1, 8), solid({ color: o.cap || '#0d0d0d', rough: 0.12, flat: true }));
     k.top(0.82);
     return k.done();
   }
@@ -641,7 +659,8 @@ const BottleCraft = (() => {
     const k = kit();
     k.glassBody(gradient(box(0.5, 0.3, 0.8, 0.05), bottom, top, 0.45), glass({ grad: true, op: 0.94 }), null);
     k.flat(0.48, 0.76, 0, 0.4, 0.152, paint(0.48, 0.76, (P) => {
-      P.text(elixir ? 'SAUVAGE ELIXIR' : 'SAUVAGE', 0.5, 0.12, 0.085, '#e6e9ef', { font: 'roman', track: 0.03, maxW: 0.94 });
+      P.text(elixir === true ? 'SAUVAGE ELIXIR' : 'SAUVAGE', 0.5, 0.12, 0.085, '#e6e9ef', { font: 'roman', track: 0.03, maxW: 0.94 });
+      if (typeof elixir === 'string') P.text(elixir, 0.5, 0.2, 0.025, '#e6e9ef', { font: 'helv', track: 0.2 });
       P.text(brand, 0.5, 0.88, 0.1, '#e6e9ef', { font: 'serif' });
     }), { foil: true });
     k.part(cyl(0.165, 0.165, 0.28, 0.81, 48), solid({ color: '#0a0b0f', rough: 0.12 }));
@@ -664,15 +683,17 @@ const BottleCraft = (() => {
     return k.done();
   }
 
-  function torso(body, stripe, deep, op) {
+  function torso(body, stripe, deep, op, capFin = 'chrome') {
     const k = kit();
     const prof = [[0, 0], [0.2, 0], [0.24, 0.06], [0.215, 0.2], [0.195, 0.31], [0.24, 0.45], [0.3, 0.58], [0.325, 0.67], [0.27, 0.75], [0.13, 0.81], [0.07, 0.835], [0, 0.84]];
     k.glassBody(gradient(lathe(prof, 0, 0.62, 56), deep, body, 0.8), glass({ grad: true, op }), null);
-    const stripes = paint(0.5, 1, (P) => { for (let i = 0; i < 9; i++) P.rect(0, 0.25 + i * 0.052, 1, 0.027, stripe); }, 128);
-    const over = lathe(prof, 0, 0.62, 56); over.scale(1.006, 1, 1.006);
-    k.part(over, new T.MeshStandardMaterial({ map: stripes, transparent: true, depthWrite: false, roughness: 0.25 }), 4);
-    k.part(cyl(0.065, 0.065, 0.1, 0.83, 32), fin('chrome'));
-    k.part(cyl(0.045, 0.045, 0.06, 0.93, 24), fin('chrome'));
+    if (stripe) {
+      const stripes = paint(0.5, 1, (P) => { for (let i = 0; i < 9; i++) P.rect(0, 0.25 + i * 0.052, 1, 0.027, stripe); }, 128);
+      const over = lathe(prof, 0, 0.62, 56); over.scale(1.006, 1, 1.006);
+      k.part(over, new T.MeshStandardMaterial({ map: stripes, transparent: true, depthWrite: false, roughness: 0.25 }), 4);
+    }
+    k.part(cyl(0.065, 0.065, 0.1, 0.83, 32), fin(capFin));
+    k.part(cyl(0.045, 0.045, 0.06, 0.93, 24), fin(capFin));
     k.top(0.94);
     return k.done();
   }
@@ -686,10 +707,19 @@ const BottleCraft = (() => {
     if (item.house === 'tomford' && PRIVATE_BLEND.includes(item.name)) return (it) => tomFord(it, {});
     if (item.house === 'mfk') return (it) => mfk(it, {});
     if (item.house === 'pdm') return (it) => pdm(it, {});
+    if (HOUSE_FALLBACK[item.house]) return HOUSE_FALLBACK[item.house];
     return null;
   }
+  const HOUSE_FALLBACK = {};
 
   return {
+    // Building blocks for js/bottles-designer.js, which adds the designer and house lines.
+    tools: {
+      kit, box, cyl, sphere, lathe, pillow, bands, merge, gradient, glass, solid, fin, paint, extrudeFlat: null,
+      creed, torso, sauvage, C: (hex) => C(hex), get T() { return T; },
+    },
+    add(specs) { Object.assign(SPECS, specs); },
+    houseFallback(house, spec) { HOUSE_FALLBACK[house] = spec; },
     has(item) { return !!specFor(item); },
     // A ready-to-place copy of the bottle (geometry and materials are shared between copies).
     build(item) {
