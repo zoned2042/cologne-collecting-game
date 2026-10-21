@@ -63,8 +63,8 @@
     gradient(geo, o.bottom, o.top, o.gc || 0.7);
     k.solidBody(geo, solid({ grad: true, rough: 0.12, coat: 0.6, env: 1.2 }));
     // Square pyramids set on point, in staggered rows, so their bases tile the glass.
-    const studs = [], t = T(), sr = 0.03, step = 2 * sr;
-    const stud = (x, y, z, ry) => { const s = new t.ConeGeometry(sr, 0.03, 4); s.rotateX(Math.PI / 2); s.rotateY(ry); s.translate(x, y, z); studs.push(s); };
+    const studs = [], t = T(), sr = 0.034, step = 2 * sr;
+    const stud = (x, y, z, ry) => { const s = new t.ConeGeometry(sr, 0.045, 4); s.rotateX(Math.PI / 2); s.rotateY(ry); s.translate(x, y, z); studs.push(s); };
     const band = [0.24, 0.36];
     for (let j = 0; ; j++) {
       const y = 0.03 + j * sr; if (y > H - 0.025) break;
@@ -74,7 +74,7 @@
       if (y > 0.05 && y < 0.46) for (let i = -4; i <= 4; i++) { const z = i * step + (j % 2) * sr; if (Math.abs(z) > D / 2 - 0.025) continue; stud(hw(y), y, z, Math.PI / 2); stud(-hw(y), y, z, -Math.PI / 2); }
     }
     const sg = merge(studs); gradient(sg, o.studBottom || o.bottom, o.studTop || o.top, o.gc || 0.7);
-    k.part(sg, solid({ grad: true, rough: 0.05, coat: 1, flat: true, env: 2.2 }));
+    k.part(sg, solid({ grad: true, metal: 0.35, rough: 0.06, coat: 1, flat: true, env: 2.8 }));
     // The metal band around the waist, carrying the wordmark.
     k.part(box(0.545, D + 0.014, band[1] - band[0], 0.03, band[0]), mat(o.band));
     k.flat(0.42, 0.1, 0, (band[0] + band[1]) / 2, D / 2 + 0.01, paint(0.42, 0.1, (P) => P.text('VALENTINO', 0.5, 0.55, 0.62, o.ink, { font: 'roman', weight: 500, track: 0.04 })));
@@ -221,7 +221,7 @@
       cap: [{ s: 'cyl', r: 0.09, h: 0.04, fin: 'chrome' }, { s: 'cyl', r: 0.12, h: 0.15, color: '#6a96b8', rough: 0.35, coat: 0.3 }],
     }),
     'versace|The Dreamer': S({
-      w: 0.34, h: 0.7, d: 0.2, r: 0.01, juice: '#f4ecae', level: 0.92, inset: 0.93, jop: 1,
+      w: 0.34, h: 0.7, d: 0.2, r: 0.01, juice: '#eee08a', level: 0.92, inset: 0.93, jop: 1,
       art: { w: 0.32, h: 0.64, y: 0.34, draw: (P) => {
         medusa(P, 0.5, 0.17, 0.13, 'rgba(120,110,50,0.75)', 'rgba(255,250,210,0.5)');
         P.path([[0.5, 0.3], [0.58, 0.45], [0.52, 0.6], [0.36, 0.72], [0.3, 0.9]], 'rgba(120,110,50,0.6)', false, 0.008);
@@ -242,16 +242,20 @@
 
     /* Jean Paul Gaultier */
     'jpg|Le Beau Le Parfum': (item) => {
-      const r = B.torso('#010203', null, '#0a6668', 0.97, 'gold');
+      // Gaultier torso in deep teal glass that darkens to black at the shoulders.
       const k = kit();
+      const prof = [[0, 0], [0.2, 0], [0.24, 0.06], [0.215, 0.2], [0.195, 0.31], [0.24, 0.45], [0.3, 0.58], [0.325, 0.67], [0.27, 0.75], [0.13, 0.81], [0.07, 0.835], [0, 0.84]];
+      k.solidBody(gradient(lathe(prof, 0, 0.62, 56), '#0e7a78', '#020305', 1.6), solid({ grad: true, rough: 0.08, coat: 1, env: 1.2 }));
+      k.part(cyl(0.065, 0.065, 0.1, 0.83, 32), fin('gold'));
+      k.part(cyl(0.045, 0.045, 0.06, 0.93, 24), fin('gold'));
+      k.top(0.94);
       // The gilded fig leaf at the hips.
       k.flat(0.12, 0.13, 0, 0.12, 0.152, paint(0.12, 0.13, (P) => {
         const c = '#e2b85a';
         P.path([[0.5, 0.95], [0.46, 0.55], [0.18, 0.62], [0.1, 0.4], [0.3, 0.3], [0.2, 0.1], [0.42, 0.18], [0.5, 0.02], [0.58, 0.18], [0.8, 0.1], [0.7, 0.3], [0.9, 0.4], [0.82, 0.62], [0.54, 0.55]], c);
         P.line(0.5, 0.2, 0.5, 0.9, '#9a7420', 0.02);
       }), { foil: true });
-      r.group.add(k.g);
-      return r;
+      return k.done();
     },
     'jpg|Kokorico': S({
       body: 'profile', d: 0.24, round: 0.015, solid: '#0a0a0a', rough: 0.08, coat: 1, h: 0.72,

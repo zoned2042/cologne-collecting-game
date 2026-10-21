@@ -4775,7 +4775,7 @@ const BottleCraft = (() => {
     art: [{ wrap: true, r: 0.258, arc: 1.4, h: 0.16, y: 0.25, draw: (P) => {
       P.rect(0, 0, 1, 1, o.gold ? '#141414' : '#f8f7f3');
       P.text(o.title || item.name, 0.5, 0.4, 0.3, '#c9a35c', { font: 'sans', weight: 500 });
-      P.text('ॐ Tiziana Terenzi', 0.5, 0.76, 0.2, '#c9a35c', { font: 'serif', italic: true });
+      P.text('Tiziana Terenzi', 0.5, 0.76, 0.2, '#c9a35c', { font: 'serif', italic: true });
     } }],
     cap: [{ s: 'cyl', r: 0.116, h: 0.05, color: '#d8b56a', metal: 1, rough: 0.2, coat: 0 },
       o.gold ? { s: 'cyl', r: 0.258, h: 0.32, color: '#1a1716', rough: 0.55, coat: 0.2, seg: 64 } : { s: 'cyl', r: 0.258, h: 0.32, color: '#dcbf86', metal: 1, rough: 0.16, coat: 0, seg: 64 }],
@@ -5054,18 +5054,19 @@ const BottleCraft = (() => {
     const geo = profile(outline, D, 0.03);
     gradient(geo, o.bottom, o.top, o.gc || 0.7);
     k.solidBody(geo, solid({ grad: true, rough: 0.12, coat: 0.6, env: 1.2 }));
-    const studs = [], t = T(), sr = 0.031, step = 0.056;
-    const stud = (x, y, z, ry) => { const s = new t.ConeGeometry(sr, 0.026, 4); s.rotateY(Math.PI / 4); s.rotateX(Math.PI / 2); s.rotateY(ry); s.translate(x, y, z); studs.push(s); };
+    // Square pyramids set on point, in staggered rows, so their bases tile the glass.
+    const studs = [], t = T(), sr = 0.034, step = 2 * sr;
+    const stud = (x, y, z, ry) => { const s = new t.ConeGeometry(sr, 0.045, 4); s.rotateX(Math.PI / 2); s.rotateY(ry); s.translate(x, y, z); studs.push(s); };
     const band = [0.24, 0.36];
     for (let j = 0; ; j++) {
-      const y = 0.035 + j * step; if (y > H - 0.03) break;
-      if (y > band[0] - 0.02 && y < band[1] + 0.02) continue;
-      const lim = hw(y) - 0.032;
-      for (let i = -6; i <= 6; i++) { const x = i * step + (j % 2) * step / 2; if (Math.abs(x) > lim) continue; stud(x, y, D / 2, 0); stud(x, y, -D / 2, Math.PI); }
-      if (y > 0.06 && y < 0.45) for (let i = -3; i <= 3; i++) { const z = i * step + (j % 2) * step / 2; if (Math.abs(z) > D / 2 - 0.035) continue; stud(hw(y), y, z, Math.PI / 2); stud(-hw(y), y, z, -Math.PI / 2); }
+      const y = 0.03 + j * sr; if (y > H - 0.025) break;
+      if (y > band[0] - 0.015 && y < band[1] + 0.015) continue;
+      const lim = hw(y) - 0.02;
+      for (let i = -8; i <= 8; i++) { const x = i * step + (j % 2) * sr; if (Math.abs(x) > lim) continue; stud(x, y, D / 2, 0); stud(x, y, -D / 2, Math.PI); }
+      if (y > 0.05 && y < 0.46) for (let i = -4; i <= 4; i++) { const z = i * step + (j % 2) * sr; if (Math.abs(z) > D / 2 - 0.025) continue; stud(hw(y), y, z, Math.PI / 2); stud(-hw(y), y, z, -Math.PI / 2); }
     }
     const sg = merge(studs); gradient(sg, o.studBottom || o.bottom, o.studTop || o.top, o.gc || 0.7);
-    k.part(sg, solid({ grad: true, rough: 0.08, coat: 1, flat: true, env: 1.6 }));
+    k.part(sg, solid({ grad: true, metal: 0.35, rough: 0.06, coat: 1, flat: true, env: 2.8 }));
     // The metal band around the waist, carrying the wordmark.
     k.part(box(0.545, D + 0.014, band[1] - band[0], 0.03, band[0]), mat(o.band));
     k.flat(0.42, 0.1, 0, (band[0] + band[1]) / 2, D / 2 + 0.01, paint(0.42, 0.1, (P) => P.text('VALENTINO', 0.5, 0.55, 0.62, o.ink, { font: 'roman', weight: 500, track: 0.04 })));
@@ -5139,10 +5140,10 @@ const BottleCraft = (() => {
   BottleCraft.add({
     /* Ralph Lauren */
     'polo|Polo Red Extreme': S({
-      body: 'pillow', w: 0.6, h: 0.6, d: 0.28, ex: 0.24, ey: 0.36, solid: '#151515', rough: 0.55, coat: 0.15,
-      art: { w: 0.24, h: 0.36, y: 0.3, z: 0.142, draw: (P) => poloPlayer(P, '#d4141e') },
+      body: 'pillow', w: 0.52, h: 0.66, d: 0.26, ex: 0.24, ey: 0.3, solid: '#151515', rough: 0.55, coat: 0.15,
+      art: { w: 0.3, h: 0.44, y: 0.32, z: 0.132, draw: (P) => poloPlayer(P, '#d4141e') },
       cap: [{ s: 'cyl', r: 0.1, h: 0.03, color: '#111111' }, { s: 'cyl', r: 0.115, h: 0.05, color: '#c8101c', rough: 0.4 }, { s: 'lathe', pts: DOME, color: '#121212', rough: 0.35 }],
-      extra: [(k) => k.wrap(0.117, 0.05, 0.655, 1.6, paint(0.19, 0.05, (P) => P.text('RED EXTREME', 0.5, 0.55, 0.6, '#111111', { font: 'helv', weight: 600, track: 0.1 })))],
+      extra: [(k) => k.wrap(0.117, 0.05, 0.715, 1.6, paint(0.19, 0.05, (P) => P.text('RED EXTREME', 0.5, 0.55, 0.6, '#111111', { font: 'helv', weight: 600, track: 0.1 })))],
     }),
     "polo|Ralph's Club": S({
       w: 0.56, h: 0.58, d: 0.26, r: 0.05, solid: '#ffffff', grad: ['#060914', '#141a2c'], rough: 0.1, coat: 1,
@@ -5155,12 +5156,12 @@ const BottleCraft = (() => {
       cap: [{ s: 'cyl', r: 0.1, h: 0.04, fin: 'chrome' }, { s: 'cyl', r: 0.12, h: 0.16, fin: 'chrome', seg: 24 }, { s: 'cyl', r: 0.1, h: 0.03, fin: 'gunmetal' }],
     }),
     'polo|Safari for Men': S({
-      w: 0.6, h: 0.56, d: 0.26, r: 0.05, juice: '#e08a12', level: 0.94, inset: 0.95,
+      w: 0.56, h: 0.58, d: 0.26, r: 0.05, juice: '#c86206', level: 0.94, inset: 0.95, jop: 1,
       art: [{ w: 0.58, h: 0.54, y: 0.28, draw: (P) => {
-        for (let i = -14; i < 28; i++) { P.line(i * 0.06, 0, i * 0.06 + 0.55, 1, 'rgba(255,240,200,0.28)', 0.004); P.line(i * 0.06, 0, i * 0.06 - 0.55, 1, 'rgba(90,40,0,0.25)', 0.004); }
+        for (let i = -14; i < 28; i++) { P.line(i * 0.05, 0, i * 0.05 + 0.55, 1, 'rgba(255,226,160,0.45)', 0.006); P.line(i * 0.05, 0, i * 0.05 - 0.55, 1, 'rgba(255,226,160,0.45)', 0.006); }
         P.frame(0.03, 0.03, 0.94, 0.94, 'rgba(255,240,200,0.4)', 0.008);
-      } }, { w: 0.24, h: 0.2, y: 0.24, foil: true, draw: (P) => {
-        const gd = '#d8b45a';
+      } }, { w: 0.3, h: 0.25, y: 0.26, foil: true, draw: (P) => {
+        const gd = '#f0d080';
         P.path([[0.38, 0.3], [0.62, 0.3], [0.62, 0.6], [0.5, 0.72], [0.38, 0.6]], gd);
         P.path([[0.38, 0.3], [0.62, 0.3], [0.62, 0.6], [0.5, 0.72], [0.38, 0.6], [0.38, 0.3]], '#6a4a10', false, 0.012);
         for (const s of [-1, 1]) { P.ellipse(0.5 + s * 0.2, 0.42, 0.07, 0.17, s * 0.3, gd); P.circle(0.5 + s * 0.2, 0.2, 0.07, gd); }
@@ -5177,7 +5178,7 @@ const BottleCraft = (() => {
 
     /* Dior Homme (2005): clear block, gilded dip-tube column and a clear cap over a black core */
     'dior|Dior Homme 2005': S({
-      w: 0.44, h: 0.62, d: 0.24, r: 0.01, juice: '#ecc77a', level: 0.92, inset: 0.93,
+      w: 0.44, h: 0.62, d: 0.24, r: 0.01, juice: '#f2c870', level: 0.92, inset: 0.93, jop: 1,
       art: [{ w: 0.045, h: 0.56, y: 0.32, bg: '#b58a36' }, { w: 0.4, h: 0.08, y: 0.1, t: [['DIOR HOMME', 0.5, 0.5, 0.5, '#2a2a2a', { font: 'roman', track: 0.04 }]] }],
       cap: [{ s: 'cyl', r: 0.07, h: 0.05, fin: 'silver' }, { s: 'cyl', r: 0.075, h: 0.17, color: '#0b0b0b', stay: true }, { s: 'box', w: 0.42, d: 0.22, h: 0.22, rr: 0.01, glass: '#ffffff', op: 0.14 }],
       top: 0.62,
@@ -5185,7 +5186,7 @@ const BottleCraft = (() => {
 
     /* Giorgio Armani */
     'armani|Acqua di Giò Parfum': S({
-      w: 0.48, h: 0.66, d: 0.26, r: 0.08, solid: '#ffffff', grad: ['#e2e4e6', '#0a0a0b'], gc: 0.45, rough: 0.15, coat: 0.6, env: 1.1,
+      w: 0.48, h: 0.66, d: 0.26, r: 0.08, solid: '#ffffff', grad: ['#f2f2f2', '#070708'], gc: 0.28, rough: 0.15, coat: 0.6, env: 1.1,
       art: { w: 0.42, h: 0.6, y: 0.34, t: [['ACQUA DI', 0.14, 0.065, '#f0f0f0', { font: 'roman', track: 0.04 }], ['GIÒ', 0.28, 0.15, '#f0f0f0', { font: 'roman' }], ['GIORGIO ARMANI', 0.4, 0.045, '#f0f0f0', { font: 'roman', track: 0.04 }], ['PARFUM', 0.93, 0.035, '#222222', { font: 'roman', track: 0.15 }]] },
       cap: [{ s: 'cyl', r: 0.13, h: 0.02, fin: 'silver' }, { s: 'cyl', r: 0.13, h: 0.22, color: '#0c0c0d', rough: 0.3 }],
     }),
@@ -5203,26 +5204,26 @@ const BottleCraft = (() => {
 
     /* Versace */
     'versace|Pour Homme': S({
-      w: 0.56, h: 0.64, d: 0.24, r: 0.03, solid: '#ffffff', grad: ['#3a9ad8', '#c8e8f8'], gc: 0.8, rough: 0.1, coat: 0.5, env: 1,
+      w: 0.56, h: 0.64, d: 0.24, r: 0.03, solid: '#ffffff', grad: ['#1e7cc8', '#8cccf2'], gc: 0.8, rough: 0.1, coat: 0.4, env: 0.9,
       art: { w: 0.5, h: 0.58, y: 0.32, draw: (P) => { P.line(0.5, 0, 0.5, 0.38, 'rgba(255,255,255,0.4)', 0.004); } },
       extra: [(k, { D }) => {
         const m = disc(0.075, 0.26, D / 2 + 0.006, fin('silver')); k.part(m[0], m[1]);
-        k.flat(0.15, 0.15, 0, 0.26, D / 2 + 0.018, paint(0.15, 0.15, (P) => medusa(P, 0.5, 0.5, 0.42, 'rgba(70,80,92,0.85)', 'rgba(255,255,255,0)')));
+        k.flat(0.15, 0.15, 0, 0.26, D / 2 + 0.018, paint(0.15, 0.15, (P) => medusa(P, 0.5, 0.5, 0.42, 'rgba(40,46,56,0.9)', 'rgba(255,255,255,0)')));
       }],
       cap: [{ s: 'cyl', r: 0.09, h: 0.04, fin: 'chrome' }, { s: 'cyl', r: 0.12, h: 0.15, color: '#6a96b8', rough: 0.35, coat: 0.3 }],
     }),
     'versace|The Dreamer': S({
-      w: 0.34, h: 0.7, d: 0.2, r: 0.01, juice: '#ece4a4', level: 0.92, inset: 0.93,
+      w: 0.34, h: 0.7, d: 0.2, r: 0.01, juice: '#eee08a', level: 0.92, inset: 0.93, jop: 1,
       art: { w: 0.32, h: 0.64, y: 0.34, draw: (P) => {
-        medusa(P, 0.5, 0.2, 0.09, 'rgba(255,255,255,0.75)', 'rgba(200,190,120,0.35)');
-        P.path([[0.5, 0.3], [0.56, 0.45], [0.5, 0.6], [0.36, 0.72], [0.3, 0.9]], 'rgba(255,255,255,0.55)', false, 0.006);
+        medusa(P, 0.5, 0.17, 0.13, 'rgba(120,110,50,0.75)', 'rgba(255,250,210,0.5)');
+        P.path([[0.5, 0.3], [0.58, 0.45], [0.52, 0.6], [0.36, 0.72], [0.3, 0.9]], 'rgba(120,110,50,0.6)', false, 0.008);
       } },
       cap: [{ s: 'cyl', r: 0.08, h: 0.05, fin: 'chrome' }, { s: 'cyl', r: 0.11, h: 0.06, color: '#0b0b0b', seg: 8 }, { s: 'cyl', r: 0.115, h: 0.1, fin: 'gold', seg: 8 }, { s: 'cyl', r: 0.07, h: 0.01, color: '#0b0b0b', seg: 8 }],
     }),
 
     /* Prada */
     'prada|Amber pour Homme': S({
-      w: 0.54, h: 0.62, d: 0.22, r: 0.04, juice: '#c4bce8', level: 0.92, inset: 0.94, jop: 0.85,
+      w: 0.54, h: 0.62, d: 0.22, r: 0.04, juice: '#b8aef2', level: 0.92, inset: 0.94, jop: 1,
       art: { w: 0.5, h: 0.08, y: 0.06, t: [['PRADA', 0.5, 0.5, 0.62, '#d8dade', { font: 'roman', weight: 700, track: 0.12, x: 0.68 }]] },
       extra: [(k, { W, H, D }) => {
         k.part(box(W + 0.006, D + 0.006, 0.12, 0.04, H - 0.12), solid({ color: '#c8ccd2', metal: 1, rough: 0.35, coat: 0, env: 2.2 }));
@@ -5233,20 +5234,24 @@ const BottleCraft = (() => {
 
     /* Jean Paul Gaultier */
     'jpg|Le Beau Le Parfum': (item) => {
-      const r = B.torso('#05070c', null, '#0f7272', 0.95, 'gold');
+      // Gaultier torso in deep teal glass that darkens to black at the shoulders.
       const k = kit();
+      const prof = [[0, 0], [0.2, 0], [0.24, 0.06], [0.215, 0.2], [0.195, 0.31], [0.24, 0.45], [0.3, 0.58], [0.325, 0.67], [0.27, 0.75], [0.13, 0.81], [0.07, 0.835], [0, 0.84]];
+      k.solidBody(gradient(lathe(prof, 0, 0.62, 56), '#0e7a78', '#020305', 1.6), solid({ grad: true, rough: 0.08, coat: 1, env: 1.2 }));
+      k.part(cyl(0.065, 0.065, 0.1, 0.83, 32), fin('gold'));
+      k.part(cyl(0.045, 0.045, 0.06, 0.93, 24), fin('gold'));
+      k.top(0.94);
       // The gilded fig leaf at the hips.
       k.flat(0.12, 0.13, 0, 0.12, 0.152, paint(0.12, 0.13, (P) => {
         const c = '#e2b85a';
         P.path([[0.5, 0.95], [0.46, 0.55], [0.18, 0.62], [0.1, 0.4], [0.3, 0.3], [0.2, 0.1], [0.42, 0.18], [0.5, 0.02], [0.58, 0.18], [0.8, 0.1], [0.7, 0.3], [0.9, 0.4], [0.82, 0.62], [0.54, 0.55]], c);
         P.line(0.5, 0.2, 0.5, 0.9, '#9a7420', 0.02);
       }), { foil: true });
-      r.group.add(k.g);
-      return r;
+      return k.done();
     },
     'jpg|Kokorico': S({
-      body: 'profile', d: 0.24, round: 0.04, solid: '#0a0a0a', rough: 0.08, coat: 1, h: 0.71,
-      pts: [[-0.06, 0], [0.12, 0], [0.13, 0.1], [0.2, 0.14], [0.245, 0.21], [0.25, 0.27], [0.272, 0.3], [0.27, 0.345], [0.29, 0.37], [0.28, 0.405], [0.33, 0.46], [0.29, 0.5], [0.28, 0.55], [0.25, 0.62], [0.18, 0.68], [0.05, 0.71], [-0.1, 0.7], [-0.22, 0.64], [-0.29, 0.54], [-0.31, 0.42], [-0.28, 0.3], [-0.2, 0.2], [-0.13, 0.1]],
+      body: 'profile', d: 0.24, round: 0.015, solid: '#0a0a0a', rough: 0.08, coat: 1, h: 0.72,
+      pts: [[-0.14, 0], [0.14, 0], [0.11, 0.08], [0.12, 0.14], [0.2, 0.165], [0.25, 0.2], [0.265, 0.24], [0.275, 0.28], [0.262, 0.3], [0.285, 0.325], [0.272, 0.35], [0.285, 0.37], [0.335, 0.415], [0.285, 0.47], [0.295, 0.51], [0.28, 0.56], [0.25, 0.62], [0.18, 0.68], [0.08, 0.72], [-0.06, 0.72], [-0.18, 0.68], [-0.26, 0.6], [-0.3, 0.5], [-0.3, 0.4], [-0.27, 0.32], [-0.2, 0.24], [-0.15, 0.17], [-0.15, 0.08]],
       art: { w: 0.5, h: 0.24, x: -0.02, y: 0.36, z: 0.12, draw: (P) => { P.g.save(); P.g.translate(P.W * 0.48, P.H * 0.5); P.g.rotate(-0.22); P.g.font = `italic 700 ${P.H * 0.42}px "Brush Script MT", "Segoe Script", cursive`; P.g.fillStyle = '#d4141e'; P.g.textAlign = 'center'; P.g.textBaseline = 'middle'; P.g.fillText('Kokorico', 0, 0); P.g.restore(); } },
       cap: [{ s: 'cyl', r: 0.06, h: 0.05, color: '#0a0a0a', x: 0.02 }, { s: 'cyl', r: 0.035, h: 0.06, fin: 'chrome', x: 0.02 }],
       top: 0.71,
@@ -5297,12 +5302,12 @@ const BottleCraft = (() => {
 
     /* Givenchy */
     'givenchy|Pi': S({
-      body: 'profile', d: 0.22, round: 0.03, juice: '#e8b830', level: 0.92, inset: 0.92, h: 0.6,
+      body: 'profile', d: 0.22, round: 0.03, juice: '#e8ae20', level: 0.92, inset: 0.92, h: 0.6, jop: 1,
       pts: [[-0.27, 0], [0.27, 0], [0.2, 0.6], [-0.2, 0.6]],
       art: { w: 0.4, h: 0.54, y: 0.3, z: 0.112, draw: (P) => {
         for (let i = 0; i < 30; i++) P.path(Array.from({ length: 6 }, (_, j) => [0.55 + Math.sin(i * 1.3) * 0.25 + j * 0.02, i / 30 + Math.sin(j + i) * 0.01]), 'rgba(255,240,190,0.3)', false, 0.004);
         P.path([[0.58, 0.32], [0.86, 0.26], [0.86, 0.42], [0.72, 0.44], [0.72, 0.8], [0.58, 0.82]], 'rgba(255,230,160,0.25)');
-        P.text('π', 0.42, 0.34, 0.3, '#111111', { font: 'serif', weight: 400 });
+        P.text('π', 0.42, 0.36, 0.42, '#111111', { font: 'serif', weight: 400 });
         P.text('GIVENCHY', 0.5, 0.9, 0.055, '#2a2a2a', { font: 'helv', weight: 500, track: 0.25 });
       } },
       cap: [{ s: 'cyl', r: 0.07, h: 0.03, fin: 'gold' }, { s: 'cyl', r: 0.055, h: 0.1, fin: 'gold' }, { s: 'cyl', r: 0.025, h: 0.03, fin: 'gold' }],
@@ -5311,14 +5316,14 @@ const BottleCraft = (() => {
 
     /* Dolce & Gabbana */
     'dg|Pour Homme (1994)': S({
-      body: 'pillow', w: 0.62, h: 0.56, d: 0.26, ex: 0.2, ey: 0.32, juice: '#d6d690', level: 0.93, inset: 0.93,
-      art: { w: 0.3, h: 0.1, y: 0.36, z: 0.132, bg: '#0b0b0b', draw: (P) => { P.frame(0.03, 0.08, 0.94, 0.84, '#c8ccd0', 0.03); P.text('DOLCE & GABBANA', 0.5, 0.42, 0.26, '#f2f2f2', { font: 'helv', weight: 500 }); P.text('EAU DE TOILETTE', 0.5, 0.7, 0.14, '#f2f2f2', { font: 'helv' }); } },
+      body: 'pillow', w: 0.54, h: 0.6, d: 0.24, ex: 0.2, ey: 0.3, juice: '#d6d690', level: 0.93, inset: 0.93,
+      art: { w: 0.3, h: 0.1, y: 0.4, z: 0.122, bg: '#0b0b0b', draw: (P) => { P.frame(0.03, 0.08, 0.94, 0.84, '#c8ccd0', 0.03); P.text('DOLCE & GABBANA', 0.5, 0.42, 0.26, '#f2f2f2', { font: 'helv', weight: 500 }); P.text('EAU DE TOILETTE', 0.5, 0.7, 0.14, '#f2f2f2', { font: 'helv' }); } },
       cap: [{ s: 'cyl', r: 0.12, h: 0.06, fin: 'chrome' }, { s: 'lathe', pts: [[0, 0], [0.125, 0], [0.13, 0.08], [0.12, 0.11], [0, 0.115]], color: '#0b0b0b', rough: 0.15 }],
     }),
 
     /* Hugo Boss */
     'boss|Hugo Man': S({
-      body: 'profile', d: 0.18, round: 0.05, juice: '#a4b8cc', level: 0.92, inset: 0.92, jop: 0.85, h: 0.6,
+      body: 'profile', d: 0.18, round: 0.05, juice: '#a6c0e0', level: 0.92, inset: 0.92, jop: 0.95, h: 0.6,
       pts: [[-0.24, 0], [0.24, 0], [0.26, 0.38], [0.18, 0.53], [0.09, 0.6], [-0.09, 0.6], [-0.18, 0.53], [-0.26, 0.38]],
       art: { w: 0.18, h: 0.18, y: 0.2, z: 0.092, bg: '#ffffff', draw: (P) => {
         P.rect(0.05, 0.05, 0.9, 0.45, '#c8141c'); P.text('HUGO', 0.5, 0.24, 0.24, '#ffffff', { font: 'helv', weight: 700 }); P.text('HUGO BOSS', 0.5, 0.4, 0.07, '#ffffff', { font: 'helv' });
@@ -5336,9 +5341,9 @@ const BottleCraft = (() => {
     'burberry|London for Men': S({
       w: 0.48, h: 0.62, d: 0.22, r: 0.02, solid: '#6e5246', rough: 0.7, coat: 0,
       art: { w: 0.48, h: 0.56, y: 0.33, draw: (P) => {
-        P.rect(0, 0, 1, 1, '#7a5a4a');
-        for (const [x, w, c] of [[0.1, 0.12, 'rgba(30,20,20,0.55)'], [0.42, 0.04, 'rgba(200,180,170,0.5)'], [0.6, 0.16, 'rgba(30,20,20,0.5)'], [0.86, 0.05, 'rgba(170,40,40,0.6)']]) { P.rect(x, 0, w, 1, c); }
-        for (const [y, h, c] of [[0.12, 0.08, 'rgba(170,40,40,0.55)'], [0.3, 0.14, 'rgba(30,20,20,0.5)'], [0.62, 0.05, 'rgba(200,180,170,0.45)'], [0.8, 0.12, 'rgba(30,20,20,0.5)']]) { P.rect(0, y, 1, h, c); }
+        P.rect(0, 0, 1, 1, '#6a4a3e');
+        for (const [x, w, c] of [[0.08, 0.16, 'rgba(25,16,16,0.6)'], [0.42, 0.03, 'rgba(200,180,170,0.4)'], [0.58, 0.2, 'rgba(25,16,16,0.55)'], [0.88, 0.04, 'rgba(170,40,40,0.6)']]) { P.rect(x, 0, w, 1, c); }
+        for (const [y, h, c] of [[0.1, 0.04, 'rgba(170,40,40,0.55)'], [0.28, 0.18, 'rgba(25,16,16,0.55)'], [0.62, 0.03, 'rgba(200,180,170,0.4)'], [0.78, 0.16, 'rgba(25,16,16,0.55)']]) { P.rect(0, y, 1, h, c); }
         for (let i = 0; i < 160; i++) P.line(i / 160 - 0.2, 0, i / 160 + 0.2, 1, 'rgba(255,255,255,0.04)', 0.002);
       } },
       extra: [(k) => k.part(box(0.48, 0.22, 0.05, 0.02, 0), glass({ tint: '#5a3a30', op: 0.85 }))],
@@ -5347,7 +5352,7 @@ const BottleCraft = (() => {
 
     /* Azzaro */
     'azzaro|Azzaro pour Homme': S({
-      w: 0.4, h: 0.64, d: 0.24, r: 0.01, juice: '#e08a0e', level: 0.94, inset: 0.94,
+      w: 0.4, h: 0.64, d: 0.24, r: 0.01, juice: '#c86800', level: 0.94, inset: 0.94, jop: 1,
       art: { w: 0.36, h: 0.58, y: 0.32, draw: (P) => {
         const e = 'rgba(255,214,140,0.75)';
         P.path([[0.5, 0.22], [0.36, 0.62], [0.42, 0.62], [0.5, 0.36], [0.58, 0.62], [0.64, 0.62]], e, false, 0.012);
@@ -5388,7 +5393,7 @@ const BottleCraft = (() => {
 
     /* Bvlgari */
     'bvlgari|Bvlgari pour Homme': S({
-      w: 0.52, h: 0.56, d: 0.28, r: 0.03, juice: '#eceee0', level: 0.84, inset: 0.92, jop: 0.35,
+      w: 0.52, h: 0.56, d: 0.28, r: 0.03, juice: '#eceee0', level: 0.84, inset: 0.92, jop: 0.12,
       art: { w: 0.46, h: 0.2, y: 0.17, t: [['BVLGARI', 0.35, 0.22, '#3a3c40', { font: 'roman', weight: 500, track: 0.4 }], ['POUR HOMME', 0.7, 0.11, '#3a3c40', { font: 'roman', track: 0.3 }]] },
       extra: [(k) => k.part(box(0.52, 0.28, 0.07, 0.03, 0), glass({ op: 0.4 }))],
       cap: [{ s: 'cyl', r: 0.065, h: 0.04, fin: 'chrome' }, { s: 'lathe', pts: [[0, 0], [0.07, 0], [0.075, 0.05], [0.15, 0.17], [0.16, 0.22], [0, 0.22]], fin: 'chrome', sz: 0.8 }],
