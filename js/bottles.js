@@ -716,7 +716,7 @@ const BottleCraft = (() => {
     // Building blocks for js/bottles-designer.js, which adds the designer and house lines.
     tools: {
       kit, box, cyl, sphere, lathe, pillow, bands, merge, gradient, glass, solid, fin, paint, extrudeFlat: null,
-      creed, torso, sauvage, C: (hex) => C(hex), get T() { return T; },
+      creed, torso, sauvage, byredo, tomFord, mfk, pdm, C: (hex) => C(hex), get T() { return T; },
     },
     add(specs) { Object.assign(SPECS, specs); },
     houseFallback(house, spec) { HOUSE_FALLBACK[house] = spec; },
