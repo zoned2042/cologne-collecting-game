@@ -3469,19 +3469,43 @@ const BottleCraft = (() => {
     P.path([[0.38, 0.33], [0.62, 0.33], [0.61, 0.45], [0.56, 0.52], [0.5, 0.55], [0.44, 0.52], [0.39, 0.45], [0.38, 0.33]].map(([x, y]) => [x, y + y0]), lo, false, 0.004);
     P.text('1743', 0.5, y0 + 0.41, 0.04, lo, { font: 'roman', weight: 600, track: 0.1 });
   }
+  // The crest in real relief: horse, shield and ribbon outlines extruded off the front face.
+  // Canvas coords of the front art (0.48 x 0.68, centred at y 0.37) map to bottle space.
+  function marlyRelief(k, z, mat, y0 = 0.05) {
+    const t = T(), AW = 0.48, AH = 0.68, AY = 0.37;
+    const wx = (u) => (u - 0.5) * AW, wy = (v) => AY + (0.5 - v) * AH;
+    const shape = (pts) => { const sh = new t.Shape(); pts.forEach(([u, v], i) => (i ? sh.lineTo(wx(u), wy(v)) : sh.moveTo(wx(u), wy(v)))); return sh; };
+    const opts = { depth: 0.006, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.0035, bevelSegments: 2, curveSegments: 4 };
+    const shapes = [];
+    for (const side of [-1, 1]) { const x0 = side < 0 ? 0.04 : 0.96; shapes.push(shape(HORSE.map(([x, y]) => [x0 - side * x * 0.44, y0 + y * 0.38]))); }
+    shapes.push(shape([[0.35, 0.3], [0.65, 0.3], [0.64, 0.46], [0.58, 0.54], [0.5, 0.58], [0.42, 0.54], [0.36, 0.46]].map(([x, y]) => [x, y + y0])));
+    shapes.push(shape([[0.08, 0.47], [0.2, 0.43], [0.5, 0.45], [0.8, 0.43], [0.92, 0.47], [0.9, 0.52], [0.8, 0.48], [0.5, 0.5], [0.2, 0.48], [0.1, 0.52]].map(([x, y]) => [x, y + y0])));
+    const g = new t.ExtrudeGeometry(shapes, opts); g.translate(0, 0, z - 0.004);
+    k.part(g, mat, mat.transparent ? 3 : 0);
+  }
   const marly = (o = {}) => (item) => {
     const k = kit(); const W = 0.52, H = 0.74, D = 0.3;
     const geo = pillow(W, H, D, 0.22, 0.16);
+    let relief;
     if (o.clear) {
-      k.glassBody(geo, shell({ op: 0.2 }), null);
-      fill(k, pillow(W, H, D, 0.22, 0.16), o.clear[0], o.clear[1], { inset: 0.9, level: 0.9, lift: 0.035 });
-    } else k.solidBody(geo, lacquer(geo, o.color[0], o.color[1], { coat: o.coat != null ? o.coat : 0.55, rough: 0.22, env: o.env || 1.1 }));
+      // Tinted see-through glass: the stage shows through, thicker edges read darker.
+      k.glassBody(geo, glass({ tint: o.clear[1], op: o.glassOp || 0.4, env: 2.8 }), null);
+      fill(k, pillow(W, H, D, 0.22, 0.16), o.clear[0], o.clear[1], { inset: 0.84, insetZ: 0.7, level: 0.88, lift: 0.045, op: o.juiceOp || 0.78, gc: 0.9 });
+      relief = glass({ tint: o.clear[1], op: 0.75, env: 3 });
+    } else {
+      k.solidBody(geo, lacquer(geo, o.color[0], o.color[1], { coat: o.coat != null ? o.coat : 0.55, rough: 0.22, env: o.env || 1.1, metal: o.metal }));
+      const rc = new (T().Color)(o.relief || o.color[1]).lerp(new (T().Color)('#ffffff'), o.lift != null ? o.lift : 0.18);
+      relief = solid({ color: '#' + rc.getHexString(), rough: 0.25, coat: o.coat != null ? o.coat : 0.55, env: o.env || 1.3, metal: o.metal || 0 });
+    }
+    marlyRelief(k, D / 2, relief);
     const hi = o.hi || 'rgba(255,255,255,0.17)', lo = o.lo || 'rgba(0,0,0,0.3)';
-    k.flat(0.48, 0.68, 0, 0.37, D / 2 + 0.004, paint(0.48, 0.68, (P) => {
-      marlyCrest(P, hi, lo);
+    k.flat(0.48, 0.68, 0, 0.37, D / 2 + 0.012, paint(0.48, 0.68, (P) => {
+      P.text('1743', 0.5, 0.05 + 0.41, 0.04, o.brand || hi, { font: 'roman', weight: 600, track: 0.1 });
       if (o.name) P.text(o.name, 0.5, 0.68, o.nameSize || 0.065, o.nameInk || '#f2efe6', { font: o.nameFont || 'roman', italic: !!o.italic, weight: 500, track: o.italic ? 0 : 0.04, maxW: 0.8 });
-      P.text('PARFUMS de MARLY', 0.5 + 0.004, 0.84 + 0.004, 0.034, lo, { font: 'roman', weight: 600, track: 0.14 });
-      P.text('PARFUMS de MARLY', 0.5, 0.84, 0.034, o.brand || hi, { font: 'roman', weight: 600, track: 0.14 });
+    }));
+    k.flat(0.48, 0.68, 0, 0.37, D / 2 + 0.004, paint(0.48, 0.68, (P) => {
+      P.text('PARFUMS de MARLY', 0.5 + 0.004, 0.84 + 0.004, 0.036, lo, { font: 'roman', weight: 600, track: 0.14 });
+      P.text('PARFUMS de MARLY', 0.5, 0.84, 0.036, o.brand || hi, { font: 'roman', weight: 600, track: 0.14 });
       P.text('PARIS', 0.5, 0.89, 0.022, o.brand || hi, { font: 'roman', track: 0.3 });
     }));
     const capMat = mat(o.capMat) || fin(o.cap || 'silver');
@@ -3491,11 +3515,15 @@ const BottleCraft = (() => {
     return k.done();
   };
   // Delina / Valaya: the waisted "violin" flacon with a domed horse-head stopper and tassel.
-  const DELINA = (() => { const r = [[0.2, 0], [0.228, 0.03], [0.232, 0.12], [0.205, 0.3], [0.192, 0.4], [0.2, 0.5], [0.226, 0.6], [0.232, 0.66], [0.205, 0.715], [0.13, 0.742], [0.075, 0.75]]; return r.concat(r.slice().reverse().map(([x, y]) => [-x, y])); })();
+  const DELINA = (() => { const r = [[0.205, 0], [0.232, 0.03], [0.236, 0.11], [0.21, 0.26], [0.18, 0.38], [0.188, 0.48], [0.222, 0.59], [0.236, 0.655], [0.212, 0.712], [0.13, 0.742], [0.075, 0.75]]; return r.concat(r.slice().reverse().map(([x, y]) => [-x, y])); })();
   const delina = (o) => (item) => {
     const k = kit(); const H = 0.75, D = 0.22;
     const geo = profile(DELINA, D, 0.025);
-    k.solidBody(geo, lacquer(geo, o.color[0], o.color[1], { coat: 0.4, rough: 0.3, env: 1 }));
+    k.solidBody(geo, lacquer(geo, o.color[0], o.color[1], { coat: 0.3, rough: 0.42, env: 1 }));
+    // Raised baroque frame following the silhouette, inset from the edge.
+    { const V = T().Vector3, f = 0.78, pts = DELINA.slice(0, 11).map(([x, y]) => new V(x * f, 0.06 + y * 0.84, D / 2 + 0.002));
+      const loop = pts.concat(pts.slice().reverse().map((p) => new V(-p.x, p.y, p.z)));
+      k.part(new (T().TubeGeometry)(new (T().CatmullRomCurve3)(loop, true), 120, 0.009, 6, true), solid({ color: '#' + new (T().Color)(o.color[1]).lerp(new (T().Color)('#ffffff'), 0.35).getHexString(), rough: 0.35, coat: 0.3 })); }
     k.flat(0.44, 0.7, 0, 0.37, D / 2 + 0.004, paint(0.44, 0.7, (P) => {
       const e = o.emboss || 'rgba(255,255,255,0.35)', s = 'rgba(0,0,0,0.08)';
       // Baroque relief frame in the glass.
@@ -3508,8 +3536,8 @@ const BottleCraft = (() => {
     }));
     k.part(cyl(0.075, 0.08, 0.05, H - 0.01, 32), fin('silver'));
     k.part(new (T().TorusGeometry)(0.082, 0.014, 8, 32).rotateX(Math.PI / 2).translate(0, H + 0.03, 0), fin('silver'));
-    k.part(sphere(0.1, H + 0.135, 1, 0.95, 0.85), fin('chrome'));
-    k.flat(0.09, 0.09, 0, H + 0.135, 0.09, paint(0.08, 0.08, (P) => { P.circle(0.5, 0.5, 0.46, 'rgba(90,90,96,0.5)', 0.04); flatPath(P, HORSE, 'rgba(70,70,76,0.6)', (x) => 0.22 + x * 0.56, (y) => 0.2 + y * 0.6); }), { foil: true });
+    k.part(sphere(0.135, H + 0.17, 1, 0.95, 0.85), fin('chrome'));
+    k.flat(0.12, 0.12, 0, H + 0.17, 0.118, paint(0.08, 0.08, (P) => { P.circle(0.5, 0.5, 0.46, 'rgba(90,90,96,0.5)', 0.04); flatPath(P, HORSE, 'rgba(70,70,76,0.6)', (x) => 0.22 + x * 0.56, (y) => 0.2 + y * 0.6); }), { foil: true });
     // Tassel on a cord from the collar.
     const tc = solid({ color: o.tassel, rough: 0.8, coat: 0 });
     k.part(cyl(0.008, 0.008, 0.2, H - 0.17, 6, 0.1, D / 2 + 0.03), tc);
@@ -3730,13 +3758,14 @@ const BottleCraft = (() => {
     'byredo|1996': byr({ juice: '#e8dcb4', big: true, size: 0.11, sub: 'INEZ & VINOODH' }),
 
     /* Parfums de Marly — photos 019-035 */
+    'pdm|Layton': marly({ color: ['#0e1630', '#1c2a4e'] }),
     'pdm|Layton Exclusif': marly({ color: ['#0c1220', '#1a2538'], name: 'Layton Exclusif' }),
     'pdm|Pegasus': marly({ color: ['#9ea0a2', '#c8cacc'], hi: 'rgba(255,255,255,0.55)', lo: 'rgba(0,0,0,0.16)', coat: 0.4 }),
     'pdm|Pegasus Exclusif': marly({ color: ['#1e1e1e', '#373735'], name: 'Pegasus Exclusif', nameInk: '#e6dcc2' }),
     'pdm|Herod': marly({ color: ['#231e20', '#433a3e'], capMat: () => metal('#4a4448', 0.3) }),
-    'pdm|Sedley': marly({ clear: ['#2c5478', '#6890b4'], hi: 'rgba(220,235,250,0.3)', lo: 'rgba(10,30,60,0.35)' }),
+    'pdm|Sedley': marly({ clear: ['#1c4670', '#4a80b4'], hi: 'rgba(220,235,250,0.3)', lo: 'rgba(10,30,60,0.35)' }),
     'pdm|Percival': marly({ color: ['#060c34', '#101a50'] }),
-    'pdm|Greenley': marly({ clear: ['#3f8a68', '#86c4a4'], hi: 'rgba(225,250,235,0.3)', lo: 'rgba(10,50,30,0.35)' }),
+    'pdm|Greenley': marly({ clear: ['#1f6a46', '#4aa07a'], hi: 'rgba(225,250,235,0.3)', lo: 'rgba(10,50,30,0.35)' }),
     'pdm|Carlisle': marly({ color: ['#1c1e20', '#3a3c3f'], name: 'Carlisle', nameSize: 0.07 }),
     'pdm|Kalan': marly({ color: ['#46040a', '#701018'] }),
     'pdm|Haltane': marly({ color: ['#18301a', '#2c4a2c'], name: 'Haltane', nameInk: '#e2c070', cap: 'gold', capMat: () => metal('#e4cc8e', 0.3) }),
@@ -3744,7 +3773,7 @@ const BottleCraft = (() => {
     'pdm|Godolphin': marly({ color: ['#a87418', '#dcb044'], hi: 'rgba(255,240,190,0.35)', lo: 'rgba(90,55,5,0.32)', metal: 0.5, capMat: () => metal('#d9b154', 0.26) }),
     'pdm|Galloway': marly({ color: ['#e2e2e0', '#fafaf8'], hi: 'rgba(255,255,255,0.7)', lo: 'rgba(0,0,0,0.1)', brand: 'rgba(150,150,150,0.6)', coat: 0.3 }),
     'pdm|Oajan': marly({ color: ['#08080a', '#1c1c1e'], name: 'Oajan', italic: true, nameFont: 'serif', nameInk: '#d6ad58', nameSize: 0.06, brand: '#c9a457', capMat: () => metal('#c99a3e', 0.26) }),
-    'pdm|Darley': marly({ clear: ['#d0ac50', '#ecd690'], hi: 'rgba(255,250,230,0.45)', lo: 'rgba(110,90,30,0.28)', capMat: () => metal('#d9b154', 0.26) }),
+    'pdm|Darley': marly({ clear: ['#c8a440', '#e8d080'], juiceOp: 0.7, hi: 'rgba(255,250,230,0.45)', lo: 'rgba(110,90,30,0.28)', capMat: () => metal('#d9b154', 0.26) }),
     'pdm|Delina': delina({ color: ['#dc8e96', '#eab0b2'], tassel: '#f0a890' }),
     'pdm|Valaya': delina({ color: ['#e6e6e8', '#fbfbfb'], tassel: '#f4f2ee', ink: 'rgba(140,140,150,0.7)' }),
 
