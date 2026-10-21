@@ -3676,7 +3676,7 @@ const BottleCraft = (() => {
     } else {
       k.glassBody(box(W, D, H, 0.02), shell({ op: 0.09 }), null);
       fill(k,  box(W, D, H, 0.02), o.fill[0], o.fill[1], { inset: 0.94, level: 0.95, lift: 0.015, gc: 0.8 });
-      bodyTop = o.clearTop ? glass({ op: 0.3, env: 2.6 }) : solid({ color: o.fill[1], rough: 0.06, coat: 1, env: 1.3 });
+      bodyTop = o.clearTop ? glass({ op: 0.3, env: 2.6 }) : solid({ color: o.fill[0], rough: 0.06, coat: 1, env: 1.1 });
     }
     // Stepped shoulder.
     k.part(box(0.29, 0.17, 0.05, 0.012, H - 0.005), bodyTop);
