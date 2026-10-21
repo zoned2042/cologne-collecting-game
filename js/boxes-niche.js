@@ -112,7 +112,7 @@
         tx(P, '125ml', 0.83, 0.014, f, 'roman', { x: 0.14 }); tx(P, '4.2fl.Oz', 0.83, 0.014, f, 'roman', { x: 0.84 });
         P.rect(0, 0.868, 1, 0.004, 'rgba(0,0,0,0.35)'); tx(P, o.band, 0.935, 0.016, '#f2f2f2', 'roman', { track: 0.06 });
       } else {
-        tx(P, nm, 0.73, 0.032, o.name2 || f, 'roman', { track: 0.06, maxW: 0.8 });
+        tx(P, nm, 0.73, 0.038, o.name2 || f, 'roman', { track: 0.06, maxW: 0.8 });
         tx(P, 'EAU DE PARFUM', 0.79, 0.0105, f, 'sans', { track: 0.12 });
         tx(P, '125 ml', 0.94, 0.014, f, 'roman', { x: 0.13 }); tx(P, '4.2 fl.Oz', 0.94, 0.014, f, 'roman', { x: 0.84 });
       }
@@ -138,7 +138,7 @@
   });
 
   /* ---------- Maison Francis Kurkdjian ---------- */
-  const mfkHouse = (P, ink, x = 0.08, y = 0.073, cap = 0.026) => ['Maison', 'Francis Kurkdjian', 'Paris'].forEach((s, i) => tx(P, s, y + i * 0.05, cap, ink, 'serif', { x, align: 'left', weight: 400, maxW: 0.7 }));
+  const mfkHouse = (P, ink, x = 0.07, y = 0.075, cap = 0.033) => ['Maison', 'Francis Kurkdjian', 'Paris'].forEach((s, i) => tx(P, s, y + i * cap * 1.65, cap, ink, 'serif', { x, align: 'left', weight: 400, maxW: 0.7 }));
   function mfkSide(P) {
     fullBg(P, '#f7f6f3'); const g = '#c49a52';
     [0.08, 0.11, 0.14, 0.17, 0.2].forEach((x) => P.line(x, 0.15, x, 0.85, g, 0.0012)); P.rect(0.05, 0.1, 0.2, 0.012, g); P.rect(0.05, 0.86, 0.22, 0.01, g);
@@ -162,9 +162,9 @@
         return;
       }
       mfkHouse(P, o.house);
-      tx(P, o.n1, 0.375, 0.04, o.name, 'serif', { x: 0.92, align: 'right', italic: true, weight: 400, maxW: 0.6 });
-      tx(P, o.n2, 0.428, 0.026, o.name, 'serif', { x: 0.92, align: 'right', weight: 400 });
-      tx(P, o.conc || 'Eau de parfum', 0.9, 0.019, o.house, 'serif', { weight: 700 });
+      tx(P, o.n1, 0.37, 0.05, o.name, 'serif', { x: 0.92, align: 'right', italic: true, weight: 400, maxW: 0.6 });
+      tx(P, o.n2, 0.428, 0.032, o.name, 'serif', { x: 0.92, align: 'right', weight: 400 });
+      tx(P, o.conc || 'Eau de parfum', 0.9, 0.023, o.house, 'serif', { weight: 700 });
       tx(P, '70 ml', 0.975, 0.011, o.emb || 'rgba(0,0,0,0.06)', 'serif', { x: 0.1 }); tx(P, '2.4 fl.oz', 0.975, 0.011, o.emb || 'rgba(0,0,0,0.06)', 'serif', { x: 0.88 });
     },
     sideArt: o.side ? mfkSide : undefined,
@@ -174,9 +174,10 @@
   /* ---------- Clive Christian ---------- */
   function cliveEmblem(P, kind, g, bg) {
     if (kind === '1872') {
-      P.circle(0.5, 0.36, 0.035, g); P.circle(0.5, 0.36, 0.022, bg); P.circle(0.5, 0.36, 0.012, g);
-      P.ellipse(0.42, 0.39, 0.07, 0.022, -0.3, g); P.line(0.6, 0.31, 0.57, 0.43, g, 0.006);
-      tx(P, '1872', 0.5, 0.075, g, 'serif', { weight: 700, maxW: 0.5 });
+      for (let i = 0; i < 16; i++) { const t = (i / 16) * 6.283; P.circle(0.5 + Math.cos(t) * 0.04 * ax(P), 0.37 + Math.sin(t) * 0.04, 0.012, g); }
+      P.circle(0.5, 0.37, 0.03, bg); P.circle(0.5, 0.37, 0.024, g); P.circle(0.49, 0.365, 0.004, bg); P.circle(0.51, 0.365, 0.004, bg);
+      P.path([[0.33, 0.41], [0.38, 0.38], [0.44, 0.4], [0.4, 0.43]], g, false, 0.005); P.line(0.6, 0.33, 0.58, 0.43, g, 0.005);
+      tx(P, '1872', 0.51, 0.085, g, 'serif', { weight: 700, maxW: 0.52 });
     } else if (kind === 'X') {
       crown(P, 0.5, 0.36, 0.04, g); tx(P, 'X', 0.47, 0.11, g, 'serif', { weight: 600 });
       [[0.3, 0.47], [0.7, 0.47]].forEach(([x, y]) => P.circle(x, y, 0.02, g, 0.003));
@@ -207,7 +208,7 @@
     P.path([[0.4, 0.24], [0.6, 0.24], [0.6, 0.36], [0.5, 0.45], [0.4, 0.36]], g, false, 0.004);
     P.line(0.5, 0.24, 0.5, 0.44, g, 0.003); P.line(0.4, 0.33, 0.6, 0.33, g, 0.003);
     [[0.45, 0.285], [0.55, 0.285], [0.45, 0.375], [0.55, 0.38]].forEach(([x, y]) => P.circle(x, y, 0.016, g));
-    [[0.3, 1], [0.7, -1]].forEach(([x, s]) => { P.ellipse(x, 0.33, 0.07, 0.085, s * 0.25, g); P.circle(x + s * 0.01, 0.24, 0.025, g); P.line(x - s * 0.08, 0.27, x - s * 0.16, 0.22, g, 0.005); });
+    horse(P, 0.24, 0.22, 0.15, 0.24, g); horse(P, 0.61, 0.22, 0.15, 0.24, g, true);
     P.path([[0.24, 0.47], [0.38, 0.5], [0.62, 0.5], [0.76, 0.47], [0.76, 0.5], [0.62, 0.53], [0.38, 0.53], [0.24, 0.5]], g);
   }
   const cliveChest = (item, fit) => Object.assign(prop(fit, 0.8, 0.62), {
@@ -243,8 +244,8 @@
       if (o.kind === '1861') stipple(P, 'rgba(0,0,0,0.03)', 1500, 0.001);
       bigX(P, o.band, o.edge);
       P.frame(0.05, 0.035, 0.9, 0.93, g, 0.002); if (o.kind === '1861') P.frame(0.065, 0.045, 0.87, 0.91, g, 0.001);
-      xLogo(P, 0.34, 0.1, o.x1 || '#ffffff', o.x2 || '#b8864a');
-      tx(P, 'XERJOFF', 0.8, 0.03, o.ink || '#ffffff', 'sans', { weight: 500, track: 0.04 });
+      xLogo(P, 0.42, 0.13, o.x1 || '#ffffff', o.x2 || '#b8864a');
+      tx(P, 'XERJOFF', 0.8, 0.034, o.ink || '#ffffff', 'sans', { weight: 500, track: 0.04 });
       tx(P, item.name.toUpperCase(), 0.84, 0.013, o.ink2 || o.ink || '#ffffff', 'sans', { weight: 500, track: 0.08 });
       tx(P, 'EAU DE PARFUM', 0.88, 0.008, o.ink2 || o.ink || '#ffffff', 'sans', { track: 0.12 });
       tx(P, '100 ml ℮', 0.94, 0.01, o.ink2 || o.ink || '#ffffff', 'sans', { x: 0.18 }); tx(P, '3.4 FL.OZ.', 0.94, 0.01, o.ink2 || o.ink || '#ffffff', 'sans', { x: 0.82 });
@@ -256,7 +257,7 @@
   const baccarat = (item, fit) => Object.assign(prop(fit, 0.92, 0.92), {
     lid: 0.9, paper: { color: '#921822', rough: 0.7 }, lining: { color: '#efe6d8', rough: 0.35 },
     front: (P) => {
-      fullBg(P, '#921822'); stipple(P, 'rgba(0,0,0,0.08)', 2200, 0.0009); stipple(P, 'rgba(255,255,255,0.03)', 1500, 0.0009);
+      fullBg(P, '#7e121a'); stipple(P, 'rgba(0,0,0,0.08)', 2200, 0.0009); stipple(P, 'rgba(255,255,255,0.03)', 1500, 0.0009);
       tx(P, 'Baccarat', 0.5, 0.06, '#f2f2f2', 'serif', { italic: true, weight: 400, maxW: 0.5 });
       tx(P, 'LES LARMES SACRÉES DE THÈBES', 0.7, 0.014, '#f2f2f2', 'roman', { track: 0.1, maxW: 0.7 }); tx(P, 'PARFUM', 0.74, 0.011, '#f2f2f2', 'roman', { track: 0.2 });
     },
@@ -270,12 +271,12 @@
     lid: 0.8, paper: { color: '#2a2a28', rough: 0.85 }, lining: '#111111',
     front: (P) => {
       fullBg(P, '#2a2a28'); weave(P, 'rgba(0,0,0,0.25)', 160); weave(P, 'rgba(255,255,255,0.025)', 90);
-      const hw = 0.39, hh = hw * P.W / P.H, cy = 0.43;
+      const hw = 0.43, hh = hw * P.W / P.H, cy = 0.43;
       diamond(P, 0.5, cy, hw + 0.01, hh + 0.01 * P.W / P.H, '#1c1c1b'); diamond(P, 0.5, cy, hw - 0.025, hh - 0.025 * P.W / P.H, '#c9b48a', 0.0018);
       const w = item.name.toUpperCase().split(' '), L = KL[item.name] || (w.length < 2 ? [w[0]] : [w[0], w.slice(1).join(' ')]);
-      L.forEach((l, i) => tx(P, l, cy - 0.085 + i * 0.058 + (L.length < 2 ? 0.03 : 0), 0.036, '#f0f0f0', 'serif', { weight: 400, maxW: 0.5 }));
+      L.forEach((l, i) => tx(P, l, cy - 0.085 + i * 0.058 + (L.length < 2 ? 0.03 : 0), 0.04, '#f0f0f0', 'serif', { weight: 400, maxW: 0.56 }));
       tx(P, 'by', cy + 0.022, 0.011, '#f0f0f0', 'serif', { italic: true, weight: 400 });
-      tx(P, 'Kilian', cy + 0.068, 0.045, '#f0f0f0', 'serif', { italic: true, weight: 400 });
+      tx(P, 'Kilian', cy + 0.072, 0.05, '#f0f0f0', 'serif', { italic: true, weight: 400 });
       P.rect(0, 0.8, 1, 0.004, 'rgba(0,0,0,0.5)');
       const c = '#e9dcc0', ml = K100.test(item.name) ? '℮100 ml - 3.4 fl.oz.' : '℮50ml - 1.7fl.oz.';
       tx(P, 'EAU DE PARFUM', 0.86, 0.02, c, 'helv', { weight: 400, track: 0.08 }); tx(P, 'VAPORISATEUR SPRAY', 0.9, 0.013, c, 'helv', { weight: 400, track: 0.15 }); tx(P, ml, 0.945, 0.018, c, 'helv', { weight: 400, track: 0.08, maxW: 0.66 });
@@ -289,13 +290,13 @@
     front: (P) => {
       const g = o.g || '#d9b778'; fullBg(P, o.c); if (!o.gloss) pinstripe(P, o.lin || 'rgba(255,255,255,0.025)', 200);
       if (o.draw) o.draw(P, g);
-      if (o.band !== false) { P.rect(0, 0.826, 1, 0.026, '#efcf9c'); P.rect(0, 0.848, 1, 0.004, 'rgba(0,0,0,0.25)'); tx(P, 'ROJA', 0.927, 0.03, g, 'sans', { track: 0.12 }); }
+      if (o.band !== false) { P.rect(0, 0.826, 1, 0.034, '#e8c486'); P.rect(0, 0.856, 1, 0.004, 'rgba(0,0,0,0.25)'); tx(P, 'ROJA', 0.927, 0.03, g, 'sans', { track: 0.12 }); }
     },
     top: (P) => { fullBg(P, o.c); tx(P, 'ROJA', 0.5, 0.08, o.g || '#d9b778', 'sans', { track: 0.15 }); },
   });
-  const rojaPH = (name) => roja({ c: '#373238', draw: (P, g) => { tx(P, name, 0.18, 0.026, g, 'sans', { weight: 400, track: 0.32 }); tx(P, 'EAU DE PARFUM', 0.215, 0.0105, g, 'sans', { track: 0.1 }); } });
+  const rojaPH = (name) => roja({ c: '#2a262b', draw: (P, g) => { tx(P, name, 0.18, 0.026, g, 'sans', { weight: 400, track: 0.32 }); tx(P, 'EAU DE PARFUM', 0.215, 0.0105, g, 'sans', { track: 0.1 }); } });
   const burlington = (P, g) => {
-    tx(P, '18', 0.235, 0.04, g, 'serif', { weight: 500 }); tx(P, 'BURLINGTON', 0.31, 0.022, g, 'serif', { weight: 500, track: 0.04 }); tx(P, '19', 0.39, 0.04, g, 'serif', { weight: 500 });
+    tx(P, '18', 0.235, 0.05, g, 'serif', { weight: 500 }); tx(P, 'BURLINGTON', 0.31, 0.026, g, 'serif', { weight: 500, track: 0.04 }); tx(P, '19', 0.39, 0.05, g, 'serif', { weight: 500 });
     const c = P.g; c.save(); c.beginPath(); c.rect(0, 0.6 * P.H, P.W, 0.226 * P.H); c.clip(); c.strokeStyle = g; c.lineWidth = 0.0015 * P.H;
     for (const cx of [0.28, 0.72]) for (let r = 0.06; r < 0.5; r += 0.05) { c.beginPath(); c.arc(cx * P.W, 1.02 * P.H, r * P.H, 0, Math.PI * 2); c.stroke(); }
     for (let i = 0; i < 12; i++) { c.beginPath(); c.moveTo(0.5 * P.W, 1.05 * P.H); c.lineTo((i / 11) * P.W, 0.55 * P.H); c.stroke(); }
@@ -432,64 +433,64 @@
     'tomford|Beau de Jour': tfSig({ paper: '#5c6a78', tex: 'grain', plate: '#f2f2f0', ink: '#3a4652', foot: '#f2f2f0' }),
 
     /* Parfums de Marly */
-    pdm: pdm({ c: '#2a3150' }),
-    'pdm|Layton': pdm({ c: '#2a3150' }),
-    'pdm|Layton Exclusif': pdm({ c: '#1d2742', band: 'EDITION ROYALE' }),
-    'pdm|Pegasus': pdm({ c: '#22223f', name2: '#f2f2f2' }),
+    pdm: pdm({ c: '#202640' }),
+    'pdm|Layton': pdm({ c: '#202640' }),
+    'pdm|Layton Exclusif': pdm({ c: '#162038', band: 'EDITION ROYALE' }),
+    'pdm|Pegasus': pdm({ c: '#1a1a33', name2: '#f2f2f2' }),
     'pdm|Pegasus Exclusif': pdm({ c: '#111111', stripes: true, band: 'ROYAL ESSENCE', panel: '#8a8c90' }),
-    'pdm|Herod': pdm({ c: '#3a2e28' }),
-    'pdm|Sedley': pdm({ c: '#8fb0cc', name2: '#ffffff' }),
-    'pdm|Percival': pdm({ c: '#a7c4e0', name2: '#ffffff' }),
-    'pdm|Greenley': pdm({ c: '#9cc9b2', name2: '#ffffff' }),
+    'pdm|Herod': pdm({ c: '#30251f' }),
+    'pdm|Sedley': pdm({ c: '#5f85a8', foil: '#d0d4d8', name2: '#ffffff' }),
+    'pdm|Percival': pdm({ c: '#86a8c8', foil: '#d0d4d8', name2: '#ffffff' }),
+    'pdm|Greenley': pdm({ c: '#76ad93', foil: '#d0d4d8', name2: '#ffffff' }),
     'pdm|Carlisle': pdm({ c: '#23493c' }),
-    'pdm|Kalan': pdm({ c: '#b8281e', metal: 0.45, rule: true, foil: '#e2e4e6' }),
+    'pdm|Kalan': pdm({ c: '#8e1812', metal: 0.45, rule: true, foil: '#e2e4e6' }),
     'pdm|Haltane': pdm({ c: '#8a5a3a' }),
     'pdm|Althaïr': pdm({ c: '#c77a35', name2: '#ffffff' }),
     'pdm|Godolphin': pdm({ c: '#b0894f', name2: '#ffffff' }),
-    'pdm|Galloway': pdm({ c: '#e7dca0', foil: '#a8aaae', name2: '#8a8c90' }),
+    'pdm|Galloway': pdm({ c: '#c4b46e', foil: '#6a6c70', name2: '#5a5c60' }),
     'pdm|Oajan': pdm({ c: '#b5653a' }),
     'pdm|Darley': pdm({ c: '#4a5262' }),
-    'pdm|Delina': pdm({ c: '#e9cfc9', foil: '#b4b6ba', name2: '#ffffff' }),
-    'pdm|Valaya': pdm({ c: '#f2eee6', foil: '#a8aaae', name2: '#9a9ca0' }),
+    'pdm|Delina': pdm({ c: '#c48a80', foil: '#5a5252', name2: '#4a4444' }),
+    'pdm|Valaya': pdm({ c: '#d2cab8', foil: '#6a6c70', name2: '#5a5c60' }),
 
     /* Byredo */
     byredo,
 
     /* Maison Francis Kurkdjian */
     mfk: mfk({ paper: '#f7f6f3', panel: ['#9a7a3a', '#d9b866', '#a8843c'] }),
-    'mfk|Baccarat Rouge 540': mfk({ paper: '#f7f6f3', house: '#b08a4a', name: '#6b1b2b', n1: 'Baccarat', n2: 'Rouge 540', side: true }),
-    'mfk|Baccarat Rouge 540 Extrait': mfk({ paper: '#d0141c', gloss: true, speck: 'rgba(0,0,0,0.05)', house: '#d4af6a', name: '#d4af6a', n1: 'Baccarat', n2: 'Rouge 540', conc: 'Extrait de parfum', emb: 'rgba(255,255,255,0.1)' }),
+    'mfk|Baccarat Rouge 540': mfk({ paper: '#f7f6f3', house: '#8a6428', name: '#6b1b2b', n1: 'Baccarat', n2: 'Rouge 540', side: true }),
+    'mfk|Baccarat Rouge 540 Extrait': mfk({ paper: '#a80c14', gloss: true, speck: 'rgba(0,0,0,0.05)', house: '#d4af6a', name: '#d4af6a', n1: 'Baccarat', n2: 'Rouge 540', conc: 'Extrait de parfum', emb: 'rgba(255,255,255,0.1)' }),
     'mfk|Oud Satin Mood': mfk({ paper: '#3a2546', speck: 'rgba(255,255,255,0.03)', house: '#d4af6a', name: '#d4af6a', n1: 'satin mood', n2: 'OUD', emb: 'rgba(255,255,255,0.08)' }),
     'mfk|Oud Silk Mood': mfk({ paper: '#2b59a7', speck: 'rgba(255,255,255,0.03)', house: '#d4af6a', name: '#d4af6a', n1: 'silk mood', n2: 'OUD', emb: 'rgba(255,255,255,0.08)' }),
     'mfk|Aqua Universalis': mfk({ paper: '#f7f6f3', panel: ['#7a5a1e', '#d6b25e', '#8a6a2a'] }),
     'mfk|Grand Soir': mfk({ paper: '#f7f6f3', panel: ['#8a4a14', '#d98a3a', '#9a5a1e'] }),
     'mfk|Gentle Fluidity Gold': mfk({ paper: '#f7f6f3', panel: ['#9a7a3a', '#e0c070', '#a8843c'], n1: 'Gentle Fluidity', n2: 'Gold' }),
-    'mfk|Gentle Fluidity Silver': mfk({ paper: '#f7f6f3', panel: ['#8a8c90', '#e2e4e6', '#9a9ca0'], n1: 'Gentle Fluidity', n2: 'Silver' }),
+    'mfk|Gentle Fluidity Silver': mfk({ paper: '#f7f6f3', panel: ['#6a6c70', '#c4c6c8', '#7a7c80'], n1: 'Gentle Fluidity', n2: 'Silver' }),
     'mfk|Petit Matin': mfk({ paper: '#f7f6f3', panel: ['#c8b46a', '#f0e2a0', '#c8b46a'], pink: '#6a5a2a' }),
     'mfk|Amyris Homme': mfk({ paper: '#f7f6f3', panel: ['#7a8ea0', '#c8d6e2', '#8a9cae'], conc: 'Eau de toilette' }),
 
     /* Clive Christian */
     clive: clive({ c: '#121212', em: 'X', coll: CO, desc: ['A TIMELESS BLEND OF RARE AND', 'PRECIOUS INGREDIENTS CRAFTED', 'IN THE TRADITION OF THE HOUSE'] }),
-    'clive|1872 Masculine': clive({ c: '#19a05a', em: '1872', coll: CO, desc: ['FRESH CITRUS NOTES WITH AN INTENSELY', 'AROMATIC HEART OF CLARY SAGE TO CREATE', 'THE MASCULINE PERFUME OF THE PERFECT PAIR'] }),
+    'clive|1872 Masculine': clive({ c: '#0c7a3e', em: '1872', coll: CO, desc: ['FRESH CITRUS NOTES WITH AN INTENSELY', 'AROMATIC HEART OF CLARY SAGE TO CREATE', 'THE MASCULINE PERFUME OF THE PERFECT PAIR'] }),
     'clive|X Masculine': clive({ c: '#121212', em: 'X', coll: CO, desc: ['A SEDUCTIVE BLEND OF PINEAPPLE', 'AND CARDAMOM ON A WARM HEART', 'OF ORRIS, CEDAR AND VETIVER'] }),
-    'clive|No.1 Masculine': clive({ c: '#efe8d8', g: '#b8923e', em: 'No1', coll: CO, desc: ['THE WORLD\'S MOST EXCLUSIVE PERFUME', 'LIME, CARDAMOM AND NUTMEG ON A', 'HEART OF SANDALWOOD AND VETIVER'] }),
-    'clive|C Masculine': clive({ c: '#b97f6e', metal: 0.5, em: 'C', coll: CP, desc: ['A WARM SPICED ORIENTAL OF', 'CARDAMOM, INCENSE AND OUD', 'ON A BASE OF RICH LEATHER'] }),
-    'clive|V Masculine': clive({ c: '#b97f6e', metal: 0.5, em: 'V', coll: CP, desc: ['A VIBRANT FOUGERE OF MANDARIN', 'AND BLACK PEPPER WITH CRISP', 'LAVENDER AND MOSSY WOODS'] }),
-    'clive|Town & Country': clive({ c: '#b97f6e', metal: 0.5, em: 'T', coll: CP, desc: ['GREEN FLORAL ALIVE WITH AROMATIC', 'CHAMOMILE AND SCOTTISH HEATHER A JOURNEY', 'OF RUGGED COASTS AND HIGHLAND PEAKS'] }),
-    'clive|Jump Up and Kiss Me Hedonistic': clive({ c: '#b97f6e', metal: 0.5, em: 'J', coll: CP, desc: ['A HEDONISTIC FLORAL OF TUBEROSE', 'AND JASMINE WRAPPED IN WARM', 'VANILLA AND CREAMY SANDALWOOD'] }),
-    'clive|Matsukita': clive({ c: '#8a5446', metal: 0.5, em: 'M', coll: CP, desc: ['A SMOKY JAPANESE LEATHER OF', 'BIRCH TAR AND PINE NEEDLES OVER', 'A BED OF OUD AND AGARWOOD'] }),
+    'clive|No.1 Masculine': clive({ c: '#d6cbb2', g: '#86621e', em: 'No1', coll: CO, desc: ['THE WORLD\'S MOST EXCLUSIVE PERFUME', 'LIME, CARDAMOM AND NUTMEG ON A', 'HEART OF SANDALWOOD AND VETIVER'] }),
+    'clive|C Masculine': clive({ c: '#8a5040', g: '#e0bc60', metal: 0.5, em: 'C', coll: CP, desc: ['A WARM SPICED ORIENTAL OF', 'CARDAMOM, INCENSE AND OUD', 'ON A BASE OF RICH LEATHER'] }),
+    'clive|V Masculine': clive({ c: '#8a5040', g: '#e0bc60', metal: 0.5, em: 'V', coll: CP, desc: ['A VIBRANT FOUGERE OF MANDARIN', 'AND BLACK PEPPER WITH CRISP', 'LAVENDER AND MOSSY WOODS'] }),
+    'clive|Town & Country': clive({ c: '#8a5040', g: '#e0bc60', metal: 0.5, em: 'T', coll: CP, desc: ['GREEN FLORAL ALIVE WITH AROMATIC', 'CHAMOMILE AND SCOTTISH HEATHER A JOURNEY', 'OF RUGGED COASTS AND HIGHLAND PEAKS'] }),
+    'clive|Jump Up and Kiss Me Hedonistic': clive({ c: '#8a5040', g: '#e0bc60', metal: 0.5, em: 'J', coll: CP, desc: ['A HEDONISTIC FLORAL OF TUBEROSE', 'AND JASMINE WRAPPED IN WARM', 'VANILLA AND CREAMY SANDALWOOD'] }),
+    'clive|Matsukita': clive({ c: '#5e3428', g: '#e0bc60', metal: 0.5, em: 'M', coll: CP, desc: ['A SMOKY JAPANESE LEATHER OF', 'BIRCH TAR AND PINE NEEDLES OVER', 'A BED OF OUD AND AGARWOOD'] }),
     'clive|No.1 Imperial Majesty': cliveChest,
 
     /* Xerjoff */
-    xerjoff: xerjoff({ kind: '1861', c: '#e6e4df', band: '#d6d3cc', edge: '#f4f3f0', g: '#b8955a', x1: '#5a2a5e', x2: '#b8864a', ink: '#8a7a5a', ink2: '#6a6a6a', lining: '#5a2a6a' }),
-    'xerjoff|Naxos': xerjoff({ kind: '1861', c: '#e6e4df', band: '#d6d3cc', edge: '#f4f3f0', g: '#b8955a', x1: '#5a2a5e', x2: '#b8864a', ink: '#8a7a5a', ink2: '#6a6a6a', lining: '#4a2232' }),
-    'xerjoff|Torino21': xerjoff({ kind: '1861', c: '#e6e4df', band: '#d6d3cc', edge: '#f4f3f0', g: '#b8955a', x1: '#1e2350', x2: '#b8864a', ink: '#8a7a5a', ink2: '#1e2350', lining: '#1e2350' }),
-    'xerjoff|Mefisto': xerjoff({ kind: '1861', c: '#e6e4df', band: '#d6d3cc', edge: '#f4f3f0', g: '#b8955a', x1: '#4a7aa8', x2: '#b8864a', ink: '#8a7a5a', ink2: '#4a6a8a', lining: '#4a2232' }),
-    'xerjoff|Accento': xerjoff({ c: '#5a2bd0', band: '#4a1eb0', edge: '#8a6ae8', x2: '#e8d4a0', ink: '#ffffff' }),
-    'xerjoff|Erba Pura': xerjoff({ c: '#1a8fa3', band: '#137080', edge: '#4ab0c0', x2: '#b8864a', ink: '#f0d9a0', ink2: '#f2f2f2' }),
-    'xerjoff|More Than Words': xerjoff({ kind: 'jtc', c: '#1e2350' }),
-    'xerjoff|40 Knots': xerjoff({ kind: 'jtc', c: '#1e2350' }),
-    'xerjoff|Alexandria II': xerjoff({ kind: 'stars', c: '#3a1d1a', field: '#a8724c', g: '#d9b56a' }),
+    xerjoff: xerjoff({ kind: '1861', c: '#d4d1ca', band: '#b0aba0', edge: '#e6e4de', g: '#a8854a', x1: '#5a2a5e', x2: '#b8864a', ink: '#6a5a3a', ink2: '#6a6a6a', lining: '#5a2a6a' }),
+    'xerjoff|Naxos': xerjoff({ kind: '1861', c: '#d4d1ca', band: '#b0aba0', edge: '#e6e4de', g: '#a8854a', x1: '#5a2a5e', x2: '#b8864a', ink: '#6a5a3a', ink2: '#6a6a6a', lining: '#4a2232' }),
+    'xerjoff|Torino21': xerjoff({ kind: '1861', c: '#d4d1ca', band: '#b0aba0', edge: '#e6e4de', g: '#a8854a', x1: '#1e2350', x2: '#b8864a', ink: '#6a5a3a', ink2: '#1e2350', lining: '#1e2350' }),
+    'xerjoff|Mefisto': xerjoff({ kind: '1861', c: '#d4d1ca', band: '#b0aba0', edge: '#e6e4de', g: '#a8854a', x1: '#4a7aa8', x2: '#b8864a', ink: '#6a5a3a', ink2: '#4a6a8a', lining: '#4a2232' }),
+    'xerjoff|Accento': xerjoff({ c: '#4a1eb4', band: '#36128e', edge: '#7a5ae0', x2: '#e8d4a0', ink: '#ffffff' }),
+    'xerjoff|Erba Pura': xerjoff({ c: '#0e6a7a', band: '#08505e', edge: '#2a8a9a', x2: '#b8864a', ink: '#f0d9a0', ink2: '#f2f2f2' }),
+    'xerjoff|More Than Words': xerjoff({ kind: 'jtc', c: '#161a3c' }),
+    'xerjoff|40 Knots': xerjoff({ kind: 'jtc', c: '#161a3c' }),
+    'xerjoff|Alexandria II': xerjoff({ kind: 'stars', c: '#3a1d1a', field: '#946240', g: '#d9b56a' }),
 
     /* Baccarat */
     baccarat,
@@ -503,7 +504,7 @@
     'roja|Enigma Pour Homme': rojaPH('ENIGMA'),
     'roja|Danger Pour Homme': rojaPH('DANGER'),
     'roja|Burlington 1819': roja({ c: '#1d1d1f', draw: burlington }),
-    'roja|Isola Blu': roja({ c: '#f7f6f2', lin: 'rgba(0,0,0,0.02)', draw: isola }),
+    'roja|Isola Blu': roja({ c: '#ecebe6', g: '#b08a42', lin: 'rgba(0,0,0,0.02)', draw: isola }),
     'roja|Apex': roja({ c: '#141414', rw: 0.9, lid: 0.95, band: false, g: '#c8c8c8', lining: '#141414', draw: apex }),
     'roja|Diaghilev': cabinet(false),
     'roja|Haute Luxe': cabinet(true),
