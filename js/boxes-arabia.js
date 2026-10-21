@@ -328,7 +328,7 @@
     lid: 0.97, paper: { color: o.paper, rough: 0.7 }, lining: '#111',
     front: (P) => {
       fullBg(P, o.paper);
-      if (o.moroccan) girih(P, null, o.pat, 0.09, { lw: 0.005 }); else { for (let i = -10; i < 20; i++) { P.line(i * 0.08, 0, i * 0.08 + 0.7, 1, o.pat, 0.0025); P.line(i * 0.08, 0, i * 0.08 - 0.7, 1, o.pat, 0.0025); } damask(P, o.pat, 0.045, 0.16, 0.1); }
+      if (o.moroccan) girih(P, null, o.pat, 0.09, { lw: 0.003 }); else { for (let i = -10; i < 20; i++) { P.line(i * 0.08, 0, i * 0.08 + 0.7, 1, o.pat, 0.0025); P.line(i * 0.08, 0, i * 0.08 - 0.7, 1, o.pat, 0.0025); } damask(P, o.pat, 0.045, 0.16, 0.1); }
       const x = 0.45, hw = 0.16, O = (s) => [[x - hw * s, 0.58], [x - hw * s, 0.28 + (1 - s) * 0.05], [x - hw * s * 0.55, 0.17 + (1 - s) * 0.07], [x, 0.1 + (1 - s) * 0.1], [x + hw * s * 0.55, 0.17 + (1 - s) * 0.07], [x + hw * s, 0.28 + (1 - s) * 0.05], [x + hw * s, 0.58]];
       P.path(O(1), o.archBg); clipPoly(P, O(1), () => { girih(P, null, o.fil, 0.06); });
       P.path(O(1), o.fil, false, 0.004); P.line(x, 0.1, x, 0.07, o.fil, 0.004); P.circle(x, 0.065, 0.007, o.fil);
@@ -529,13 +529,13 @@
     'afnan|Supremacy Gold': supremacy({ paper: '#c8962e', bg: { l: [0, 0, 1, 1], c: ['#d4a43a', '#b8862a', '#cc9a34'] }, hi: 'rgba(255,240,190,0.45)', lo: 'rgba(130,80,10,0.22)', ink: '#b0401f' }),
     'afnan|Supremacy Not Only Intense': supremacy({ paper: '#5a5856', layout: 'low', bg: { x: 0.7, y: 0.35, r: 0.9, c: ['#a09c99', '#4a4846', '#131313'] }, hi: 'rgba(255,255,255,0.18)', lo: 'rgba(0,0,0,0.25)', ink: '#e8e8e8', name: 'not only intense', nameInk: '#c0262c' }),
     'afnan|Supremacy in Oud': supremacy({ paper: '#5e3a2e', layout: 'low', bg: { x: 0.65, y: 0.4, r: 0.8, c: ['#7a5040', '#5e3a2e', '#341c14'] }, hi: 'rgba(255,220,190,0.2)', lo: 'rgba(0,0,0,0.25)', ink: '#d8a94f', name: 'in Oud' }),
-    'afnan|Supremacy in Heaven': supremacy({ paper: '#6f8c8e', bg: { l: [0, 0, 0.8, 0.8], c: ['#2a454c', '#55777c', '#6f8c8e', '#86a2a2'] }, brush: true, hi: 'rgba(255,255,255,0.3)', lo: 'rgba(0,20,40,0.2)', ink: '#1d3550', name: 'in Heaven' }),
+    'afnan|Supremacy in Heaven': supremacy({ paper: '#6f8c8e', bg: { l: [0, 0, 0.8, 0.8], c: ['#1f3a42', '#46666c', '#5a7a7e', '#6e8e90'] }, brush: true, hi: 'rgba(255,255,255,0.3)', lo: 'rgba(0,20,40,0.2)', ink: '#1d3550', name: 'in Heaven' }),
     'afnan|Supremacy Incense': supremacy({ paper: '#1f3b40', bg: { l: [0, 0, 1, 1], c: ['#1f3b40', '#3a5a60', '#9aa8aa'] }, hi: 'rgba(255,255,255,0.15)', lo: 'rgba(0,0,0,0.25)', ink: '#d8dcdc', name: 'INCENSE', nameCaps: true }),
     'afnan|Supremacy Noir': supremacy({ paper: '#141414', metal: 0.2, hi: 'rgba(255,255,255,0.07)', lo: 'rgba(0,0,0,0.4)', ink: '#c8c8c8', name: 'NOIR', nameCaps: true }),
     "afnan|Supremacy Collector's Edition": supremacy({ rw: 0.75, rd: 0.42, paper: '#323738', metal: 0, collector: true, hi: '#454b4b', lo: 'rgba(0,0,0,0.3)', ink: '#ffffff' }),
     'afnan|Turathi Blue': turathi({ paper: '#25354f', pat: 'rgba(80,110,170,0.35)', fil: '#d8d2bf', archBg: '#25354f', field: '#efe9da', arInk: '#4a5a7a', ink: '#e8e8e8' }),
     'afnan|Turathi Brown': turathi({ paper: '#4e373d', pat: 'rgba(140,100,110,0.3)', fil: '#d9b45a', archBg: '#4e373d', field: '#e8d9a8', arInk: '#6a4a3a', ink: '#d9b45a' }),
-    'afnan|Turathi Electric': turathi({ paper: '#5a9ab4', moroccan: true, pat: 'rgba(255,255,255,0.35)', fil: '#c8d0d8', archBg: '#111111', field: '#111111', arInk: '#d8dde2', ink: '#1d2d4a', script: 'electric' }),
+    'afnan|Turathi Electric': turathi({ paper: '#4a8cac', moroccan: true, pat: 'rgba(255,255,255,0.3)', fil: '#c8d0d8', archBg: '#111111', field: '#111111', arInk: '#d8dde2', ink: '#1d2d4a', script: 'electric' }),
     'afnan|Rare Carbon': rare({ paper: '#252525', petal: ['#d0d0d0', '#9a9a9a', '#5a5a5a'], sub: 'CARBON', conc: 'EAU DE PARFUM VAPORISATEUR' }),
     'afnan|Rare Reef': rare({ paper: '#253452', diamond: true, petal: ['#c8d4ee', '#7f97c8', '#3e5a98'], sub: 'REEF', conc: 'EXTRAIT DE PARFUM' }),
     'afnan|Modest Une pour Homme': modest,

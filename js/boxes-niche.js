@@ -326,6 +326,8 @@
       else if (k === 'c') P.circle(a[0], a[1], a[2], c);
       else if (k === 'g') { for (let i = 0; i < a[0]; i++) { const r = Math.sqrt(rnd(i + 31)) * a[3], t = rnd(i + 77) * 6.283; P.circle(a[1] + Math.cos(t) * r * ax(P), a[2] + Math.sin(t) * r, 0.0012 + rnd(i) * 0.0015, c); } }
     }
+    // Paint mottling so flat shapes read as washes.
+    for (let i = 0; i < 1400; i++) P.circle(rnd(i + 900), rnd(i + 4000), 0.002 + rnd(i + 70) * 0.012, rnd(i + 11) > 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)');
   }
   const amouage = (o) => (item, fit) => Object.assign(prop(fit, 1, 0.45), {
     lid: 0.85, paper: { color: o.side || o.bg, rough: 0.6 }, lining: { color: '#0c0c0c', rough: 0.9 },
@@ -344,12 +346,16 @@
   /* ---------- Initio ---------- */
   function arabesque(P, cy, hh, g) {
     const hw = hh * ax(P);
-    for (const k of [1, 0.82, 0.55]) diamond(P, 0.5, cy, hw * k, hh * k, g, k === 1 ? 0.004 : 0.0025);
+    for (const k of [1, 0.9, 0.5]) diamond(P, 0.5, cy, hw * k, hh * k, g, k === 1 ? 0.004 : 0.0022);
     for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-      const x = 0.5 + dx * hw, y = cy + dy * hh; P.circle(x, y, 0.012, g); P.circle(x + dx * 0.02 * ax(P), y + dy * 0.02, 0.006, g);
-      for (const s of [-1, 1]) P.circle(0.5 + dx * hw * 0.62 + (dy ? s * hw * 0.25 : 0), cy + dy * hh * 0.62 + (dx ? s * hh * 0.25 : 0), 0.022, g, 0.003);
+      const x = 0.5 + dx * hw, y = cy + dy * hh; P.circle(x, y, 0.012, g); P.circle(x + dx * 0.022 * ax(P), y + dy * 0.022, 0.007, g);
+      P.path([[0.5 + dx * hw * 0.5, cy + dy * hh * 0.5], [0.5 + dx * hw * 0.92 + dy * 0.012 * ax(P), cy + dy * hh * 0.92 + dx * 0.012], [0.5 + dx * hw * 0.92 - dy * 0.012 * ax(P), cy + dy * hh * 0.92 - dx * 0.012]], g);
     }
-    P.circle(0.47, cy, 0.04, g, 0.004); P.circle(0.53, cy, 0.04, g, 0.004); P.line(0.5, cy - 0.06, 0.5, cy + 0.06, g, 0.004);
+    // Scroll curls along the four edges.
+    for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (const t of [0.3, 0.5, 0.7]) {
+      const x = 0.5 + sx * hw * t * 0.72, y = cy + sy * hh * (1 - t) * 0.72; P.circle(x, y, 0.017, g, 0.003); P.circle(x + sx * 0.008 * ax(P), y + sy * 0.008, 0.006, g);
+    }
+    P.circle(0.475, cy, 0.035, g, 0.005); P.circle(0.525, cy, 0.035, g, 0.005); P.line(0.5, cy - 0.06, 0.5, cy + 0.06, g, 0.004);
   }
   function eye(P, cy, g) {
     for (let i = 0; i < 64; i++) { const t = (i / 64) * 6.283, r0 = 0.2, r1 = 0.26 + rnd(i) * 0.08; P.line(0.5 + Math.cos(t) * r0 * ax(P), cy + Math.sin(t) * r0, 0.5 + Math.cos(t) * r1 * ax(P), cy + Math.sin(t) * r1, g, 0.0012); }
@@ -362,9 +368,9 @@
     front: (P) => {
       const g = o.g || '#d8bd84'; fullBg(P, o.c);
       if (o.eye) eye(P, 0.36, g); else arabesque(P, 0.33, 0.19, g);
-      tx(P, 'INITIO', 0.685, 0.033, g, 'roman', { weight: 500, track: 0.06 });
+      tx(P, 'INITIO', 0.685, 0.04, g, 'roman', { weight: 500, track: 0.06 });
       if (o.eye) { P.rect(0.2, 0.755, 0.6, 0.032, g, 0.016); P.rect(0.205, 0.758, 0.59, 0.026, o.c, 0.013); }
-      tx(P, item.name.toUpperCase(), 0.771, 0.0135, g, 'roman', { weight: 500, track: 0.04, maxW: 0.56 });
+      tx(P, item.name.toUpperCase(), 0.771, 0.016, g, 'roman', { weight: 500, track: 0.04, maxW: 0.56 });
       tx(P, 'EAU DE PARFUM', 0.875, 0.009, g, 'roman', { weight: 600, track: 0.05 });
       tx(P, '℮ 90 ml', 0.945, 0.014, g, 'roman', { x: 0.17, weight: 400 }); tx(P, '3.04 fl.Oz', 0.945, 0.014, g, 'roman', { x: 0.81, weight: 400 });
     },
@@ -373,7 +379,7 @@
 
   /* ---------- Nishane ---------- */
   function lattice(P, x0, y0, x1, y1, bar, cell) {
-    const W = P.W, H = P.H, seeds = [], nx = 7, ny = Math.round(7 * (y1 - y0) * H / ((x1 - x0) * W));
+    const W = P.W, H = P.H, seeds = [], nx = 9, ny = Math.round(9 * (y1 - y0) * H / ((x1 - x0) * W));
     for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) seeds.push([(x0 + (x1 - x0) * (i + 0.5 * (j % 2) + (rnd(i * 31 + j) - 0.5) * 0.6) / nx) * W, (y0 + (y1 - y0) * (j + (rnd(i + j * 17) - 0.5) * 0.6) / ny) * H]);
     P.rect(x0, y0, x1 - x0, y1 - y0, bar); P.g.save(); P.g.beginPath(); P.g.rect(x0 * W, y0 * H, (x1 - x0) * W, (y1 - y0) * H); P.g.clip(); P.g.fillStyle = cell;
     for (const s of seeds) {
@@ -383,7 +389,7 @@
         poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length], fp = f(p), fq = f(q); if (fp <= 0) out.push(p); if ((fp <= 0) !== (fq <= 0)) { const k = fp / (fp - fq); out.push([p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k]); } });
         poly = out; if (!poly.length) break;
       }
-      if (poly.length < 3) continue; const cx = poly.reduce((a, p) => a + p[0], 0) / poly.length, cy = poly.reduce((a, p) => a + p[1], 0) / poly.length, k = 0.74;
+      if (poly.length < 3) continue; const cx = poly.reduce((a, p) => a + p[0], 0) / poly.length, cy = poly.reduce((a, p) => a + p[1], 0) / poly.length, k = 0.78;
       P.g.beginPath(); poly.forEach((p, i) => { const x = cx + (p[0] - cx) * k, y = cy + (p[1] - cy) * k; if (i) P.g.lineTo(x, y); else P.g.moveTo(x, y); }); P.g.closePath(); P.g.fill();
     }
     P.g.restore();
@@ -398,7 +404,7 @@
       tx(P, 'NISHANE', 0.5, o.lattice ? 0.03 : 0.045, g, 'sans', { weight: 400, track: 0.1 });
       tx(P, 'Extrait de Parfum', 0.935, 0.016, g, 'sans', { weight: 400 });
     },
-    sideArt: (P) => { fullBg(P, o.c); const g = o.g || '#e8d6a6'; tx(P, item.name.toUpperCase(), 0.07, 0.014, g, 'sans', { x: 0.15, align: 'left', weight: 400, maxW: 0.7 }); rider(P, 0.3, 0.5, 0.09, '#d4b26a'); tx(P, 'NISHANE', 0.94, 0.016, g, 'sans', { x: 0.15, align: 'left', weight: 400 }); },
+    sideArt: (P) => { fullBg(P, o.c); const g = o.g || '#e8d6a6'; tx(P, item.name.toUpperCase(), 0.07, 0.014, g, 'sans', { x: 0.15, align: 'left', weight: 400, maxW: 0.7 }); rider(P, 0.35, 0.5, 0.14, '#d4b26a'); tx(P, 'NISHANE', 0.94, 0.016, g, 'sans', { x: 0.15, align: 'left', weight: 400 }); },
   });
 
   /* ---------- registry ---------- */
@@ -458,14 +464,14 @@
 
     /* Maison Francis Kurkdjian */
     mfk: mfk({ paper: '#f7f6f3', panel: ['#9a7a3a', '#d9b866', '#a8843c'] }),
-    'mfk|Baccarat Rouge 540': mfk({ paper: '#f7f6f3', house: '#8a6428', name: '#6b1b2b', n1: 'Baccarat', n2: 'Rouge 540', side: true }),
+    'mfk|Baccarat Rouge 540': mfk({ paper: '#f7f6f3', house: '#7a5420', name: '#6b1b2b', n1: 'Baccarat', n2: 'Rouge 540', side: true }),
     'mfk|Baccarat Rouge 540 Extrait': mfk({ paper: '#a80c14', gloss: true, speck: 'rgba(0,0,0,0.05)', house: '#d4af6a', name: '#d4af6a', n1: 'Baccarat', n2: 'Rouge 540', conc: 'Extrait de parfum', emb: 'rgba(255,255,255,0.1)' }),
     'mfk|Oud Satin Mood': mfk({ paper: '#3a2546', speck: 'rgba(255,255,255,0.03)', house: '#d4af6a', name: '#d4af6a', n1: 'satin mood', n2: 'OUD', emb: 'rgba(255,255,255,0.08)' }),
     'mfk|Oud Silk Mood': mfk({ paper: '#2b59a7', speck: 'rgba(255,255,255,0.03)', house: '#d4af6a', name: '#d4af6a', n1: 'silk mood', n2: 'OUD', emb: 'rgba(255,255,255,0.08)' }),
     'mfk|Aqua Universalis': mfk({ paper: '#f7f6f3', panel: ['#7a5a1e', '#d6b25e', '#8a6a2a'] }),
     'mfk|Grand Soir': mfk({ paper: '#f7f6f3', panel: ['#8a4a14', '#d98a3a', '#9a5a1e'] }),
     'mfk|Gentle Fluidity Gold': mfk({ paper: '#f7f6f3', panel: ['#9a7a3a', '#e0c070', '#a8843c'], n1: 'Gentle Fluidity', n2: 'Gold' }),
-    'mfk|Gentle Fluidity Silver': mfk({ paper: '#f7f6f3', panel: ['#6a6c70', '#c4c6c8', '#7a7c80'], n1: 'Gentle Fluidity', n2: 'Silver' }),
+    'mfk|Gentle Fluidity Silver': mfk({ paper: '#f7f6f3', panel: ['#55575b', '#a8aaae', '#606266'], n1: 'Gentle Fluidity', n2: 'Silver' }),
     'mfk|Petit Matin': mfk({ paper: '#f7f6f3', panel: ['#c8b46a', '#f0e2a0', '#c8b46a'], pink: '#6a5a2a' }),
     'mfk|Amyris Homme': mfk({ paper: '#f7f6f3', panel: ['#7a8ea0', '#c8d6e2', '#8a9cae'], conc: 'Eau de toilette' }),
 
@@ -473,7 +479,7 @@
     clive: clive({ c: '#121212', em: 'X', coll: CO, desc: ['A TIMELESS BLEND OF RARE AND', 'PRECIOUS INGREDIENTS CRAFTED', 'IN THE TRADITION OF THE HOUSE'] }),
     'clive|1872 Masculine': clive({ c: '#0c7a3e', em: '1872', coll: CO, desc: ['FRESH CITRUS NOTES WITH AN INTENSELY', 'AROMATIC HEART OF CLARY SAGE TO CREATE', 'THE MASCULINE PERFUME OF THE PERFECT PAIR'] }),
     'clive|X Masculine': clive({ c: '#121212', em: 'X', coll: CO, desc: ['A SEDUCTIVE BLEND OF PINEAPPLE', 'AND CARDAMOM ON A WARM HEART', 'OF ORRIS, CEDAR AND VETIVER'] }),
-    'clive|No.1 Masculine': clive({ c: '#d6cbb2', g: '#86621e', em: 'No1', coll: CO, desc: ['THE WORLD\'S MOST EXCLUSIVE PERFUME', 'LIME, CARDAMOM AND NUTMEG ON A', 'HEART OF SANDALWOOD AND VETIVER'] }),
+    'clive|No.1 Masculine': clive({ c: '#d6cbb2', g: '#7a5414', em: 'No1', coll: CO, desc: ['THE WORLD\'S MOST EXCLUSIVE PERFUME', 'LIME, CARDAMOM AND NUTMEG ON A', 'HEART OF SANDALWOOD AND VETIVER'] }),
     'clive|C Masculine': clive({ c: '#8a5040', g: '#e0bc60', metal: 0.5, em: 'C', coll: CP, desc: ['A WARM SPICED ORIENTAL OF', 'CARDAMOM, INCENSE AND OUD', 'ON A BASE OF RICH LEATHER'] }),
     'clive|V Masculine': clive({ c: '#8a5040', g: '#e0bc60', metal: 0.5, em: 'V', coll: CP, desc: ['A VIBRANT FOUGERE OF MANDARIN', 'AND BLACK PEPPER WITH CRISP', 'LAVENDER AND MOSSY WOODS'] }),
     'clive|Town & Country': clive({ c: '#8a5040', g: '#e0bc60', metal: 0.5, em: 'T', coll: CP, desc: ['GREEN FLORAL ALIVE WITH AROMATIC', 'CHAMOMILE AND SCOTTISH HEATHER A JOURNEY', 'OF RUGGED COASTS AND HIGHLAND PEAKS'] }),
@@ -511,15 +517,16 @@
 
     /* Amouage */
     amouage: amouage({ bg: '#2a1e3a', ops: [['b', '#4a3a6a', 0.2, 0.2, 0.25], ['b', '#c9a45a', 0.85, 0.8, 0.2], ['s', '#e6cf98', 0.1, 0.9, 0.9, 0.2, 0.01]] }),
-    'amouage|Interlude Man': amouage({ bg: '#bdb7ae', side: '#c98226', ops: [['b', '#d9922e', 0.85, 0.4, 0.42], ['b', '#c98226', 0.8, 0.95, 0.3], ['b', '#9a8a7a', 0.25, 0.35, 0.18], ['c', '#e8b040', 0.8, 0.2, 0.045], ['c', '#e8b040', 0.93, 0.3, 0.035], ['b', '#f2f2ee', 0.45, 0.04, 0.05], ['s', '#2a2420', 0.05, 0.25, 0.2, 0.95, 0.035, -0.05], ['s', '#5a5048', 0.13, 0.15, 0.3, 0.95, 0.02, -0.05], ['b', '#2a4f7a', 0.3, 0.98, 0.18, 3, 1.5, 0.6], ['s', '#2a4f7a', 0.98, 0.42, 0.2, 0.8, 0.05], ['s', '#141414', 0.95, 0.5, 0.25, 0.86, 0.025], ['s', '#7a3a8a', 0.98, 0.47, 0.35, 0.8, 0.012], ['s', '#3a9a5a', 0.6, 0.15, 0.45, 0.3, 0.02], ['s', '#d84a2a', 0.9, 0.58, 0.3, 0.92, 0.012]] }),
+    'amouage|Interlude Man': amouage({ bg: '#8f8981', side: '#a8661a', ops: [['b', '#b8701e', 0.85, 0.4, 0.42], ['b', '#a05a16', 0.8, 0.95, 0.3], ['b', '#6a6058', 0.25, 0.35, 0.18], ['b', '#bdb8b0', 0.2, 0.15, 0.14], ['c', '#e8b040', 0.8, 0.2, 0.045], ['c', '#e8b040', 0.93, 0.3, 0.035], ['b', '#f2f2ee', 0.45, 0.04, 0.05], ['s', '#2a2420', 0.05, 0.25, 0.2, 0.95, 0.035, -0.05], ['s', '#5a5048', 0.13, 0.15, 0.3, 0.95, 0.02, -0.05], ['b', '#1e3a5e', 0.3, 0.98, 0.18, 3, 1.5, 0.6], ['s', '#1e3a5e', 0.98, 0.42, 0.2, 0.8, 0.05], ['s', '#141414', 0.95, 0.5, 0.25, 0.86, 0.025], ['s', '#7a3a8a', 0.98, 0.47, 0.35, 0.8, 0.012], ['s', '#3a9a5a', 0.6, 0.15, 0.45, 0.3, 0.02], ['s', '#d84a2a', 0.9, 0.58, 0.3, 0.92, 0.012]] }),
     'amouage|Reflection Man': amouage({ bg: '#141414', silver: true, ops: [['g', 'rgba(255,255,255,0.35)', 2600, 0.5, 0.5, 0.75], ['b', '#6a6a6a', 0.3, 0.6, 0.32, 4, 1.4, 0.75], ['g', 'rgba(255,255,255,0.7)', 2200, 0.55, 0.55, 0.3], ['b', '#cfcfd4', 0.62, 0.55, 0.16, 5], ['b', '#b3a7c4', 0.48, 0.42, 0.12, 7], ['b', '#b3a7c4', 0.62, 0.8, 0.08, 2]] }),
-    'amouage|Jubilation XXV': amouage({ bg: '#8f8a82', ops: [['b', '#e8e6e2', 0.28, 0.55, 0.32, 2, 1, 1.3], ['b', '#c7a252', 0.7, 0.18, 0.25, 5, 1.3, 0.8], ['b', '#d9c48a', 0.25, 0.42, 0.1, 3], ['g', '#c7a252', 900, 0.3, 0.45, 0.15], ['s', '#1a1a1a', 0.12, 0.3, 0.12, 0.6, 0.045, 0], ['s', '#2a2a2a', 0.6, 0.78, 0.62, 0.99, 0.08, 0], ['s', '#c7a252', 0.2, 0.75, 0.22, 0.95, 0.05, 0], ['b', '#5a5650', 0.95, 0.75, 0.18]] }),
+    'amouage|Jubilation XXV': amouage({ bg: '#6e6a63', ops: [['b', '#cfccc6', 0.28, 0.55, 0.32, 2, 1, 1.3], ['b', '#a8863a', 0.7, 0.18, 0.25, 5, 1.3, 0.8], ['b', '#b89a52', 0.25, 0.42, 0.1, 3], ['g', '#c7a252', 900, 0.3, 0.45, 0.15], ['s', '#1a1a1a', 0.12, 0.3, 0.12, 0.6, 0.045, 0], ['s', '#2a2a2a', 0.6, 0.78, 0.62, 0.99, 0.08, 0], ['s', '#c7a252', 0.2, 0.75, 0.22, 0.95, 0.05, 0], ['b', '#5a5650', 0.95, 0.75, 0.18]] }),
     'amouage|Epic Man': amouage({ bg: '#101010', ops: [['b', '#4d6b2e', 0.62, 0.12, 0.12, 3, 1, 1.4], ['b', '#4d6b2e', 0.32, 0.78, 0.1, 5, 1.8, 0.6], ['b', '#3a5a22', 0.48, 0.95, 0.07, 2], ['b', '#e8e8e8', 0.17, 0.5, 0.07, 4, 0.8, 1.6], ['b', '#9a9a9a', 0.82, 0.62, 0.1, 6, 1, 1.5], ['b', '#d8d8d8', 0.84, 0.55, 0.05, 1]] }),
-    'amouage|Guidance': amouage({ bg: '#e8dccb', taupe: true, ops: [['b', '#d9a99a', 0.25, 0.12, 0.25, 3, 1.2, 0.8], ['b', '#3a1a12', 0.1, 0.45, 0.2, 6, 0.8, 1.3], ['b', '#f0e6dc', 0.15, 0.5, 0.06, 2], ['b', '#6a2a1a', 0.58, 0.1, 0.17, 1], ['b', '#5a2418', 0.7, 0.9, 0.2, 4, 1.5, 0.8], ['b', '#c48a6a', 0.92, 0.55, 0.16, 2, 0.8, 1.5], ['b', '#9a4a2e', 0.85, 0.35, 0.06, 5], ['g', '#5a2418', 400, 0.3, 0.88, 0.12]] }),
-    'amouage|Enclave': amouage({ bg: '#c9d6e2', taupe: true, ops: [['b', '#8aa4bc', 0.3, 0.3, 0.16, 2], ['s', '#2a5a7a', 0.2, 0.25, 0.25, 0.95, 0.06, 0.02], ['s', '#4a7a9a', 0.32, 0.3, 0.35, 0.95, 0.06, 0.02], ['b', '#6c7c88', 0.22, 0.75, 0.1, 4], ['b', '#8a4a2a', 0.5, 0.12, 0.05, 3], ['b', '#3a6a8a', 0.75, 0.75, 0.12, 5], ['b', '#b8925a', 0.8, 0.7, 0.06, 1], ['b', '#e8eef2', 0.75, 0.2, 0.15, 6]] }),
-    'amouage|Purpose': amouage({ bg: '#5a6448', taupe: true, ops: [['b', '#7a8458', 0.8, 0.3, 0.25, 2], ['b', '#c69a4a', 0.15, 0.3, 0.15, 3], ['b', '#b0805a', 0.32, 0.15, 0.12, 4], ['b', '#141414', 0.68, 0.62, 0.18, 1, 1, 1.1], ['b', '#e6dcc7', 0.12, 0.6, 0.09, 5], ['b', '#4a3020', 0.3, 0.97, 0.2, 2, 1.6, 0.6], ['s', '#a8c890', 0.42, 0.65, 0.45, 0.98, 0.04, 0.02], ['s', '#d8e8c0', 0.46, 0.65, 0.49, 0.98, 0.006, 0.02]] }),
+    'amouage|Guidance': amouage({ bg: '#d2c2ae', taupe: true, ops: [['b', '#d9a99a', 0.25, 0.12, 0.25, 3, 1.2, 0.8], ['b', '#3a1a12', 0.1, 0.45, 0.2, 6, 0.8, 1.3], ['b', '#f0e6dc', 0.15, 0.5, 0.06, 2], ['b', '#6a2a1a', 0.58, 0.1, 0.17, 1], ['b', '#5a2418', 0.7, 0.9, 0.2, 4, 1.5, 0.8], ['b', '#c48a6a', 0.92, 0.55, 0.16, 2, 0.8, 1.5], ['b', '#9a4a2e', 0.85, 0.35, 0.06, 5], ['g', '#5a2418', 400, 0.3, 0.88, 0.12]] }),
+    'amouage|Search': amouage({ bg: '#c8b496', taupe: true, ops: [['b', '#e6d8c0', 0.2, 0.25, 0.2, 3, 1.4, 0.8], ['b', '#a8805a', 0.8, 0.2, 0.18, 2], ['b', '#6a4a32', 0.25, 0.85, 0.16, 5, 1.6, 0.7], ['b', '#4a6a7a', 0.85, 0.75, 0.12, 4], ['s', '#3a2a20', 0.05, 0.6, 0.95, 0.5, 0.012, 0.05], ['g', '#6a4a32', 500, 0.7, 0.5, 0.2]] }),
+    'amouage|Enclave': amouage({ bg: '#aebfce', taupe: true, ops: [['b', '#8aa4bc', 0.3, 0.3, 0.16, 2], ['s', '#2a5a7a', 0.2, 0.25, 0.25, 0.95, 0.06, 0.02], ['s', '#4a7a9a', 0.32, 0.3, 0.35, 0.95, 0.06, 0.02], ['b', '#6c7c88', 0.22, 0.75, 0.1, 4], ['b', '#8a4a2a', 0.5, 0.12, 0.05, 3], ['b', '#3a6a8a', 0.75, 0.75, 0.12, 5], ['b', '#b8925a', 0.8, 0.7, 0.06, 1], ['b', '#e8eef2', 0.75, 0.2, 0.15, 6]] }),
+    'amouage|Purpose': amouage({ bg: '#454c34', taupe: true, ops: [['b', '#626b44', 0.8, 0.3, 0.25, 2], ['b', '#a87a2e', 0.15, 0.3, 0.15, 3], ['b', '#b0805a', 0.32, 0.15, 0.12, 4], ['b', '#141414', 0.68, 0.62, 0.18, 1, 1, 1.1], ['b', '#e6dcc7', 0.12, 0.6, 0.09, 5], ['b', '#4a3020', 0.3, 0.97, 0.2, 2, 1.6, 0.6], ['s', '#a8c890', 0.42, 0.65, 0.45, 0.98, 0.04, 0.02], ['s', '#d8e8c0', 0.46, 0.65, 0.49, 0.98, 0.006, 0.02]] }),
     'amouage|Beach Hut Man': amouage({ bg: '#1e3a33', name: 'BEACH HUT', ops: [['b', '#ececec', 0.15, 0.4, 0.07, 3, 0.8, 1.6], ['b', '#f2f2f2', 0.62, 0.08, 0.07, 2, 1.2, 1], ['b', '#ececec', 0.32, 0.9, 0.11, 5, 1.6, 0.7], ['b', '#bfbfbf', 0.72, 0.74, 0.11, 6, 1.4, 0.8], ['b', '#4a2a3a', 0.24, 0.6, 0.1, 4], ['b', '#3a2a30', 0.38, 0.25, 0.08, 1], ['b', '#c96a5a', 0.6, 0.62, 0.025, 2], ['s', '#ffffff', 0.3, 0.1, 0.32, 0.3, 0.003]] }),
-    'amouage|Memoir Man': amouage({ bg: '#141414', silver: true, ops: [['b', '#d9d9d9', 0.28, 0.12, 0.08, 2, 2.4, 0.6], ['b', '#bfbfbf', 0.12, 0.45, 0.07, 5, 1.2, 0.8], ['b', '#e8e8e8', 0.8, 0.14, 0.05, 3, 1.4, 0.6], ['b', '#d9d9d9', 0.9, 0.5, 0.05, 4, 1.6, 0.5], ['s', '#d9d9d9', 0.38, 0.73, 0.9, 0.69, 0.008, 0.02], ['g', 'rgba(255,255,255,0.4)', 700, 0.3, 0.3, 0.2]] }),
+    'amouage|Memoir Man': amouage({ bg: '#141414', silver: true, ops: [['b', '#d9d9d9', 0.3, 0.12, 0.11, 2, 2.4, 0.6], ['b', '#9a9a9a', 0.12, 0.42, 0.12, 5, 1.2, 0.9], ['b', '#e8e8e8', 0.8, 0.16, 0.08, 3, 1.6, 0.6], ['b', '#d9d9d9', 0.92, 0.52, 0.07, 4, 1.6, 0.5], ['b', '#5a5a5a', 0.6, 0.9, 0.12, 6, 2, 0.5], ['s', '#d9d9d9', 0.38, 0.73, 0.9, 0.69, 0.008, 0.02], ['g', 'rgba(255,255,255,0.4)', 700, 0.3, 0.3, 0.2]] }),
 
     /* Initio */
     initio: initio({ c: '#26262a' }),
@@ -530,19 +537,19 @@
     'initio|High Frequency': initio({ c: '#221828', g: '#e6d7b0' }),
     'initio|Narcotic Delight': initio({ c: '#221828', g: '#e6d7b0' }),
     'initio|Atomic Rose': initio({ c: '#221828', g: '#d9a080' }),
-    'initio|Rehab': initio({ c: '#f2f0ec', g: '#9a9ea2' }),
-    'initio|Musk Therapy': initio({ c: '#f2f0ec', g: '#c8a45a' }),
-    'initio|Paragon': initio({ c: '#f2f0ec', g: '#c98a6a' }),
+    'initio|Rehab': initio({ c: '#e4e2dc', g: '#6e7276' }),
+    'initio|Musk Therapy': initio({ c: '#e4e2dc', g: '#a07c32' }),
+    'initio|Paragon': initio({ c: '#e4e2dc', g: '#a0624a' }),
 
     /* Nishane */
-    nishane: nishane({ c: '#47389f' }),
+    nishane: nishane({ c: '#36288a' }),
     'nishane|Hacivat': nishane({ c: '#141414', lattice: true }),
     'nishane|Karagöz': nishane({ c: '#141414', lattice: true }),
-    'nishane|Ani': nishane({ c: '#47389f' }),
-    'nishane|Fan Your Flames': nishane({ c: '#01545f' }),
-    'nishane|Hundred Silent Ways': nishane({ c: '#01545f' }),
-    'nishane|Wulong Cha': nishane({ c: '#e6dcb8', g: '#c4a862' }),
-    'nishane|Ege': nishane({ c: '#3a8fb0' }),
+    'nishane|Ani': nishane({ c: '#36288a' }),
+    'nishane|Fan Your Flames': nishane({ c: '#01454e' }),
+    'nishane|Hundred Silent Ways': nishane({ c: '#01454e' }),
+    'nishane|Wulong Cha': nishane({ c: '#d2c38e', g: '#9a7e34' }),
+    'nishane|Ege': nishane({ c: '#2a7898' }),
     'nishane|Tempfluo': nishane({ c: '#7a5a34' }),
   });
 })();
