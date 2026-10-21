@@ -180,9 +180,9 @@
     }),
 
     /* Valentino Uomo */
-    'valentino|Uomo': uomo({ bottom: '#e8ddd2', top: '#6a4634', studBottom: '#d8c8b8', studTop: '#4a2e20', band: { color: '#c8964e', metal: 1, rough: 0.28, coat: 0, env: 2.2 }, ink: '#6a4416', collar: { color: '#b8884a', metal: 1, rough: 0.3, coat: 0, env: 2.2 }, cap: { color: '#2a1e18', rough: 0.25 } }),
-    'valentino|Uomo Born in Roma Coral Fantasy': uomo({ bottom: '#f0b0a0', top: '#24161a', studBottom: '#e89484', studTop: '#1a1014', gc: 0.9, band: { color: '#0d0b0c', rough: 0.25 }, ink: '#f4c4b8', collar: { color: '#141214', rough: 0.2 }, cap: { color: '#161416', rough: 0.2 } }),
-    'valentino|Uomo Acqua': uomo({ bottom: '#e6eadf', top: '#c8d0c2', studBottom: '#f2f5ee', studTop: '#aeb8aa', band: { fin: 'silver' }, ink: '#5a5e62', collar: { fin: 'chrome' }, cap: { color: '#1a1a1c', rough: 0.25 } }),
+    'valentino|Uomo': uomo({ bottom: '#cdb8a6', top: '#4a2a1c', studBottom: '#e0d0c0', studTop: '#3a2014', gc: 0.45, band: { color: '#c8964e', metal: 1, rough: 0.28, coat: 0, env: 2.2 }, ink: '#3a2208', collar: { color: '#b8884a', metal: 1, rough: 0.3, coat: 0, env: 2.2 }, cap: { color: '#2a1e18', rough: 0.25 } }),
+    'valentino|Uomo Born in Roma Coral Fantasy': uomo({ bottom: '#f0a898', top: '#1e1216', studBottom: '#f4b4a4', studTop: '#140c10', gc: 0.55, band: { color: '#0d0b0c', rough: 0.25 }, ink: '#f4c4b8', collar: { color: '#141214', rough: 0.2 }, cap: { color: '#161416', rough: 0.2 } }),
+    'valentino|Uomo Acqua': uomo({ bottom: '#d6ddd0', top: '#9eaa9c', studBottom: '#eef2ea', studTop: '#8a968a', gc: 0.6, band: { fin: 'silver' }, ink: '#5a5e62', collar: { fin: 'chrome' }, cap: { color: '#1a1a1c', rough: 0.25 } }),
 
     /* Dior Homme (2005): clear block, gilded dip-tube column and a clear cap over a black core */
     'dior|Dior Homme 2005': S({
@@ -206,7 +206,7 @@
     }),
     "armani|Privé Bois d'Encens": S({
       w: 0.46, h: 0.62, d: 0.34, r: 0.02, solid: '#0b0b0b', rough: 0.12, coat: 1,
-      art: { w: 0.2, h: 0.2, y: 0.42, bg: '#f2ead0', frame: '#c8a050', t: [['BOIS', 0.3, 0.12, '#222222', { font: 'serif', weight: 700 }], ["D'ENCENS", 0.46, 0.12, '#222222', { font: 'serif', weight: 700 }], ['ARMANI/PRIVÉ', 0.76, 0.07, '#222222', { font: 'serif' }]] },
+      art: { w: 0.24, h: 0.24, y: 0.42, bg: '#f2ead0', frame: '#c8a050', t: [['BOIS', 0.3, 0.15, '#222222', { font: 'serif', weight: 700 }], ["D'ENCENS", 0.48, 0.15, '#222222', { font: 'serif', weight: 700 }], ['ARMANI/PRIVÉ', 0.76, 0.09, '#222222', { font: 'serif' }]] },
       cap: [{ s: 'cyl', r: 0.07, h: 0.02, color: '#0b0b0b' }, { s: 'sphere', r: 0.17, sx: 1.25, sy: 0.55, sz: 0.95, color: '#0b0b0b', rough: 0.1 }],
     }),
 
@@ -245,7 +245,7 @@
       // Gaultier torso in deep teal glass that darkens to black at the shoulders.
       const k = kit();
       const prof = [[0, 0], [0.2, 0], [0.24, 0.06], [0.215, 0.2], [0.195, 0.31], [0.24, 0.45], [0.3, 0.58], [0.325, 0.67], [0.27, 0.75], [0.13, 0.81], [0.07, 0.835], [0, 0.84]];
-      k.solidBody(gradient(lathe(prof, 0, 0.62, 56), '#0e7a78', '#020305', 1.6), solid({ grad: true, rough: 0.08, coat: 1, env: 1.2 }));
+      k.solidBody(gradient(lathe(prof, 0, 0.62, 56), '#0d7472', '#000000', 0.45), solid({ grad: true, rough: 0.08, coat: 1, env: 1.2 }));
       k.part(cyl(0.065, 0.065, 0.1, 0.83, 32), fin('gold'));
       k.part(cyl(0.045, 0.045, 0.06, 0.93, 24), fin('gold'));
       k.top(0.94);
@@ -401,8 +401,8 @@
 
     /* Bvlgari */
     'bvlgari|Bvlgari pour Homme': S({
-      w: 0.52, h: 0.56, d: 0.28, r: 0.03, juice: '#eceee0', level: 0.84, inset: 0.92, jop: 0.12,
-      art: { w: 0.46, h: 0.2, y: 0.17, t: [['BVLGARI', 0.35, 0.22, '#3a3c40', { font: 'roman', weight: 500, track: 0.4 }], ['POUR HOMME', 0.7, 0.11, '#3a3c40', { font: 'roman', track: 0.3 }]] },
+      w: 0.52, h: 0.56, d: 0.28, r: 0.03, juice: '#f2f4ec', level: 0.84, inset: 0.92, jop: 0.5,
+      art: { w: 0.46, h: 0.2, y: 0.17, t: [['BVLGARI', 0.35, 0.24, '#141518', { font: 'roman', weight: 600, track: 0.4 }], ['POUR HOMME', 0.7, 0.12, '#141518', { font: 'roman', weight: 600, track: 0.3 }]] },
       extra: [(k) => k.part(box(0.52, 0.28, 0.07, 0.03, 0), glass({ op: 0.4 }))],
       cap: [{ s: 'cyl', r: 0.065, h: 0.04, fin: 'chrome' }, { s: 'lathe', pts: [[0, 0], [0.07, 0], [0.075, 0.05], [0.15, 0.17], [0.16, 0.22], [0, 0.22]], fin: 'chrome', sz: 0.8 }],
     }),
@@ -417,7 +417,7 @@
     }),
 
     /* Carolina Herrera */
-    'ch|212 VIP Men': vip({ grad: ['#9ca2a8', '#eceef0'], metal: 0.9, rough: 0.22, cap: { color: '#dfe2e6', metal: 1, rough: 0.2, coat: 0, env: 2.4 }, panel: 'rgba(255,255,255,0.75)', num: '#18233e', vip: '#8a9098', sub: 'MEN' }),
+    'ch|212 VIP Men': vip({ grad: ['#9ca2a8', '#eceef0'], metal: 0.9, rough: 0.22, cap: { color: '#d8dce0', metal: 0.5, rough: 0.3, coat: 0.5, env: 2 }, panel: 'rgba(255,255,255,0.75)', num: '#18233e', vip: '#8a9098', sub: 'MEN' }),
     'ch|212 VIP Black': vip({ grad: ['#e6e8ea', '#0a0a0b'], gc: 0.5, cap: { color: '#0b0b0c', rough: 0.15 }, num: '#cfd2d6', vip: '#bfc3c8', sub: 'BLACK' }),
 
     /* Gucci */

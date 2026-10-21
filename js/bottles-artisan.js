@@ -48,17 +48,17 @@
   /* ---------- Le Labo: round lab bottle, brushed cap, typed paper label ---------- */
   const LL = [[0, 0], [0.18, 0], [0.19, 0.012], [0.19, 0.5], [0.186, 0.535], [0.172, 0.568], [0.146, 0.596], [0.108, 0.616], [0.072, 0.624], [0, 0.624]];
   const lelabo = (o) => (item) => Q({
-    body: 'lathe', pts: LL, w: 0.38, h: 0.624, d: 0.38, juice: o.juice, level: 0.86, inset: 0.93, jop: o.jop || 0.6,
+    body: 'lathe', pts: LL, w: 0.38, h: 0.624, d: 0.38, juice: o.juice, level: 0.86, inset: 0.93, jop: o.jop || 0.84,
     art: { wrap: true, r: 0.193, arc: 2.2, h: 0.27, y: 0.31, draw: (P) => {
       P.rect(0, 0, 1, 1, 'rgba(232,226,208,0.94)');
-      const ink = '#262626';
-      mono(P, o.title || item.name.toUpperCase(), 0.07, 0.11, 0.14, ink, { weight: 700, maxW: 0.8 });
-      mono(P, (o.ml || '100ml 3,4') + ' FL.OZ.', 0.07, 0.23, 0.058, ink);
-      mono(P, 'eau de parfum / vaporisateur', 0.07, 0.33, 0.058, ink);
-      mono(P, 'natural spray', 0.07, 0.42, 0.058, ink);
-      P.line(0.07, 0.49, 0.93, 0.49, 'rgba(40,40,40,0.25)', 0.004);
-      mono(P, 'Compounded: ' + (o.where || 'in our lab'), 0.07, 0.56, 0.056, ink);
-      mono(P, o.fresh || 'Fresh:  12 months after first spray', 0.07, 0.67, 0.056, ink);
+      const ink = '#111111';
+      mono(P, o.title || item.name.toUpperCase(), 0.07, 0.12, 0.17, ink, { weight: 700, maxW: 0.8 });
+      mono(P, (o.ml || '100ml 3,4') + ' FL.OZ.', 0.07, 0.25, 0.07, ink, { weight: 700 });
+      mono(P, 'eau de parfum / vaporisateur', 0.07, 0.35, 0.07, ink, { weight: 700 });
+      mono(P, 'natural spray', 0.07, 0.44, 0.07, ink, { weight: 700 });
+      P.line(0.07, 0.5, 0.93, 0.5, 'rgba(40,40,40,0.35)', 0.005);
+      mono(P, 'Compounded: ' + (o.where || 'in our lab'), 0.07, 0.58, 0.068, ink, { weight: 700 });
+      mono(P, o.fresh || 'Fresh:  12 months after first spray', 0.07, 0.68, 0.068, ink, { weight: 700 });
       P.line(0.07, 0.76, 0.93, 0.76, 'rgba(40,40,40,0.25)', 0.004);
       mono(P, 'hand made · LE LABO · 233 Elizabeth Street, New York', 0.07, 0.83, 0.035, ink);
       mono(P, 'Le Labo Paris · 6 rue de Bourbon le Château, 75006', 0.07, 0.9, 0.035, ink);
@@ -82,7 +82,7 @@
     P.g.save(); P.g.strokeStyle = '#0d0d0d'; P.g.lineWidth = 0.012 * P.H; P.g.beginPath(); P.g.ellipse(0.5 * P.W, 0.5 * P.H, 0.352 * P.W, 0.377 * P.H, 0, 0, Math.PI * 2); P.g.stroke(); P.g.restore();
   }
   const diptyque = (o) => S({
-    body: 'pillow', w: 0.49, h: 0.59, d: 0.2, ex: 0.62, ey: 0.72, juice: o.juice, level: 0.88, inset: 0.84, jop: o.jop || 0.6,
+    body: 'pillow', w: 0.49, h: 0.59, d: 0.2, ex: 0.62, ey: 0.72, juice: o.juice, level: 0.88, inset: 0.9, jop: o.jop || 0.84,
     art: { w: 0.37, h: 0.43, y: 0.3, z: 0.1, draw: (P) => dipLabel(P, o) },
     cap: [
       { s: 'cyl', r: 0.13, h: 0.02, dy: -0.03, color: '#0c0c0c', rough: 0.2 },
@@ -94,7 +94,7 @@
 
   /* ---------- Frédéric Malle: clear block, black band, red title, big black cap ---------- */
   const malle = (o) => (item) => Q({
-    w: 0.454, h: 0.59, d: 0.3, r: 0.02, juice: o.juice, level: 0.83, inset: 0.94, jop: o.jop || 0.8,
+    w: 0.454, h: 0.59, d: 0.3, r: 0.02, juice: o.juice, level: 0.83, inset: 0.95, jop: o.jop || 0.92,
     art: { w: 0.456, h: 0.2, y: 0.34, z: 0.152, draw: (P) => {
       P.rect(0, 0, 1, 1, '#141414');
       P.text(o.nose, 0.5, 0.17, 0.15, '#eeeeee', { font: 'serif', italic: true });
@@ -113,8 +113,8 @@
     art: { w: 0.2, h: 0.28, y: 0.46, draw: (P) => {
       const bg = o.dark ? '#0c0c0c' : '#efe7d6', ink = o.dark ? '#f2f2f2' : '#3a3530';
       P.rect(0, 0, 1, 1, bg); P.frame(0.06, 0.05, 0.88, 0.9, ink, 0.008); P.frame(0.09, 0.075, 0.82, 0.85, ink, 0.003);
-      if (o.nameFirst) { P.text(item.name.toUpperCase(), 0.5, 0.22, 0.07, ink, { font: 'roman', weight: o.dark ? 700 : 500, maxW: 0.76 }); P.text('SERGE LUTENS', 0.5, 0.32, 0.065, ink, { font: 'roman', weight: o.dark ? 700 : 500, maxW: 0.76 }); }
-      else { P.text('SERGE LUTENS', 0.5, 0.2, 0.06, ink, { font: 'roman', maxW: 0.7 }); P.text(o.title || item.name, 0.5, 0.31, 0.075, ink, { font: 'serif', italic: true, maxW: 0.76 }); }
+      if (o.nameFirst) { P.text(item.name.toUpperCase(), 0.5, 0.22, 0.1, ink, { font: 'roman', weight: 700, maxW: 0.78 }); P.text('SERGE LUTENS', 0.5, 0.34, 0.09, ink, { font: 'roman', weight: 700, maxW: 0.78 }); }
+      else { P.text('SERGE LUTENS', 0.5, 0.2, 0.085, ink, { font: 'roman', weight: 700, maxW: 0.74 }); P.text(o.title || item.name, 0.5, 0.33, 0.1, ink, { font: 'serif', italic: true, weight: 600, maxW: 0.8 }); }
       // the house's small temple logo
       P.rect(0.4, 0.74, 0.2, 0.012, ink); for (let i = 0; i < 4; i++) P.rect(0.41 + i * 0.05, 0.756, 0.025, 0.05, ink); P.rect(0.4, 0.81, 0.2, 0.012, ink);
       P.text('PARIS', 0.5, 0.86, 0.03, ink, { font: 'roman', track: 0.2 });
@@ -129,18 +129,18 @@
   /* ---------- Memo Paris: charcoal flacon, gold-leaf travel art, tall gold cap ---------- */
   const goldInk = (P, a = 1) => { const g = P.g.createLinearGradient(0, 0, P.W, P.H); g.addColorStop(0, `rgba(240,214,150,${a})`); g.addColorStop(0.5, `rgba(196,154,84,${a})`); g.addColorStop(1, `rgba(236,206,140,${a})`); return g; };
   function memoCartouche(P, name, y = 0.86, bg = '#e9d9a8', ink = '#2a2216') {
-    P.rect(0.2, y - 0.08, 0.6, 0.17, bg, 0.02); P.frame(0.22, y - 0.07, 0.56, 0.15, '#9a7a3a', 0.004);
-    P.text('MEMO', 0.5, y - 0.035, 0.05, '#b58a3e', { font: 'roman', weight: 700, track: 0.05 });
-    P.text('PARIS', 0.5, y - 0.005, 0.014, '#6a5a3a', { font: 'roman', track: 0.3 });
-    P.text(name.toUpperCase(), 0.5, y + 0.03, 0.028, ink, { font: 'helv', weight: 700, maxW: 0.52 });
-    P.text('EAU DE PARFUM', 0.5, y + 0.06, 0.016, ink, { font: 'helv', track: 0.1 });
+    P.rect(0.14, y - 0.09, 0.72, 0.19, bg, 0.02); P.frame(0.16, y - 0.08, 0.68, 0.17, '#9a7a3a', 0.005);
+    P.text('MEMO', 0.5, y - 0.045, 0.06, '#a87a2e', { font: 'roman', weight: 700, track: 0.05 });
+    P.text('PARIS', 0.5, y - 0.01, 0.018, '#5a4a2a', { font: 'roman', track: 0.3 });
+    P.text(name.toUpperCase(), 0.5, y + 0.03, 0.036, ink, { font: 'helv', weight: 800, maxW: 0.64 });
+    P.text('EAU DE PARFUM', 0.5, y + 0.065, 0.02, ink, { font: 'helv', weight: 600, track: 0.1 });
   }
   const memo = (o) => (item) => Q({
     w: 0.31, h: 0.67, d: 0.17, r: 0.03, solid: o.body || '#2c2b2d', rough: 0.45, coat: 0.4, env: 1,
     art: { w: o.pw || 0.24, h: o.ph || 0.47, y: o.py || 0.38, draw: (P) => {
       P.rect(0, 0, 1, 1, o.panel || '#3a3226');
       const g = P.g.createRadialGradient(0.5 * P.W, 0.35 * P.H, 0, 0.5 * P.W, 0.35 * P.H, 0.7 * P.H);
-      g.addColorStop(0, o.glowIn || 'rgba(230,200,130,0.95)'); g.addColorStop(1, o.glowOut || 'rgba(120,96,56,0.9)'); P.g.fillStyle = g; P.g.fillRect(0, 0, P.W, P.H);
+      g.addColorStop(0, o.glowIn || 'rgba(206,166,92,1)'); g.addColorStop(1, o.glowOut || 'rgba(92,70,36,1)'); P.g.fillStyle = g; P.g.fillRect(0, 0, P.W, P.H);
       if (o.draw) o.draw(P);
       memoCartouche(P, o.title || item.name, o.cy || 0.86, o.cbg, o.cink);
     } },
@@ -159,7 +159,7 @@
   const rose = (P) => { for (let i = 0; i < 9; i++) P.circle(0.5, 0.36, 0.2 - i * 0.02, i % 2 ? 'rgba(240,214,150,0.9)' : 'rgba(110,80,36,0.7)'); for (let i = 0; i < 8; i++) P.ellipse(0.5 + Math.cos(i * 0.8) * 0.2, 0.36 + Math.sin(i * 0.8) * 0.15, 0.08, 0.035, i * 0.8, 'rgba(90,64,26,0.5)'); };
   const desert = (P) => { P.circle(0.5, 0.3, 0.1, 'rgba(255,240,200,0.9)'); P.path([[0, 0.55], [0.2, 0.48], [0.45, 0.52], [0.7, 0.45], [1, 0.5], [1, 0.76], [0, 0.76]], 'rgba(70,52,24,0.75)'); for (let i = 0; i < 5; i++) P.ellipse(0.15 + i * 0.18, 0.62, 0.05, 0.012, 0, 'rgba(250,230,180,0.6)'); P.rect(0, 0.0, 1, 0.12, 'rgba(60,46,24,0.5)'); };
   const lalibela = (P) => {
-    const g = P.g.createLinearGradient(0, 0, 0, P.H); g.addColorStop(0, '#e9b48c'); g.addColorStop(1, '#f4dcc0'); P.g.fillStyle = g; P.g.fillRect(0, 0, P.W, P.H * 0.92);
+    const g = P.g.createLinearGradient(0, 0, 0, P.H); g.addColorStop(0, '#d88a58'); g.addColorStop(1, '#eebc90'); P.g.fillStyle = g; P.g.fillRect(0, 0, P.W, P.H * 0.92);
     for (let y = 0; y < 0.9; y += 0.05) for (let x = 0; x < 1.05; x += 0.14) P.path([[x, y], [x + 0.07, y + 0.025], [x, y + 0.05], [x - 0.07, y + 0.025]], 'rgba(255,240,226,0.45)', false, 0.004);
     for (const [x, y] of [[0.3, 0.42], [0.72, 0.6], [0.5, 0.72], [0.2, 0.8], [0.8, 0.82]]) for (let i = 0; i < 4; i++) P.line(x, y, x + Math.cos(i * Math.PI / 4) * 0.06, y + Math.sin(i * Math.PI / 4) * 0.035, '#8ab4c0', 0.008);
     P.rect(0, 0.92, 1, 0.08, '#1c1a1a');
@@ -167,7 +167,7 @@
     P.text('MEMO', 0.5, 0.725, 0.03, '#3a2a1a', { font: 'roman', weight: 700 }); P.text('Fleurs Bohèmes', 0.5, 0.86, 0.016, '#3a2a1a', { font: 'serif', italic: true });
   };
   const inle = (P) => {
-    P.rect(0, 0, 1, 1, '#ecd9d4');
+    P.rect(0, 0, 1, 1, '#e2c4bc');
     for (let i = 0; i < 8; i++) { const x = rnd(i + 2) * 0.9, y = 0.08 + rnd(i + 7) * 0.5; for (let j = 0; j < 4; j++) P.circle(x + j * 0.05, y - (j % 2) * 0.02, 0.05, 'rgba(214,176,108,0.85)'); }
     P.rect(0.2, 0.5, 0.6, 0.02, 'rgba(214,176,108,0.85)');
   };
@@ -179,19 +179,19 @@
     const ink = o.ink || '#141414';
     const sp = { body: 'lathe', pts: MC, w: 0.366, h: 0.686, d: 0.366, seg: 56 };
     if (o.solid) Object.assign(sp, { solid: '#ffffff', grad: o.solid, gc: o.gc || 1, metal: o.metal || 0, rough: o.rough || 0.15, coat: o.metal ? 0.2 : 0.8, env: o.metal ? 2 : 1.2 });
-    else Object.assign(sp, { juice: o.juice, level: 0.88, inset: 0.94, jop: o.jop || 0.55 });
+    else Object.assign(sp, { juice: o.juice, level: 0.88, inset: 0.95, jop: o.jop || 0.82 });
     const t = (o.title || item.name.toUpperCase()).split('\n');
     sp.art = { wrap: true, r: 0.186, arc: 1.5, h: 0.56, y: 0.33, draw: (P) => {
       if (o.band) P.rect(0.32, 0, 0.36, 1, o.band);
       if (o.frame) { P.rect(0.16, 0.08, 0.68, 0.36, '#fbfaf6'); P.frame(0.18, 0.09, 0.64, 0.34, '#1a1a1a', 0.005); }
       if (o.emblem) o.emblem(P);
       const ly = o.frame ? 0.29 : 0.15;
-      mLogo(P, 0.5, ly, 0.035, o.logo || ink);
-      P.text('MANCERA', 0.5, ly + 0.05, 0.034, o.logo || ink, { font: 'helv', weight: 700, track: 0.12 });
-      P.text('PARIS', 0.5, ly + 0.08, 0.016, o.logo || ink, { font: 'helv', track: 0.3 });
+      mLogo(P, 0.5, ly, 0.045, o.logo || ink);
+      P.text('MANCERA', 0.5, ly + 0.06, 0.045, o.logo || ink, { font: 'helv', weight: 800, track: 0.1 });
+      P.text('PARIS', 0.5, ly + 0.095, 0.02, o.logo || ink, { font: 'helv', weight: 600, track: 0.3 });
       const ty = o.frame ? 0.15 : 0.49;
-      t.forEach((s, i) => P.text(s, 0.5, ty + i * 0.05, o.tsz || 0.045, o.tink || ink, { font: 'helv', weight: 700, track: 0.04, maxW: 0.6 }));
-      P.text('EAU DE PARFUM', 0.5, 0.75, 0.024, ink, { font: 'helv', track: 0.08 });
+      t.forEach((s, i) => P.text(s, 0.5, ty + i * 0.065, o.tsz || 0.06, o.tink || ink, { font: 'helv', weight: 700, track: 0.04, maxW: 0.6 }));
+      P.text('EAU DE PARFUM', 0.5, 0.75, 0.03, ink, { font: 'helv', weight: 600, track: 0.08 });
       P.text('4 Fl.oz', 0.36, 0.84, 0.018, ink, { font: 'helv' }); P.text('120 ML', 0.64, 0.84, 0.018, ink, { font: 'helv' });
     } };
     const capMat = o.cap === 'gold' ? { color: '#d8b56a', metal: 1, rough: 0.22, coat: 0 } : { color: '#101010', rough: 0.15 };
@@ -214,14 +214,14 @@
     art: { wrap: true, r: 0.14, arc: 1.6, h: 0.58, y: 0.31, draw: (P) => {
       if (o.draw) o.draw(P);
       const ink = o.ink || '#d8b46a';
-      P.path([[0.5, 0.18], [0.56, 0.22], [0.5, 0.26], [0.44, 0.22]], ink, false, 0.004);
-      P.rect(0.465, 0.195, 0.07, 0.05, 'rgba(0,0,0,0)'); P.frame(0.47, 0.2, 0.06, 0.04, ink, 0.003);
-      P.text('M', 0.5, 0.22, 0.03, ink, { font: 'roman', weight: 700 });
-      P.text('MONTALE', 0.5, 0.31, 0.04, o.word || '#e6e6e6', { font: 'helv', weight: 800, track: 0.04 });
-      P.text('PARIS', 0.5, 0.335, 0.014, o.word || '#e6e6e6', { font: 'helv', track: 0.3 });
-      P.rect(0.33, 0.86, 0.34, 0.06, o.plate || '#0c0c0c'); P.frame(0.34, 0.865, 0.32, 0.05, ink, 0.003);
-      P.text(item.name.toUpperCase(), 0.5, 0.885, 0.018, o.plateInk || '#f0f0f0', { font: 'helv', weight: 800, maxW: 0.28 });
-      P.text('EAU DE PARFUM', 0.5, 0.902, 0.008, o.plateInk || '#f0f0f0', { font: 'helv', track: 0.1 });
+      P.path([[0.5, 0.17], [0.58, 0.22], [0.5, 0.27], [0.42, 0.22]], ink, false, 0.006);
+      P.frame(0.46, 0.197, 0.08, 0.046, ink, 0.004);
+      P.text('M', 0.5, 0.22, 0.036, ink, { font: 'roman', weight: 700 });
+      P.text('MONTALE', 0.5, 0.31, 0.055, o.word || '#e6e6e6', { font: 'helv', weight: 800, track: 0.04, maxW: 0.66 });
+      P.text('PARIS', 0.5, 0.342, 0.018, o.word || '#e6e6e6', { font: 'helv', weight: 600, track: 0.3 });
+      P.rect(0.26, 0.85, 0.48, 0.075, o.plate || '#0c0c0c'); P.frame(0.27, 0.856, 0.46, 0.063, ink, 0.004);
+      P.text(item.name.toUpperCase(), 0.5, 0.88, 0.026, o.plateInk || '#f0f0f0', { font: 'helv', weight: 800, maxW: 0.42 });
+      P.text('EAU DE PARFUM', 0.5, 0.905, 0.011, o.plateInk || '#f0f0f0', { font: 'helv', track: 0.1 });
       P.text('100ML', 0.3, 0.955, 0.012, o.word || '#e6e6e6', { font: 'helv' }); P.text('3.4 Fl.oz', 0.7, 0.955, 0.012, o.word || '#e6e6e6', { font: 'helv' });
     } },
     cap: [{ s: 'cyl', r: 0.05, h: 0.075, color: '#d9b25e', metal: 1, rough: 0.22, coat: 0 }, { s: 'cyl', r: 0.03, h: 0.02, fin: 'silver' }, { s: 'cyl', r: 0.034, h: 0.045, color: '#d9b25e', metal: 1, rough: 0.22, coat: 0 }],
@@ -233,16 +233,22 @@
     }],
     top: 0.66,
   });
-  const horse = (P) => { const c = '#c9a050'; P.path([[0.3, 0.75], [0.35, 0.55], [0.45, 0.45], [0.55, 0.42], [0.62, 0.48], [0.6, 0.55], [0.52, 0.56], [0.48, 0.65], [0.5, 0.8], [0.4, 0.82]], c); for (let i = 0; i < 9; i++) P.line(0.42 + i * 0.012, 0.45 + i * 0.01, 0.3 + i * 0.02, 0.5 + i * 0.03, '#e6c878', 0.005); P.text('ARABIANS TONKA', 0.5, 0.86, 0.02, '#d8b46a', { font: 'helv', weight: 700 }); };
+  // Gold horse head with a flowing mane (Arabians Tonka).
+  const horse = (P) => {
+    const c = '#c9a050';
+    P.path([[0.36, 0.8], [0.38, 0.62], [0.44, 0.5], [0.5, 0.44], [0.53, 0.4], [0.56, 0.43], [0.62, 0.5], [0.68, 0.58], [0.66, 0.62], [0.6, 0.6], [0.55, 0.58], [0.52, 0.66], [0.54, 0.8]], c);
+    for (let i = 0; i < 12; i++) P.path([[0.46 - i * 0.008, 0.46 + i * 0.026], [0.3 - i * 0.01, 0.5 + i * 0.03], [0.4 - i * 0.005, 0.52 + i * 0.026]], i % 2 ? '#e8cc80' : '#a8803a');
+    P.circle(0.56, 0.48, 0.006, '#141414');
+  };
 
   /* ---------- Acqua di Parma: Art Deco Colonia and the blue Blu Mediterraneo ---------- */
   const ADP = [[0, 0], [0.198, 0], [0.204, 0.012], [0.232, 0.6], [0.23, 0.616], [0.21, 0.622], [0.09, 0.628], [0, 0.628]];
   const BLU = [[0, 0], [0.196, 0], [0.202, 0.012], [0.224, 0.58], [0.218, 0.598], [0.19, 0.61], [0.09, 0.616], [0, 0.616]];
   const crest = (P, x, y, s, c) => { P.ellipse(x, y, s * 0.6, s, 0, c); P.ellipse(x, y, s * 0.42, s * 0.75, 0, '#ffffff'); P.path([[x - s * 0.3, y - s * 0.5], [x + s * 0.3, y - s * 0.5], [x + s * 0.3, y + s * 0.2], [x, y + s * 0.55], [x - s * 0.3, y + s * 0.2]], c); P.rect(x - s * 0.5, y - s * 1.2, s, s * 0.35, c); };
   const colonia = (o) => (item) => Q({
-    body: 'lathe', pts: ADP, w: 0.464, h: 0.628, d: 0.464, seg: 64, juice: o.juice, level: 0.9, inset: 0.93, jop: 0.75,
-    art: { wrap: true, r: 0.22, arc: 1.45, h: 0.43, y: 0.32, draw: (P) => {
-      P.rect(0, 0, 1, 1, '#f7f6f1');
+    body: 'lathe', pts: ADP, w: 0.464, h: 0.628, d: 0.464, seg: 64, juice: o.juice, level: 0.9, inset: 0.94, jop: 0.88,
+    art: { wrap: true, r: 0.232, arc: 1.4, h: 0.43, y: 0.32, draw: (P) => {
+      P.rect(0, 0, 1, 1, o.labelBg || '#f7f6f1');
       lines(P, [['ACQUA', 0.13, 0.1, '#1a1a1a', { font: 'helv', weight: 500, track: 0.12 }], ['DI', 0.23, 0.06, '#1a1a1a', { font: 'helv', weight: 500, track: 0.12 }], ['PARMA', 0.33, 0.1, '#1a1a1a', { font: 'helv', weight: 500, track: 0.12 }],
         [o.sub, 0.47, 0.045, '#1a1a1a', { font: 'helv', track: 0.12 }], ['EAU DE COLOGNE', 0.9, 0.035, '#1a1a1a', { font: 'helv', track: 0.08 }]]);
       crest(P, 0.5, 0.68, 0.075, '#2a2a2a');
@@ -250,8 +256,8 @@
     cap: [{ s: 'cyl', r: 0.08, h: 0.02, glass: '#ffffff', op: 0.4 }, Object.assign({ s: 'cyl', r: 0.128, rb: 0.104, h: 0.2, seg: 48 }, o.cap), Object.assign({ s: 'cyl', r: 0.1, rb: 0.128, h: 0.012 }, o.cap)],
   });
   const blu = (o) => (item) => Q({
-    body: 'lathe', pts: BLU, w: 0.448, h: 0.616, d: 0.448, seg: 64, solid: '#ffffff', grad: ['#0b3fae', '#2a76e2'], gc: 0.9, rough: 0.08, coat: 1, env: 1.4,
-    art: { wrap: true, r: 0.215, arc: 1.4, h: 0.43, y: 0.31, draw: (P) => {
+    body: 'lathe', pts: BLU, w: 0.448, h: 0.616, d: 0.448, seg: 64, solid: '#ffffff', grad: ['#0a34a2', '#1c62d6'], gc: 0.9, rough: 0.08, coat: 0.6, env: 1.1,
+    art: { wrap: true, r: 0.226, arc: 1.38, h: 0.43, y: 0.31, draw: (P) => {
       P.rect(0, 0, 1, 1, '#f8f8f6');
       const b = '#1d3f9a';
       lines(P, [['ACQUA', 0.12, 0.1, b, { font: 'helv', weight: 500, track: 0.12 }], ['DI', 0.21, 0.06, b, { font: 'helv', weight: 500 }], ['PARMA', 0.3, 0.1, b, { font: 'helv', weight: 500, track: 0.12 }],
@@ -267,9 +273,10 @@
   function bow(k, y, color, knot) {
     const m = solid({ color, rough: 0.6, coat: 0.1 });
     for (const sx of [-1, 1]) {
-      const w = box(0.13, 0.03, 0.075, 0.01, y - 0.0375); w.rotateZ(sx * 0.18); w.translate(sx * 0.085, 0.0, 0.05); k.part(w, m);
+      const w = box(0.16, 0.035, 0.1, 0.012, -0.05); w.rotateZ(sx * 0.2); w.translate(sx * 0.095, y, 0.055); k.part(w, m);
+      const tail = box(0.05, 0.03, 0.08, 0.008, -0.08); tail.rotateZ(-sx * 0.35); tail.translate(sx * 0.03, y - 0.03, 0.06); k.part(tail, m);
     }
-    k.part(box(0.05, 0.035, 0.07, 0.01, y - 0.035).translate(0, 0, 0.06), solid({ color: knot || color, rough: 0.6, coat: 0.1 }));
+    k.part(box(0.055, 0.04, 0.075, 0.01, y - 0.0375).translate(0, 0, 0.065), solid({ color: knot || color, rough: 0.6, coat: 0.1 }));
   }
   const penhaligon = (o) => (item) => {
     const k = kit();
@@ -281,7 +288,7 @@
     bow(k, 0.68, o.bow, o.knot);
     k.part(cyl(0.035, 0.045, 0.06, 0.65, 24), glass({ op: 0.4 }));
     k.part(cyl(0.05, 0.03, 0.02, 0.71, 24), glass({ op: 0.45 }));
-    k.part(sphere(0.062, 0.79), glass({ tint: o.stopper || '#ffffff', op: 0.45, env: 3 }));
+    k.part(sphere(0.064, 0.79), glass({ tint: o.stopper || '#ffffff', op: 0.6, env: 3.4 }));
     k.top(0.6);
     return k.done();
   };
@@ -320,7 +327,7 @@
     const pts = [[0, 0], [0.112, 0], [0.12, 0.012], [0.134, 0.4], [0.13, 0.425], [0.11, 0.45], [0.078, 0.466], [0.062, 0.47], [0, 0.47]];
     const geo = lathe(pts, 0, 1, 56);
     k.glassBody(geo, glass({ op: 0.16 }), null);
-    const jg = gradient(lathe(pts, 0, 1, 56), '#d8d6bc', '#4a4416', 0.6); jg.scale(0.93, 0.95, 0.93); jg.translate(0, 0.01, 0);
+    const jg = gradient(lathe(pts, 0, 1, 56), '#d8d6bc', '#4a4416', 0.6); jg.scale(0.97, 0.95, 0.97); jg.translate(0, 0.01, 0);
     k.part(jg, new t.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.88, depthWrite: false }), 1);
     k.flat(0.13, 0.24, 0, 0.22, 0.128, paint(0.13, 0.24, (P) => {
       P.rect(0, 0, 1, 1, '#f7f5ef'); P.frame(0.06, 0.04, 0.88, 0.92, '#2a2a2a', 0.006);
@@ -329,9 +336,9 @@
     const gm = solid({ color: '#d8b56a', metal: 1, rough: 0.2, coat: 0, env: 2.6 });
     k.part(cyl(0.07, 0.07, 0.05, 0.47, 32), gm);
     // neck, head and muzzle
-    k.part(cyl(0.05, 0.07, 0.17, 0.52, 24), gm);
-    const head = sphere(0.06, 0.73, 1, 1.15, 1); k.part(head, gm);
-    const muz = cyl(0.026, 0.045, 0.1, 0, 20); muz.rotateX(Math.PI / 2 - 0.5); muz.translate(0, 0.7, 0.07); k.part(muz, gm);
+    const neck = cyl(0.055, 0.075, 0.18, 0, 24); neck.rotateZ(-0.12); neck.translate(0, 0.52, 0); k.part(neck, gm);
+    const head = sphere(0.068, 0.0, 1, 1.1, 1); head.translate(0.03, 0.73, 0); k.part(head, gm);
+    const muz = cyl(0.028, 0.05, 0.12, -0.06, 20); muz.rotateZ(-1.2); muz.rotateY(-0.5); muz.translate(0.08, 0.7, 0.03); k.part(muz, gm);
     for (const sx of [-1, 1]) {
       const ear = sphere(0.035, 0, 0.5, 1.2, 0.3); ear.rotateZ(sx * 1.0); ear.translate(sx * 0.07, 0.77, 0); k.part(ear, gm);
       const V = t.Vector3;
@@ -352,13 +359,13 @@
     art: [{ w: 0.3, h: 0.5, y: 0.33, draw: (P) => {
       if (o.draw) o.draw(P);
       const ink = o.ink || '#9a9a9a';
-      P.frame(0.24, 0.17, 0.52, 0.06, ink, 0.004); P.text('EX NIHILO', 0.5, 0.2, 0.04, ink, { font: 'roman', track: 0.05 });
-      P.text('PARIS', 0.5, 0.27, 0.018, ink, { font: 'roman', track: 0.2 });
+      P.frame(0.18, 0.16, 0.64, 0.08, ink, 0.006); P.text('EX NIHILO', 0.5, 0.2, 0.055, ink, { font: 'roman', weight: 600, track: 0.05, maxW: 0.6 });
+      P.text('PARIS', 0.5, 0.28, 0.024, ink, { font: 'roman', weight: 600, track: 0.2 });
       const t = item.name.toUpperCase().split(' '), mid = Math.ceil(t.length / 2);
       if (o.plate) { P.rect(0.22, 0.4, 0.56, 0.2, o.plate); P.frame(0.24, 0.41, 0.52, 0.18, ink, 0.003); }
-      P.text(t.slice(0, mid).join(' '), 0.5, 0.46, 0.045, o.tink || ink, { font: 'helv', track: 0.06, maxW: 0.5 });
-      P.text(t.slice(mid).join(' '), 0.5, 0.52, 0.045, o.tink || ink, { font: 'helv', track: 0.06, maxW: 0.5 });
-      P.text('EAU DE PARFUM', 0.5, 0.57, 0.015, o.tink || ink, { font: 'helv', track: 0.15 });
+      P.text(t.slice(0, mid).join(' '), 0.5, 0.455, 0.055, o.tink || ink, { font: 'helv', weight: 600, track: 0.06, maxW: 0.52 });
+      P.text(t.slice(mid).join(' '), 0.5, 0.52, 0.055, o.tink || ink, { font: 'helv', weight: 600, track: 0.06, maxW: 0.52 });
+      P.text('EAU DE PARFUM', 0.5, 0.575, 0.02, o.tink || ink, { font: 'helv', weight: 600, track: 0.15 });
     } }, { w: 0.2, h: 0.17, y: 0.61 + 0.06 + 0.09, z: 0.081, draw: (P) => {
       P.rect(0, 0, 1, 1, '#d9b56c');
       for (let r = 0; r < 6; r++) for (let i = 0; i < 6; i++) { const x = i / 5, y = 0.08 + r * 0.16; P.path([[x - 0.1, y], [x, y + 0.08], [x + 0.1, y]], 'rgba(120,88,36,0.55)', false, 0.02); }
@@ -371,12 +378,12 @@
     body: 'cyl', w: 0.51, h: 0.47, d: 0.51, seg: 64,
     solid: o.gold ? '#d8b56a' : '#f2f1ee', metal: o.gold ? 1 : 0, rough: o.gold ? 0.18 : 0.55, coat: o.gold ? 0 : 0.2, env: o.gold ? 2.4 : 1,
     art: [{ wrap: true, r: 0.258, arc: 1.4, h: 0.16, y: 0.25, draw: (P) => {
-      P.rect(0, 0, 1, 1, o.gold ? '#141414' : '#f8f7f3');
-      P.text(o.title || item.name, 0.5, 0.4, 0.3, '#c9a35c', { font: 'sans', weight: 500 });
-      P.text('Tiziana Terenzi', 0.5, 0.76, 0.2, '#c9a35c', { font: 'serif', italic: true });
+      P.rect(0, 0, 1, 1, o.gold ? '#141414' : '#f6f2ea'); if (!o.gold) P.frame(0.02, 0.04, 0.96, 0.92, '#e2d6bc', 0.02);
+      P.text(o.title || item.name, 0.5, 0.4, 0.36, '#b8873a', { font: 'sans', weight: 600 });
+      P.text('Tiziana Terenzi', 0.5, 0.76, 0.22, '#b8873a', { font: 'serif', italic: true, weight: 600 });
     } }],
     cap: [{ s: 'cyl', r: 0.116, h: 0.05, color: '#d8b56a', metal: 1, rough: 0.2, coat: 0 },
-      o.gold ? { s: 'cyl', r: 0.258, h: 0.32, color: '#1a1716', rough: 0.55, coat: 0.2, seg: 64 } : { s: 'cyl', r: 0.258, h: 0.32, color: '#dcbf86', metal: 1, rough: 0.16, coat: 0, seg: 64 }],
+      o.gold ? { s: 'cyl', r: 0.258, h: 0.32, color: '#1a1716', rough: 0.55, coat: 0.2, seg: 64 } : { s: 'cyl', r: 0.258, h: 0.32, color: '#e8cc98', metal: 0.85, rough: 0.3, coat: 0.3, seg: 64 }],
     extra: [(k) => {
       if (o.gold) return;
       const lid = new (T().CircleGeometry)(0.25, 48); lid.rotateX(-Math.PI / 2); lid.translate(0, 0.842, 0);
@@ -394,13 +401,13 @@
     const r = w / 2, pts = [[-r, 0], [r, 0], [r, h * 0.55], [r * 0.82, h * 0.86], [r * 0.45, h], [-r * 0.45, h], [-r * 0.82, h * 0.86], [-r, h * 0.55]];
     const g = profile(pts, d, 0.05); g.translate(0, y, 0); k.part(g, mat);
   };
-  const bdk = (o) => (item) => Q(Object.assign({ w: 0.34, h: 0.59, d: 0.22, r: 0.012 }, o.solid ? { solid: '#ffffff', grad: o.solid, rough: 0.1, coat: 1, env: 1.2 } : { juice: o.juice, level: 0.92, inset: 0.93, jop: o.jop || 0.5 }, {
+  const bdk = (o) => (item) => Q(Object.assign({ w: 0.34, h: 0.59, d: 0.22, r: 0.012 }, o.solid ? { solid: '#ffffff', grad: o.solid, rough: 0.1, coat: 1, env: 1.2 } : { juice: o.juice, level: 0.92, inset: 0.94, jop: o.jop || 0.8 }, {
     art: { w: 0.18, h: 0.25, x: 0.08, y: 0.32, draw: (P) => {
       P.rect(0, 0, 1, 1, '#fbfbf9');
       const t = item.name.toUpperCase().split(' '), mid = Math.ceil(t.length / 2);
-      if (t.length > 2) { P.text(t.slice(0, mid).join(' '), 0.42, 0.42, 0.075, '#1a1a1a', { font: 'helv', weight: 700, maxW: 0.7 }); }
-      else { P.text(t[0], 0.42, 0.36, 0.075, '#1a1a1a', { font: 'helv', weight: 700, maxW: 0.7 }); P.text(t.slice(1).join(' '), 0.42, 0.45, 0.075, '#1a1a1a', { font: 'helv', weight: 700, maxW: 0.7 }); }
-      P.text('EAU DE PARFUM', 0.42, 0.56, 0.035, '#1a1a1a', { font: 'helv' }); P.text('100 ml · 3.4 fl. oz.', 0.42, 0.61, 0.03, '#1a1a1a', { font: 'helv' });
+      if (t.length === 3) P.text(t.join(' '), 0.45, 0.42, 0.085, '#1a1a1a', { font: 'helv', weight: 700, maxW: 0.8 });
+      else { P.text(t[0], 0.45, 0.36, 0.1, '#1a1a1a', { font: 'helv', weight: 700, maxW: 0.8 }); P.text(t.slice(1).join(' '), 0.45, 0.47, 0.1, '#1a1a1a', { font: 'helv', weight: 700, maxW: 0.8 }); }
+      P.text('EAU DE PARFUM', 0.45, 0.6, 0.045, '#1a1a1a', { font: 'helv', weight: 600 }); P.text('100 ml · 3.4 fl. oz.', 0.45, 0.66, 0.035, '#1a1a1a', { font: 'helv' });
     } },
     cap: [{ s: 'cyl', r: 0.07, h: 0.04, glass: '#ffffff', op: 0.3 }],
     extra: [(k) => archCap(k, 0.63, 0.29, 0.22, 0.22, solid({ color: '#0d0d0d', rough: 0.14 })),
@@ -428,11 +435,11 @@
     k.flat(0.62, 0.6, 0, 0.3, 0.086, paint(0.62, 0.6, (P) => {
       P.g.save(); bondClip(P); o.draw(P); P.g.restore();
     }));
-    k.part(cyl(0.05, 0.05, 0.05, 0.6, 24), goldMat());
-    k.part(cyl(0.065, 0.065, 0.015, 0.6, 32), solid({ color: o.body, rough: 0.12 }));
+    k.part(cyl(0.065, 0.075, 0.04, 0.6, 32), glass({ tint: o.body, op: 0.7 }));
+    k.part(cyl(0.045, 0.045, 0.06, 0.64, 24), goldMat());
     const capMat = solid({ color: o.cap || o.body, rough: 0.12, coat: 1 });
     const stem = profile([[-0.07, 0], [0.07, 0], [0.11, 0.03], [0.17, 0.04], [0.17, 0.085], [-0.17, 0.085], [-0.17, 0.04], [-0.11, 0.03]], 0.1, 0.012);
-    stem.translate(0, 0.65, 0); k.part(stem, capMat);
+    stem.translate(0, 0.7, 0); k.part(stem, capMat);
     k.top(0.65);
     return k.done();
   };
@@ -443,7 +450,7 @@
     P.rect(0, 0, 1, 0.1, '#2ab07a');
     medallion(P, 0.5, 0.52, 0.16, '#d8b45e', '#6a2a9a', '#e8d070', 'BLEECKER ST.');
   };
-  const greenwich = (P) => { P.rect(0, 0, 1, 1, '#14988f'); medallion(P, 0.5, 0.56, 0.2, '#d8b45e', '#14988f', '#e6c45a', 'GREENWICH VILLAGE'); };
+  const greenwich = (P) => { P.rect(0, 0, 1, 1, '#0d8079'); medallion(P, 0.5, 0.56, 0.2, '#d8b45e', '#0d8079', '#e6c45a', 'GREENWICH VILLAGE'); };
   const skyline = (P) => {
     const g = P.g.createLinearGradient(0, 0, 0, P.H); g.addColorStop(0, '#1438a8'); g.addColorStop(1, '#2a5ae0'); P.g.fillStyle = g; P.g.fillRect(0, 0, P.W, P.H);
     const cols = ['#e83a3a', '#f0c030', '#30b0e0', '#40c060', '#a050d0', '#f07020', '#e8e8e8'];
@@ -457,19 +464,19 @@
   const joMalone = (o) => (item) => {
     const t = o.title.split('\n');
     const sp = { w: 0.36, h: 0.67, d: 0.24, r: 0.012 };
-    if (o.intense) Object.assign(sp, { solid: '#2d211b', rough: 0.12, coat: 1, env: 1.1 });
-    else Object.assign(sp, { juice: o.juice, level: 0.9, inset: 0.93, jop: o.jop || 0.45 });
+    if (o.intense) Object.assign(sp, { solid: o.intense === true ? '#2d211b' : o.intense, rough: 0.12, coat: 1, env: 1.1 });
+    else Object.assign(sp, { juice: o.juice, level: 0.9, inset: 0.94, jop: o.jop || 0.75 });
     sp.art = o.intense ? { w: 0.3, h: 0.6, y: 0.33, draw: (P) => {
       const c = '#d8c9b2';
-      lines(P, [['JO MALONE', 0.4, 0.045, c, { font: 'roman', track: 0.25 }], ['LONDON', 0.45, 0.022, c, { font: 'roman', track: 0.3 }]]);
-      t.forEach((s, i) => P.text(s, 0.5, 0.78 + i * 0.04, 0.03, c, { font: 'roman', track: 0.15, maxW: 0.7 }));
-      P.text('COLOGNE INTENSE', 0.5, 0.78 + t.length * 0.04, 0.022, c, { font: 'roman', track: 0.15 });
+      lines(P, [['JO MALONE', 0.4, 0.055, c, { font: 'roman', weight: 600, track: 0.22, maxW: 0.8 }], ['LONDON', 0.455, 0.026, c, { font: 'roman', weight: 600, track: 0.3 }]]);
+      t.forEach((s, i) => P.text(s, 0.5, 0.76 + i * 0.05, 0.04, c, { font: 'roman', weight: 600, track: 0.15, maxW: 0.76 }));
+      P.text('COLOGNE INTENSE', 0.5, 0.77 + t.length * 0.05, 0.028, c, { font: 'roman', weight: 600, track: 0.15 });
     } } : { w: 0.27, h: 0.33, y: 0.4, draw: (P) => {
       P.rect(0, 0, 1, 1, '#f3efe4'); P.frame(0.04, 0.04, 0.92, 0.92, '#4a4a4a', 0.006);
-      lines(P, [['JO MALONE', 0.17, 0.065, '#1a1a1a', { font: 'roman', track: 0.2 }], ['LONDON', 0.24, 0.03, '#1a1a1a', { font: 'roman', track: 0.3 }]]);
+      lines(P, [['JO MALONE', 0.17, 0.085, '#1a1a1a', { font: 'roman', weight: 600, track: 0.15, maxW: 0.84 }], ['LONDON', 0.25, 0.04, '#1a1a1a', { font: 'roman', weight: 600, track: 0.3 }]]);
       P.rect(0.43, 0.36, 0.14, 0.12, '#1a1a1a'); P.text('JM', 0.5, 0.42, 0.06, '#f3efe4', { font: 'serif', italic: true });
-      t.forEach((s, i) => P.text(s, 0.5, 0.64 + i * 0.075, 0.06, '#1a1a1a', { font: 'roman', track: 0.12, maxW: 0.8 }));
-      P.text('COLOGNE', 0.5, 0.66 + t.length * 0.075, 0.035, '#1a1a1a', { font: 'roman', track: 0.2 });
+      t.forEach((s, i) => P.text(s, 0.5, 0.62 + i * 0.09, 0.075, '#1a1a1a', { font: 'roman', weight: 600, track: 0.1, maxW: 0.84 }));
+      P.text('COLOGNE', 0.5, 0.64 + t.length * 0.09, 0.045, '#1a1a1a', { font: 'roman', weight: 600, track: 0.2 });
     } };
     sp.cap = [{ s: 'cyl', r: 0.088, h: 0.035, color: '#cfcbc4', metal: 1, rough: 0.2, coat: 0 }, { s: 'lathe', pts: JM_CAP, color: '#d9d5ce', metal: 1, rough: 0.16, coat: 0 }];
     return Q(sp);
@@ -478,30 +485,30 @@
   BottleCraft.add({
     /* Le Labo */
     'lelabo|Santal 33': lelabo({ juice: '#e4e0b8', ml: '100ml 3,4' }),
-    'lelabo|Another 13': lelabo({ juice: '#efeee8', jop: 0.35 }),
+    'lelabo|Another 13': lelabo({ juice: '#efeee8', jop: 0.5 }),
     'lelabo|Bergamote 22': lelabo({ juice: '#e8e2a8' }),
-    'lelabo|Thé Noir 29': lelabo({ juice: '#efeee8', jop: 0.35 }),
+    'lelabo|Thé Noir 29': lelabo({ juice: '#efeee8', jop: 0.5 }),
     'lelabo|Rose 31': lelabo({ juice: '#ecdcc0', where: 'in Liberty', fresh: 'Fresh until: 21/03/2013' }),
     'lelabo|Oud 27': lelabo({ juice: '#c8901e', jop: 0.85, where: 'in Barneys NY', fresh: 'For:  Michelle' }),
     'lelabo|Patchouli 24': lelabo({ juice: '#ebe0a4', where: 'in Liberty' }),
     'lelabo|Vetiver 46': lelabo({ juice: '#ebe4b4' }),
     'lelabo|Lys 41': lelabo({ juice: '#ece4a8' }),
-    'lelabo|Matcha 26': lelabo({ juice: '#efefe8', jop: 0.35, title: 'THÉ MATCHA 26' }),
+    'lelabo|Matcha 26': lelabo({ juice: '#efefe8', jop: 0.5, title: 'THÉ MATCHA 26' }),
     'lelabo|Tabac 28': lelabo({ juice: '#8a4a1c', jop: 0.9, where: 'in New York City' }),
 
     /* Diptyque */
     'diptyque|Tam Dao': diptyque({ juice: '#c6dcae', letters: ['TA M', 'DAO'], size: 0.2 }),
     'diptyque|Philosykos': diptyque({ juice: '#d0e2bc', letters: ['PHILOSYKOS'], size: 0.075, n: 50 }),
     'diptyque|Do Son': diptyque({ juice: '#d6e2c4', letters: ['DO', 'SON'], size: 0.2 }),
-    'diptyque|Orphéon': diptyque({ juice: '#f2f2ee', jop: 0.3, bg: '#101010', hatch: 'rgba(240,240,240,0.35)', ink: '#f4f4f4', letters: ['OR', 'PHE', 'ON'], size: 0.17 }),
-    'diptyque|Fleur de Peau': diptyque({ juice: '#f2f2ee', jop: 0.3, bg: '#1a1a1a', hatch: 'rgba(240,240,240,0.4)', ink: '#f4f4f4', letters: ['FLEUR', 'DE', 'PEAU'], size: 0.14 }),
+    'diptyque|Orphéon': diptyque({ juice: '#f2f2ee', jop: 0.5, bg: '#101010', hatch: 'rgba(240,240,240,0.35)', ink: '#f4f4f4', letters: ['OR', 'PHE', 'ON'], size: 0.17 }),
+    'diptyque|Fleur de Peau': diptyque({ juice: '#f2f2ee', jop: 0.5, bg: '#1a1a1a', hatch: 'rgba(240,240,240,0.4)', ink: '#f4f4f4', letters: ['FLEUR', 'DE', 'PEAU'], size: 0.14 }),
     'diptyque|Oud Palao': diptyque({ juice: '#e2c86a', jop: 0.75, letters: ['OUD', 'PALAO'], size: 0.15, n: 110 }),
-    'diptyque|Eau Duelle': diptyque({ juice: '#e8dc8a', jop: 0.7, letters: ['EAU', 'DUELLE'], size: 0.12, draw: (P) => { P.path([[0.15, 0.62], [0.35, 0.52], [0.55, 0.58], [0.85, 0.5], [0.85, 0.9], [0.15, 0.9]], 'rgba(20,20,20,0.35)'); } }),
+    'diptyque|Eau Duelle': diptyque({ juice: '#e8dc8a', jop: 0.85, letters: ['EAU', 'DUELLE'], size: 0.12, draw: (P) => { P.path([[0.15, 0.62], [0.35, 0.52], [0.55, 0.58], [0.85, 0.5], [0.85, 0.9], [0.15, 0.9]], 'rgba(20,20,20,0.35)'); } }),
 
     /* Frédéric Malle */
     'malle|Portrait of a Lady': malle({ juice: '#e6c84e', nose: 'Dominique Ropion' }),
     'malle|Musc Ravageur': malle({ juice: '#e2b82e', nose: 'Maurice Roucel' }),
-    'malle|Géranium pour Monsieur': malle({ juice: '#efebe2', jop: 0.4, nose: 'Dominique Ropion', title: 'GERANIUM\nPOUR MONSIEUR' }),
+    'malle|Géranium pour Monsieur': malle({ juice: '#efebe2', jop: 0.55, nose: 'Dominique Ropion', title: 'GERANIUM\nPOUR MONSIEUR' }),
     'malle|French Lover': malle({ juice: '#e8cc48', nose: 'Pierre Bourdon' }),
     'malle|Vétiver Extraordinaire': malle({ juice: '#ead454', nose: 'Dominique Ropion', title: 'VETIVER\nEXTRAORDINAIRE' }),
     'malle|Carnal Flower': malle({ juice: '#e2c03a', nose: 'Dominique Ropion' }),
@@ -521,27 +528,27 @@
     'memo|French Leather': memo({ draw: rose }),
     'memo|Marfa': memo({ draw: desert, glowIn: 'rgba(246,220,160,0.95)' }),
     'memo|Lalibela': memo({ body: '#1c1a1a', pw: 0.3, ph: 0.6, py: 0.33, draw: lalibela, cy: 2 }),
-    'memo|Inlé': memo({ body: '#ead6d2', pw: 0.24, ph: 0.47, glowIn: 'rgba(240,226,222,1)', glowOut: 'rgba(232,212,208,1)', draw: inle }),
+    'memo|Inlé': memo({ body: '#dcc0b8', pw: 0.24, ph: 0.47, glowIn: 'rgba(232,206,198,1)', glowOut: 'rgba(214,186,178,1)', draw: inle }),
 
     /* Mancera */
     'mancera|Cedrat Boisé': mancera({ juice: '#ece6c8', title: 'CEDRAT\nBOISE' }),
-    'mancera|Red Tobacco': mancera({ solid: ['#5a0606', '#d8141a'], gc: 0.6, ring: 'gold', ink: '#e8c060', logo: '#e8c060', tink: '#e01818', title: 'RED\nTOBACCO', emblem: (P) => { P.rect(0.32, 0.08, 0.36, 0.62, '#0c0c0c'); P.path([[0.5, 0.18], [0.58, 0.3], [0.5, 0.42], [0.42, 0.3]], '#d8a040'); } }),
+    'mancera|Red Tobacco': mancera({ solid: ['#4a0306', '#a80a12'], gc: 0.7, ring: 'gold', ink: '#e8c060', logo: '#e8c060', tink: '#e01818', title: 'RED\nTOBACCO', emblem: (P) => { P.rect(0.32, 0.08, 0.36, 0.62, '#0c0c0c'); P.path([[0.5, 0.18], [0.58, 0.3], [0.5, 0.42], [0.42, 0.3]], '#d8a040'); } }),
     'mancera|Instant Crush': mancera({ solid: ['#a88a46', '#ead9a0'], metal: 0.85, rough: 0.2, cap: 'gold', ink: '#2a2214', logo: '#2a2214', tink: '#c02020', title: 'INSTANT\nCRUSH' }),
     'mancera|Roses Vanille': mancera({ juice: '#ead998', title: 'ROSES\nVANILLE' }),
-    'mancera|Aoud Lemon Mint': mancera({ solid: ['#d8eef8', '#1a6ac0'], gc: 0.8, cap: 'gold', band: 'rgba(214,176,96,0.92)', ink: '#2a2214', logo: '#2a2214', title: 'AOUD\nLEMON MINT' }),
-    'mancera|Hindu Kush': mancera({ juice: '#ece4c4', frame: true, title: 'HINDU KUSH', tsz: 0.04 }),
+    'mancera|Aoud Lemon Mint': mancera({ solid: ['#bfe4f6', '#0c4fae'], gc: 0.55, cap: 'gold', band: 'rgba(214,176,96,0.92)', ink: '#2a2214', logo: '#2a2214', title: 'AOUD\nLEMON MINT' }),
+    'mancera|Hindu Kush': mancera({ juice: '#ece4c4', frame: true, title: 'HINDU KUSH', tsz: 0.05 }),
 
     /* Montale */
     'montale|Intense Café': montale({ grad: ['#4a0a3a', '#8a1a68'] }),
     'montale|Arabians Tonka': montale({ grad: ['#0a0a0a', '#1a1a1a'], metal: 0.3, draw: horse }),
     'montale|Black Aoud': montale({ grad: ['#080808', '#1a1a1a'], metal: 0.3 }),
-    'montale|Starry Nights': montale({ grad: ['#f07898', '#0c0c0c'], gc: 0.9, metal: 0.4 }),
+    'montale|Starry Nights': montale({ grad: ['#f2648c', '#0a0a0a'], gc: 0.45, metal: 0.4 }),
     'montale|Chocolate Greedy': montale({ grad: ['#c8ccd0', '#e8ecf0'], metal: 0.9, rough: 0.25, word: '#1a1a1a', ink: '#8a6a2a' }),
     'montale|Aoud Forest': montale({ grad: ['#3a1a0c', '#7a4424'] }),
 
     /* Acqua di Parma */
     'adp|Colonia': colonia({ juice: '#e2e09a', sub: 'COLONIA', cap: { color: '#142a1e', rough: 0.2, coat: 1 } }),
-    'adp|Colonia Intensa': colonia({ juice: '#d4ac3e', sub: 'COLONIA INTENSA', cap: { color: '#b98a6c', metal: 1, rough: 0.3, coat: 0 } }),
+    'adp|Colonia Intensa': colonia({ juice: '#d4ac3e', sub: 'COLONIA INTENSA', labelBg: '#d9bfae', cap: { color: '#b98a6c', metal: 1, rough: 0.3, coat: 0 } }),
     'adp|Fico di Amalfi': blu({ title: ['FICO', 'di AMALFI'], ink: '#d02a3a' }),
     'adp|Arancia di Capri': blu({ title: ['ARANCIA', 'di CAPRI'], ink: '#e2601a' }),
     'adp|Mirto di Panarea': blu({ title: ['MIRTO', 'di PANAREA'], ink: '#7a1a3a' }),
@@ -549,15 +556,15 @@
     /* Penhaligon's */
     'penhaligons|Halfeti': penhaligon({ juice: '#ecebd8', jop: 0.8, bow: '#c8dcc4', label: halfetiLabel }),
     'penhaligons|The Tragedy of Lord George': lordGeorge,
-    'penhaligons|Endymion': penhaligon({ juice: '#f2f2ee', jop: 0.3, bow: '#1a2450', label: endymionLabel }),
+    'penhaligons|Endymion': penhaligon({ juice: '#f2f2ee', jop: 0.5, bow: '#1a2450', label: endymionLabel }),
     'penhaligons|Babylon': penhaligon({ juice: '#e6b45a', jop: 0.85, bow: '#2a6a3a', knot: '#b0202a', label: babylonLabel }),
     'penhaligons|Juniper Sling': penhaligon({ frost: '#eef0f2', bow: '#c8ccd2', label: juniperLabel }),
     'penhaligons|Sartorial': penhaligon({ juice: '#e8c838', jop: 0.85, bow: '#6a6a6e', label: sartorialLabel }),
 
     /* Ex Nihilo */
-    'exnihilo|Fleur Narcotique': exNihilo({ body: { juice: '#f2f0ea', jop: 0.3, level: 0.92, inset: 0.92 }, plate: '#fbfbf9', tink: '#5a5a5a' }),
-    'exnihilo|Blue Talisman': exNihilo({ body: { solid: '#ffffff', grad: ['#dfe8f4', '#152a78'], gc: 0.7, rough: 0.1, coat: 1, env: 1.2 }, ink: '#e8eef8', draw: (P) => { for (const [a, b, c, d] of [[0.15, 0.35, 0.3, 0.12], [0.62, 0.62, 0.95, 0.4], [0.7, 0.75, 0.7, 0.95], [0.1, 0.8, 0.45, 0.7]]) P.line(a, b, c, d, 'rgba(230,238,250,0.8)', 0.004); } }),
-    'exnihilo|Lust in Paradise': exNihilo({ body: { juice: '#f4c4bc', jop: 0.7, level: 0.92, inset: 0.92 }, ink: '#c8a060', plate: 'rgba(250,236,230,0.7)' }),
+    'exnihilo|Fleur Narcotique': exNihilo({ body: { juice: '#f2f0ea', jop: 0.5, level: 0.92, inset: 0.92 }, plate: '#fbfbf9', tink: '#5a5a5a' }),
+    'exnihilo|Blue Talisman': exNihilo({ body: { solid: '#ffffff', grad: ['#d4e0f0', '#122670'], gc: 0.4, rough: 0.1, coat: 1, env: 1.2 }, ink: '#e8eef8', draw: (P) => { for (const [a, b, c, d] of [[0.15, 0.35, 0.3, 0.12], [0.62, 0.62, 0.95, 0.4], [0.7, 0.75, 0.7, 0.95], [0.1, 0.8, 0.45, 0.7]]) P.line(a, b, c, d, 'rgba(230,238,250,0.8)', 0.004); } }),
+    'exnihilo|Lust in Paradise': exNihilo({ body: { juice: '#f4c4bc', jop: 0.85, level: 0.92, inset: 0.92 }, ink: '#c8a060', plate: 'rgba(250,236,230,0.7)' }),
 
     /* Tiziana Terenzi */
     'tt|Kirke': tt({ gold: true, title: 'Kirkè' }),
@@ -566,22 +573,22 @@
     'tt|Cassiopea': tt({}),
 
     /* BDK */
-    'bdk|Gris Charnel': bdk({ juice: '#dcdcdc', jop: 0.35 }),
-    'bdk|Rouge Smoking': bdk({ juice: '#d8261a', jop: 0.9 }),
-    'bdk|Pas Ce Soir': bdk({ juice: '#e8e2a0', jop: 0.6 }),
+    'bdk|Gris Charnel': bdk({ juice: '#dcdcdc', jop: 0.5 }),
+    'bdk|Rouge Smoking': bdk({ juice: '#c4140e', jop: 0.9 }),
+    'bdk|Pas Ce Soir': bdk({ juice: '#e8e2a0', jop: 0.8 }),
 
     /* Bond No. 9 */
     'bond|Bleecker Street': bond({ body: '#28b07c', cap: '#7a3aa8', draw: sunburst }),
-    'bond|Greenwich Village': bond({ body: '#14988f', draw: greenwich }),
+    'bond|Greenwich Village': bond({ body: '#0c7a74', draw: greenwich }),
     'bond|New York Nights': bond({ body: '#1d48c0', cap: '#2a5ae0', draw: skyline }),
     'bond|Wall Street': bond({ body: '#0b0b0b', draw: tokens }),
 
     /* Jo Malone */
-    'jomalone|Wood Sage & Sea Salt': joMalone({ juice: '#f1f1ea', jop: 0.3, title: 'WOOD SAGE\n& SEA SALT' }),
-    'jomalone|English Pear & Freesia': joMalone({ juice: '#f1ecd6', jop: 0.4, title: 'ENGLISH PEAR\n& FREESIA' }),
+    'jomalone|Wood Sage & Sea Salt': joMalone({ juice: '#f1f1ea', jop: 0.5, title: 'WOOD SAGE\n& SEA SALT' }),
+    'jomalone|English Pear & Freesia': joMalone({ juice: '#f1ecd6', jop: 0.55, title: 'ENGLISH PEAR\n& FREESIA' }),
     'jomalone|Oud & Bergamot': joMalone({ intense: true, title: 'OUD\n& BERGAMOT' }),
     'jomalone|Myrrh & Tonka': joMalone({ intense: true, title: 'MYRRH\n& TONKA' }),
-    'jomalone|Velvet Rose & Oud': joMalone({ intense: true, title: 'VELVET ROSE\n& OUD' }),
-    'jomalone|Lime Basil & Mandarin': joMalone({ juice: '#e4dc84', jop: 0.7, title: 'LIME BASIL\n& MANDARIN' }),
+    'jomalone|Velvet Rose & Oud': joMalone({ intense: '#2a1c26', title: 'VELVET ROSE\n& OUD' }),
+    'jomalone|Lime Basil & Mandarin': joMalone({ juice: '#e4dc84', jop: 0.85, title: 'LIME BASIL\n& MANDARIN' }),
   });
 })();
