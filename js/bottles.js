@@ -721,6 +721,8 @@ const BottleCraft = (() => {
     add(specs) { Object.assign(SPECS, specs); },
     houseFallback(house, spec) { HOUSE_FALLBACK[house] = spec; },
     has(item) { return !!specFor(item); },
+    // Drop a cached build so a spec registered again (e.g. a bottle being designed) rebuilds.
+    forget(key) { delete built[key]; },
     // A ready-to-place copy of the bottle (geometry and materials are shared between copies).
     build(item) {
       T = window.THREE; if (!T) return null;

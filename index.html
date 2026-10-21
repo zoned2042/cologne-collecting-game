@@ -37,6 +37,7 @@
     <button role="tab" data-tab="boutique">Boutique</button>
     <button role="tab" data-tab="vault">Vault</button>
     <button role="tab" data-tab="collection">Collection</button>
+    <button role="tab" data-tab="atelier">Your House</button>
     <button role="tab" data-tab="showroom">Showroom</button>
     <button role="tab" data-tab="career">Career</button>
     <button role="tab" data-tab="trophies">Trophies</button>
@@ -53,6 +54,9 @@
         <p class="muted">Prices drift a little every day. Eight bottles are marked down each morning.</p>
       </div>
       <div class="grid deals" id="deals"></div>
+
+      <h2 class="sub">Mystery boxes</h2>
+      <div class="mystery" id="mystery"></div>
 
       <div class="filters">
         <label class="f-search"><span>Search</span><input id="f-q" type="search" placeholder="Aventus, Byredo, oud…" autocomplete="off"></label>
@@ -73,6 +77,9 @@
         <p class="muted">Bottles no boutique sells anymore. Three lots go under the hammer each day; anything else trades on the grey market at a markup. Vintage value climbs every day you hold it.</p>
       </div>
       <div class="lots" id="lots"></div>
+      <h2 class="sub">Collector requests</h2>
+      <p class="muted small">Buyers posting today. If the bottle is on your shelf you can sell it to them above its value.</p>
+      <ul class="wants" id="wants"></ul>
       <h2 class="sub">Grey market</h2>
       <div class="grid" id="vault-grid"></div>
     </section>
@@ -93,6 +100,8 @@
         </aside>
       </div>
     </section>
+
+    <section class="tab" id="tab-atelier" hidden></section>
 
     <section class="tab tab-showroom" id="tab-showroom" hidden>
       <div class="stage" id="stage">
@@ -167,6 +176,7 @@
 <script src="js/boxes-niche.js"></script>
 <script src="js/showroom.js"></script>
 <script src="js/unbox.js"></script>
+<script src="js/maison.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

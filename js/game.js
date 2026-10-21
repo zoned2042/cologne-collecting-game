@@ -67,7 +67,7 @@
     return {
       v: 1, cash: 250, day: 1, shift: 0, job: 'packer', xp: {}, courses: {}, owned: {}, signature: null, desk: 0,
       stats: { shifts: 0, earned: 0, spent: 0, perfect: 0, sold: 0, matches: 0, auctions: 0 },
-      ach: {}, notified: {}, market: null, last: Date.now(), seed: Math.random().toString(36).slice(2, 8),
+      ach: {}, notified: {}, market: null, maison: null, last: Date.now(), seed: Math.random().toString(36).slice(2, 8),
       settings: { sfx: true, music: true, unbox: true },
     };
   }
@@ -86,6 +86,11 @@
     S = Object.assign(base, data || {});
     S.stats = Object.assign(freshState().stats, S.stats || {});
     S.settings = Object.assign(freshState().settings, S.settings || {});
+    // Your own house: put its fragrances back into the catalog before checking the shelf.
+    if (S.maison && typeof Maison !== 'undefined') {
+      S.maison = Object.assign({ rep: 10, lab: 1, nose: 0, factory: 0, shops: 0, ads: [], creations: [], ledger: [], stats: { sold: 0, revenue: 0 } }, S.maison);
+      for (const c of S.maison.creations) Maison.register(S.maison, c);
+    }
     // Drop items that no longer exist in the catalog.
     for (const id of Object.keys(S.owned)) if (!ITEM_BY_ID[id]) delete S.owned[id];
     if (S.signature && !S.owned[S.signature]) S.signature = null;
@@ -139,8 +144,9 @@
       lots.push({ id: c.id, sold: false });
     }
     S.market = { day: S.day, deals, lots };
+    genWants();
   }
-  function ensureMarket() { if (!S.market || S.market.day !== S.day) genMarket(); }
+  function ensureMarket() { if (!S.market || S.market.day !== S.day) genMarket(); else if (!S.market.wants) genWants(); }
 
   /* ---------- signature scent bonus ---------- */
   function sigBonus(job) {
@@ -193,7 +199,13 @@
     { id: 'museum', name: 'Private Museum', desc: 'Own 300 bottles', reward: 150000, test: () => ownedCount() >= 300 },
     { id: 'house20', name: 'Maison Collector', desc: 'Complete 20 houses', reward: 250000, test: () => housesComplete() >= 20 },
     { id: 'ceo', name: 'Scent Empire', desc: 'Become Group CEO', reward: 500000, test: () => S.job === 'ceo' },
-    { id: 'all', name: 'Every Bottle on Earth', desc: 'Own every fragrance in the catalog', reward: 1000000, test: () => ownedCount() >= CATALOG.length },
+    { id: 'all', name: 'Every Bottle on Earth', desc: 'Own every fragrance in the catalog', reward: 1000000, test: () => CATALOG.every((c) => owns(c.id)) },
+    { id: 'maison', name: 'Maison Founded', desc: 'Found your own fragrance house', reward: 2500, test: () => !!S.maison },
+    { id: 'launch', name: 'Launch Day', desc: 'Launch your first fragrance', reward: 5000, test: () => !!(S.maison && S.maison.creations.length) },
+    { id: 'master', name: 'Masterpiece', desc: 'Launch a fragrance with harmony 90 or more', reward: 25000, test: () => !!(S.maison && S.maison.creations.some((c) => c.harmony >= 90)) },
+    { id: 'range', name: 'Full Range', desc: 'Have 5 fragrances in your house', reward: 40000, test: () => !!(S.maison && S.maison.creations.length >= 5) },
+    { id: 'kbottles', name: 'Ten Thousand Sold', desc: 'Sell 10,000 bottles of your own', reward: 100000, test: () => !!(S.maison && S.maison.stats.sold >= 10000) },
+    { id: 'cult', name: 'Cult House', desc: 'Reach reputation 80', reward: 250000, test: () => !!(S.maison && S.maison.rep >= 80) },
   ];
 
   function checkProgress() {
@@ -275,8 +287,9 @@
     sellConfirm: null,
     work: { phase: 'idle' },
     showroomDirty: true,
+    atelier: { view: 'range', step: 0, draft: null, found: { name: '', city: 'Paris', pal: 0 } },
   };
-  const TABS = ['work', 'boutique', 'vault', 'collection', 'showroom', 'career', 'trophies'];
+  const TABS = ['work', 'boutique', 'vault', 'collection', 'atelier', 'showroom', 'career', 'trophies'];
 
   /* ---------- header ---------- */
   function renderHeader() {
@@ -298,6 +311,7 @@
     if (n === 0) return 'Next: buy your first bottle in the <a href="#boutique" data-tab="boutique">Boutique</a>. Afnan, Rayhaan and Lattafa start under $50.';
     if (!S.signature) return 'Next: pick a signature scent in your <a href="#collection" data-tab="collection">Collection</a>. Matching it to your job raises your pay.';
     if (nextJob) return `Next: a better job is open. Apply as <a href="#career" data-tab="career">${esc(nextJob.title)}</a>.`;
+    if (n >= FOUND_BOTTLES && !S.maison) return `Next: found your own fragrance house in <a href="#atelier" data-tab="atelier">Your House</a> and launch your own scents.`;
     if (n >= 8 && S.desk === 0) return 'Next: open a decant desk on the <a href="#work" data-tab="work">Work</a> tab for passive income.';
     const upcoming = JOBS.slice(JOBS.indexOf(job) + 1)[0];
     if (upcoming) {
@@ -438,6 +452,8 @@
     const parts = [`Base ${money(base)}`];
     if (mult !== 1) parts.push(`×${mult} performance`);
     if (sb.total) parts.push(`+${Math.round(sb.total * 100)}% signature`);
+    const ms = maisonTick(1 / 3);
+    if (ms.units) parts.push(`your house sold ${ms.units} bottles for ${money(ms.revenue)}`);
     S.shift++;
     let dayRolled = false;
     if (S.shift >= 3) { newDay(); dayRolled = true; }
@@ -469,7 +485,7 @@
   }
 
   function newDay() {
-    S.day++; S.shift = 0; genMarket();
+    S.day++; S.shift = 0; genMarket(); maisonNewDay();
     const d = S.market.deals[0]; const it = ITEM_BY_ID[d.id];
     toast(`<b>Day ${S.day}</b><span>New deals in the Boutique. ${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} is ${Math.round(d.off * 100)}% off.</span>`);
   }
@@ -515,6 +531,7 @@
     const deals = S.market.deals.map((d) => ITEM_BY_ID[d.id]);
     $('#deals').innerHTML = deals.map((it) => itemCard(it, 'shop')).join('');
     $('#deals-day').textContent = `Day ${S.day}`;
+    renderMystery();
     renderBoutiqueGrid();
   }
 
@@ -561,6 +578,10 @@
   let auction = null;
   function renderVault() {
     ensureMarket();
+    $('#wants').innerHTML = S.market.wants.map((w, i) => {
+      const it = ITEM_BY_ID[w.id]; const offer = Math.round(value(it) * w.mult); const own = owns(it.id);
+      return `<li class="${w.done ? 'done' : ''}"><div>${bottleSVG(it, 30)}<div><small>${esc(w.who)} wants</small><b>${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)}</b><small>Offer ${money(offer)} · ${Math.round((w.mult - 1) * 100)}% over value</small></div></div>${w.done ? '<span class="owned-tag">Sold</span>' : own ? `<button class="btn btn-primary btn-small" data-action="want-sell" data-i="${i}">Sell for ${short(offer)}</button>` : '<span class="muted small">Not on your shelf</span>'}</li>`;
+    }).join('');
     $('#lots').innerHTML = S.market.lots.map((lot, i) => {
       const it = ITEM_BY_ID[lot.id]; const h = HOUSE_BY_ID[it.house]; const est = value(it);
       return `<article class="lot tier-${it.tier}">
@@ -663,7 +684,7 @@
 
   /* ---------- COLLECTION tab ---------- */
   function sortedOwned() {
-    const order = Object.fromEntries(HOUSES.map((h, i) => [h.id, i]));
+    const order = Object.fromEntries(HOUSES.map((h, i) => [h.id, i])); order.mine = -1;
     return Object.keys(S.owned).map((id) => ITEM_BY_ID[id]).sort((a, b) => order[a.house] - order[b.house] || a.base - b.base);
   }
 
@@ -812,6 +833,270 @@
     const t = $('#tour-card'); t.classList.remove('show'); t.hidden = true;
   }
 
+  /* ---------- YOUR HOUSE: found a maison, compose, design, launch, sell ---------- */
+  const M = () => S.maison;
+  const FOUND_COST = 15000, FOUND_BOTTLES = 10, DRAFT_KEY = 'mine|__draft';
+  const LAB_COST = [0, 0, 12000, 45000, 160000, 600000];
+  const NOSES = [null, { name: 'Junior nose from Grasse', cost: 30000, bonus: 4 }, { name: 'Master perfumer', cost: 350000, bonus: 10 }];
+  const SHOP_NAMES = ['Pop-up counter', 'Flagship boutique', 'Paris, rue Saint-Honoré', 'Dubai Mall', 'Fifth Avenue', 'Ginza, Tokyo'];
+  const ADS = [
+    { id: 'social', name: 'Social campaign', cost: 5000, days: 5, mult: 1.3 }, { id: 'mag', name: 'Magazine spread', cost: 40000, days: 7, mult: 1.7 },
+    { id: 'board', name: 'Billboards', cost: 150000, days: 7, mult: 2.2 }, { id: 'celeb', name: 'Celebrity face', cost: 600000, days: 10, mult: 3 },
+  ];
+  const CLIENTS = ['A boutique hotel in Lisbon', 'A yacht charter in Monaco', 'A department store in Seoul', 'A members’ club in London', 'A fashion week show in Milan', 'A luxury car launch', 'A wedding planner in Dubai', 'An airline first-class lounge', 'A five-star spa in Bali', 'A gallery opening in New York'];
+  const REVIEW = {
+    5: ['A masterpiece. The {acc} is done better than the big houses manage.', 'Instant blind buy. Compliment monster.', 'Straight into my top ten. Bravo.'],
+    4: ['Really well made {fam}. The {note} is gorgeous.', 'Strong performer, lasted all day on me.', 'Would happily wear this over most designer releases.'],
+    3: ['Decent, a little safe.', 'Lovely opening, the drydown is generic.', 'Good, not great. Worth a sample.'],
+    2: ['Something clashes in the heart.', 'Muddled after an hour.', 'Overpriced for what it is.'],
+    1: ['Scrubber. Sorry.', 'All I get is alcohol.', 'Who signed off on this?'],
+  };
+  const factoryCost = (n) => Math.round(20000 * Math.pow(3, n));
+  const shopCost = (n) => Math.round(50000 * Math.pow(2.6, n));
+  const maxNotes = () => 5 + M().lab;
+  const harmonyBonus = () => (M().lab - 1) * 2 + (M().nose ? NOSES[M().nose].bonus : 0);
+  const devFee = () => Math.min(50000, 2000 + 1500 * M().creations.length);
+  function unitCost(c) { return Math.round(((c.oilCost * Maison.CONC[c.conc].oil + Maison.designCost(c.design) + 3) * (1 - 0.08 * M().factory) + 3) * 100) / 100; }
+  function fairPrice(c) { return Math.max(10, Math.round((25 + unitCost(c) * 2.2) * Maison.CONC[c.conc].mult * (0.55 + c.harmony / 100) * (0.6 + M().rep / 60) * (1 + Maison.designCost(c.design) / 60))); }
+  const adMult = () => M().ads.filter((a) => a.until >= S.day).reduce((m, a) => m * a.mult, 1);
+  const trendFam = () => { ensureMarket(); return S.market.trend; };
+  function demand(c) {
+    const m = M(); let d = (4 + m.rep * 1.4 + m.shops * 30) * Math.pow(c.harmony / 70, 2);
+    if (c.family === trendFam()) d *= 1.5;
+    d *= Math.min(3, Math.pow(fairPrice(c) / Math.max(1, c.price), 2.2)) * adMult();
+    if (S.day - c.launched < 7) d *= 1.6;
+    return d;
+  }
+  // Sales for a fraction of a day; returns { units, revenue }.
+  function maisonTick(frac) {
+    const m = M(); if (!m) return { units: 0, revenue: 0 };
+    let revenue = 0, units = 0, rep = 0;
+    for (const c of m.creations) {
+      if (!c.stock) continue;
+      const n = Math.min(c.stock, Math.round(demand(c) * frac * (0.75 + Math.random() * 0.5)));
+      if (n <= 0) continue;
+      c.stock -= n; c.sold += n; c.today = (c.today || 0) + n;
+      const rv = n * c.price; c.revenue += rv; revenue += rv; units += n; rep += n * (c.harmony - 35) / 4000;
+      if (!c.stock) toast(`<b>${esc(c.name)} sold out</b><span>Produce another batch in Your House.</span>`);
+    }
+    if (units) {
+      S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue;
+      m.todayUnits = (m.todayUnits || 0) + units; m.todayRev = (m.todayRev || 0) + revenue;
+      m.rep = Math.max(0, Math.min(100, m.rep + Math.min(3 * frac, rep)));
+    }
+    return { units, revenue };
+  }
+  function maisonNewDay() {
+    const m = M(); if (!m) return;
+    m.ledger.push({ day: S.day - 1, units: m.todayUnits || 0, revenue: m.todayRev || 0 }); m.ledger = m.ledger.slice(-14);
+    m.todayUnits = 0; m.todayRev = 0;
+    for (const c of m.creations) { c.yesterday = c.today || 0; c.today = 0; }
+  }
+  function ensureComms() {
+    const m = M(); if (m.comms && m.comms.day === S.day) return;
+    const r = rng(S.seed + ':comm:' + S.day); const fams = Object.keys(FAMILIES);
+    m.comms = { day: S.day, list: [0, 1].map(() => ({ who: pick(CLIENTS, r), family: pick(fams, r), min: 55 + Math.floor(r() * 30), qty: [50, 100, 200, 400][Math.floor(r() * 4)], ppb: Math.round(60 + r() * 190), done: false })) };
+  }
+  function makeReviews(c) {
+    const fair = fairPrice(c);
+    return RIVALS.slice().sort(() => Math.random() - 0.5).slice(0, 3).map((who) => {
+      let st = Math.round((c.harmony - 25) / 15 + (Math.random() - 0.5) * 1.2);
+      if (c.price > fair * 1.6) st--;
+      st = Math.max(1, Math.min(5, st));
+      const acc = c.accords[0] || 'blend', note = Maison.NOTE[c.notes.heart[0] || c.notes.top[0] || c.notes.base[0]].name.toLowerCase();
+      return { who, stars: st, text: pick(REVIEW[st]).replace('{acc}', acc.toLowerCase()).replace('{fam}', FAMILIES[c.family].label.toLowerCase()).replace('{note}', note) };
+    });
+  }
+  const houseInfo = () => ({ house: M().name, city: M().city, lbg: M().lbg, lfg: M().lfg });
+  function newDraft() {
+    const m = M();
+    return { sel: { top: [], heart: [], base: [] }, conc: 'edp', name: '',
+      design: { shape: 'block', glass: 'clear', color: '#1a1a1a', juice: '#e8c27a', cap: 'cylinder', capFin: 'gold', label: 'paper', ink: m.lfg },
+      box: { style: 'carton', paper: m.lbg, ink: m.lfg, pattern: 'border' }, price: 0, qty: 100 };
+  }
+  // The draft as an item, with its bottle and box specs registered for the 3D preview.
+  function draftItem() {
+    const d = ui.atelier.draft, an = Maison.analyse(d.sel, { maxNotes: maxNotes(), bonus: harmonyBonus() });
+    HOUSE_BY_ID.mine = HOUSE_BY_ID.mine || { id: 'mine', name: M().name, origin: M().city, shape: 'square', cap: 'gold', lbg: M().lbg, lfg: M().lfg, items: '' };
+    const info = Object.assign(houseInfo(), { name: d.name || 'Untitled', conc: d.conc });
+    BottleCraft.add({ [DRAFT_KEY]: Maison.bottleSpec(d.design, info) }); BottleCraft.forget(DRAFT_KEY);
+    BoxCraft.add({ [DRAFT_KEY]: Maison.boxSpec(d.box, info) });
+    return { id: 'mine-draft', key: DRAFT_KEY, name: info.name, house: 'mine', family: an.family, tier: 'niche', base: 100 };
+  }
+  function showDraft() {
+    const host = $('#mp-view'); if (!host || typeof Maison === 'undefined') return;
+    if (!Maison.Preview.mount(host)) { host.innerHTML = '<p class="muted">3D preview needs WebGL.</p>'; return; }
+    Maison.Preview.show(draftItem(), ui.atelier.step === 2 ? 'box' : 'bottle');
+  }
+  function draftAnalysis() { return Maison.analyse(ui.atelier.draft.sel, { maxNotes: maxNotes(), bonus: harmonyBonus() }); }
+  function draftCreation() {
+    const d = ui.atelier.draft, an = draftAnalysis();
+    return { name: d.name.trim(), conc: d.conc, notes: d.sel, family: an.family, harmony: an.harmony, oilCost: an.oilCost, accords: an.accords.map((a) => a.name), design: d.design, box: d.box, longevity: Maison.longevity(an, d.conc) };
+  }
+
+  function stars(n) { return '<span class="stars" aria-label="' + n + ' of 5">' + '★'.repeat(n) + '<i>' + '★'.repeat(5 - n) + '</i></span>'; }
+  function opt(obj, cur) { return Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(typeof v === 'string' ? v : v.label)}</option>`).join(''); }
+
+  function renderAtelier() {
+    const el = $('#tab-atelier'); const m = M();
+    if (!m) {
+      const ok = ownedCount() >= FOUND_BOTTLES, f = ui.atelier.found;
+      el.innerHTML = `<div class="section-head"><div><p class="eyebrow">Your own house</p><h1>Found a maison</h1></div><p class="muted">Every great house started with a collector who knew what was missing. Name your house, pick its city and colours, then compose fragrances, design their bottles and boxes, and sell them to the world.</p></div>
+        <div class="found-grid">
+          <article class="panel">
+            <label class="field"><span>House name</span><input id="mf-name" maxlength="28" value="${esc(f.name)}" placeholder="Maison …"></label>
+            <label class="field"><span>Home city</span><select id="mf-city">${Maison.CITIES.map((c) => `<option ${c === f.city ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+            <div class="field"><span>House colours</span><div class="palettes">${Maison.PALETTES.map(([bg, fg, nm], i) => `<button class="pal ${f.pal === i ? 'on' : ''}" data-action="pal" data-i="${i}" title="${nm}" style="--bg:${bg};--fg:${fg}"><b>Aa</b><small>${nm}</small></button>`).join('')}</div></div>
+            <div class="row-actions"><button class="btn btn-primary btn-big" data-action="found" ${ok && S.cash >= FOUND_COST ? '' : 'disabled'}>Found the house · ${money(FOUND_COST)}</button></div>
+            <p class="hint">${ok ? (S.cash >= FOUND_COST ? 'Registering the name, a small lab and your first raw materials.' : `You need ${money(FOUND_COST - S.cash)} more.`) : `Own ${FOUND_BOTTLES} bottles first so you know what the market smells like (${ownedCount()}/${FOUND_BOTTLES}).`}</p>
+          </article>
+          <article class="panel found-preview" style="--bg:${Maison.PALETTES[f.pal][0]};--fg:${Maison.PALETTES[f.pal][1]}"><p class="fp-name">${esc((f.name || 'Your house').toUpperCase())}</p><p class="fp-city">${esc(f.city.toUpperCase())}</p></article>
+        </div>`;
+      return;
+    }
+    ensureComms();
+    const a = ui.atelier; const trend = trendFam();
+    const head = `<div class="section-head"><div><p class="eyebrow">${esc(m.city)} · founded day ${m.day}</p><h1>${esc(m.name)}</h1></div>
+      <div class="maison-stats"><div><span class="muted">Reputation</span><b>${Math.round(m.rep)}</b><div class="bar"><i style="width:${m.rep}%"></i></div></div><div><span class="muted">Bottles sold</span><b>${m.stats.sold.toLocaleString('en-US')}</b></div><div><span class="muted">Revenue</span><b>${short(m.stats.revenue)}</b></div><div><span class="muted">Trending today</span><b><span class="fam fam-${trend}">${FAMILIES[trend].label}</span></b></div></div></div>
+      <div class="subnav">${[['range', 'Your range'], ['lab', 'Create a fragrance'], ['biz', 'Business']].map(([k, l]) => `<button class="${a.view === k ? 'on' : ''}" data-action="mview" data-v="${k}">${l}</button>`).join('')}</div>`;
+    let body = '';
+    if (a.view === 'range') body = renderRange();
+    else if (a.view === 'lab') body = renderLab();
+    else body = renderBiz();
+    el.innerHTML = head + body;
+    if (a.view === 'lab' && (a.step === 1 || a.step === 2 || a.step === 3)) showDraft();
+  }
+
+  function renderRange() {
+    const m = M();
+    if (!m.creations.length) return `<div class="panel empty-house"><h2>Your shelves are bare</h2><p class="muted">Compose your first fragrance: pick top, heart and base notes, design the bottle and box, then launch it.</p><button class="btn btn-primary" data-action="mview" data-v="lab">Create a fragrance</button></div>`;
+    return `<div class="range">${m.creations.map((c, i) => {
+      const it = ITEM_BY_ID[c.id], u = unitCost(c), fair = fairPrice(c), avg = c.reviews.length ? Math.round(c.reviews.reduce((x, r) => x + r.stars, 0) / c.reviews.length) : 0;
+      return `<article class="panel creation">
+        <div class="cr-head">${bottleSVG(it, 40)}<div><p class="house">${esc(Maison.CONC[c.conc].label)} · launched day ${c.launched}</p><h3>${esc(c.name)}</h3><p class="tags"><span class="fam fam-${c.family}">${FAMILIES[c.family].label}</span><span class="tier">Harmony ${c.harmony}</span>${stars(avg)}</p></div></div>
+        <p class="muted small">${c.notes.top.concat(c.notes.heart, c.notes.base).map((n) => Maison.NOTE[n].name).join(' · ')}${c.accords.length ? ` — <i>${esc(c.accords.join(', '))}</i>` : ''}</p>
+        <dl class="kv compact"><div><dt>In stock</dt><dd>${c.stock.toLocaleString('en-US')}</dd></div><div><dt>Sold yesterday / total</dt><dd>${c.yesterday || 0} / ${c.sold.toLocaleString('en-US')}</dd></div><div><dt>Price · fair · unit cost</dt><dd>${money(c.price)} · ${money(fair)} · ${money(u)}</dd></div><div><dt>Revenue</dt><dd>${short(c.revenue)}</dd></div></dl>
+        <div class="row-actions"><button class="btn btn-small" data-action="mprice" data-i="${i}" data-d="-0.1">Price −10%</button><button class="btn btn-small" data-action="mprice" data-i="${i}" data-d="0.1">+10%</button><button class="btn btn-small" data-action="mprice" data-i="${i}" data-d="fair">Set to fair</button></div>
+        <div class="row-actions">${[100, 500, 2000, 10000].map((q) => `<button class="btn btn-small" data-action="mproduce" data-i="${i}" data-q="${q}" ${S.cash < q * u ? 'disabled' : ''}>Make ${q.toLocaleString('en-US')} · ${short(q * u)}</button>`).join('')}</div>
+        <ul class="reviews">${c.reviews.map((r) => `<li>${stars(r.stars)} <b>${esc(r.who)}</b> “${esc(r.text)}”</li>`).join('')}</ul>
+        ${owns(c.id) ? `<button class="btn btn-small" data-action="view3d" data-id="${c.id}">View in the showroom</button>` : ''}
+      </article>`;
+    }).join('')}</div>`;
+  }
+
+  function renderLab() {
+    const a = ui.atelier, d = a.draft, an = draftAnalysis(), steps = ['Formula', 'Bottle', 'Box', 'Launch'];
+    const nav = `<ol class="steps">${steps.map((s, i) => `<li class="${i === a.step ? 'on' : i < a.step ? 'done' : ''}"><button data-action="mstep" data-s="${i}">${i + 1}. ${s}</button></li>`).join('')}</ol>`;
+    const meter = `<div class="harmony"><span class="muted">Harmony</span><b>${an.harmony}</b><div class="bar"><i style="width:${an.harmony}%"></i></div></div>`;
+    const summary = `<article class="panel lab-summary">${meter}
+      <dl class="kv compact"><div><dt>Family</dt><dd><span class="fam fam-${an.family}">${FAMILIES[an.family].label}</span></dd></div><div><dt>Longevity</dt><dd>${Maison.longevity(an, d.conc)} h</dd></div><div><dt>Oils per bottle</dt><dd>${money(an.oilCost * Maison.CONC[d.conc].oil)}</dd></div><div><dt>Notes</dt><dd>${an.ids.length} / ${maxNotes()}</dd></div></dl>
+      ${an.accords.length ? `<p class="small"><b>Accords</b> ${an.accords.map((x) => `<span class="acc">${esc(x.name)} +${x.pts}</span>`).join(' ')}</p>` : '<p class="hint">Pair notes that work together to form accords: lavender with tonka, rose with oud, tobacco with vanilla…</p>'}
+      ${an.clashes.length ? `<p class="small bad">Clash: ${an.clashes.map((x) => x.notes.map((n) => Maison.NOTE[n].name).join(' + ')).join(', ')}</p>` : ''}
+      ${an.missing.length ? `<p class="small bad">Missing a ${an.missing.join(' and ')} note.</p>` : ''}
+    </article>`;
+    let body = '';
+    if (a.step === 0) {
+      body = `<div class="lab-grid"><div class="notes-cols">${['top', 'heart', 'base'].map((layer) => `<article class="panel"><p class="eyebrow">${layer} notes</p><div class="notes">${Maison.NOTES.filter((n) => n.layer === layer).map((n) => `<button class="note ${d.sel[layer].includes(n.id) ? 'on' : ''}" data-action="note" data-l="${layer}" data-id="${n.id}" style="--c:${FAMILIES[n.family].color}"><span>${esc(n.name)}</span><small>$${n.cost}</small></button>`).join('')}</div></article>`).join('')}
+        <label class="field"><span>Concentration</span><select data-field="conc">${opt(Maison.CONC, d.conc)}</select></label></div>${summary}</div>`;
+    } else if (a.step === 1 || a.step === 2) {
+      const ds = d.design, bx = d.box;
+      const ctrls = a.step === 1
+        ? `<label class="field"><span>Bottle shape</span><select data-field="shape">${opt(Maison.SHAPES, ds.shape)}</select></label>
+           <label class="field"><span>Glass</span><select data-field="glass">${opt(Maison.GLASS, ds.glass)}</select></label>
+           <label class="field color"><span>Glass colour</span><input type="color" data-field="color" value="${ds.color}"></label>
+           <label class="field color"><span>Juice colour</span><input type="color" data-field="juice" value="${ds.juice}"></label>
+           <label class="field"><span>Cap</span><select data-field="cap">${opt(Maison.CAPS, ds.cap)}</select></label>
+           <label class="field"><span>Cap finish</span><select data-field="capFin">${opt(Maison.FINISH, ds.capFin)}</select></label>
+           <label class="field"><span>Label</span><select data-field="label">${opt(Maison.LABELS, ds.label)}</select></label>
+           <label class="field color"><span>Print colour</span><input type="color" data-field="ink" value="${ds.ink}"></label>
+           <p class="hint">Bottle and cap add ${money(Maison.designCost(ds))} to each bottle; a striking design lifts the price people will pay.</p>`
+        : `<label class="field"><span>Box style</span><select data-field="boxStyle">${opt(Maison.BOX_STYLES, bx.style)}</select></label>
+           <label class="field color"><span>Board colour</span><input type="color" data-field="paper" value="${bx.paper}"></label>
+           <label class="field color"><span>Ink</span><input type="color" data-field="boxInk" value="${bx.ink}"></label>
+           <label class="field"><span>Pattern</span><select data-field="pattern">${opt(Maison.PATTERNS, bx.pattern)}</select></label>`;
+      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${ctrls}</article>${summary}</div>`;
+    } else {
+      const c = draftCreation(); c.price = d.price || 0;
+      const tmp = Object.assign({}, c); const u = unitCost(tmp); const fair = fairPrice(tmp); if (!d.price) d.price = fair;
+      const total = devFee() + u * d.qty, ok = c.name && !M().creations.some((x) => x.name.toLowerCase() === c.name.toLowerCase()) && an.ids.length && !an.missing.length;
+      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div></div><article class="panel studio-ctrls">
+        <label class="field"><span>Fragrance name</span><input id="ml-name" maxlength="30" value="${esc(d.name)}" placeholder="e.g. Midnight Saffron"></label>
+        <label class="field"><span>Retail price (100 ml)</span><input id="ml-price" type="number" min="5" step="5" value="${d.price}"></label>
+        <p class="hint">Fair price at today’s reputation: <b>${money(fair)}</b>. Priced above it you sell fewer; far above it and critics take a star.</p>
+        <label class="field"><span>First batch</span><select data-field="qty">${[100, 500, 2000].map((q) => `<option value="${q}" ${q === d.qty ? 'selected' : ''}>${q} bottles · ${money(q * u)}</option>`).join('')}</select></label>
+        <dl class="kv compact"><div><dt>Lab fee</dt><dd>${money(devFee())}</dd></div><div><dt>Unit cost</dt><dd>${money(u)}</dd></div><div><dt>Total</dt><dd>${money(total)}</dd></div></dl>
+        <button class="btn btn-primary btn-big" data-action="mlaunch" ${ok && S.cash >= total ? '' : 'disabled'}>Launch ${esc(c.name || 'it')}</button>
+        <p class="hint">${!c.name ? 'Give it a name.' : !ok ? 'Fix the formula first (it needs top, heart and base notes) or pick a new name.' : S.cash < total ? `You need ${money(total - S.cash)} more.` : 'The first bottle off the line goes on your own shelf.'}</p>
+      </article>${summary}</div>`;
+    }
+    return nav + body + `<div class="row-actions lab-nav">${a.step > 0 ? '<button class="btn" data-action="mstep" data-s="-">Back</button>' : ''}${a.step < 3 ? '<button class="btn btn-primary" data-action="mstep" data-s="+">Next</button>' : ''}<button class="btn btn-ghost" data-action="mreset">Start over</button></div>`;
+  }
+
+  function renderBiz() {
+    const m = M(); ensureComms();
+    const up = (name, desc, lvl, max, cost, act) => `<li><div><b>${esc(name)}</b><small>${esc(desc)}</small></div>${lvl >= max ? '<span class="owned-tag">Maxed</span>' : `<button class="btn" data-action="${act}" ${S.cash < cost ? 'disabled' : ''}>Upgrade · ${short(cost)}</button>`}</li>`;
+    const active = m.ads.filter((x) => x.until >= S.day);
+    return `<div class="biz-grid">
+      <article class="panel"><p class="eyebrow">Upgrades</p><ul class="courses">
+        ${up(`Laboratory · level ${m.lab}`, `Up to ${maxNotes()} notes per formula, +${(m.lab - 1) * 2} harmony`, m.lab, 5, LAB_COST[m.lab + 1] || 0, 'mlab')}
+        ${up(`Perfumer · ${m.nose ? NOSES[m.nose].name : 'just you'}`, m.nose < 2 ? `Hire: ${NOSES[m.nose + 1].name} for +${NOSES[m.nose + 1].bonus} harmony` : 'The best nose money can buy', m.nose, 2, m.nose < 2 ? NOSES[m.nose + 1].cost : 0, 'mnose')}
+        ${up(`Factory · level ${m.factory}`, `Unit costs −${m.factory * 8}%`, m.factory, 5, factoryCost(m.factory), 'mfactory')}
+        ${up(`Boutiques · ${m.shops}`, m.shops < 6 ? `Open: ${SHOP_NAMES[m.shops]} (+30 bottles a day of demand)` : 'Stores on every continent', m.shops, 6, shopCost(m.shops), 'mshop')}
+      </ul></article>
+      <article class="panel"><p class="eyebrow">Marketing</p><ul class="courses">${ADS.map((x) => `<li><div><b>${esc(x.name)}</b><small>Demand ×${x.mult} for ${x.days} days</small></div><button class="btn" data-action="mad" data-id="${x.id}" ${S.cash < x.cost ? 'disabled' : ''}>Run · ${short(x.cost)}</button></li>`).join('')}</ul>
+        <p class="hint">${active.length ? 'Running: ' + active.map((x) => `${esc(x.name)} until day ${x.until}`).join(', ') : 'No campaign running.'}</p></article>
+      <article class="panel"><p class="eyebrow">Commissions · day ${S.day}</p><ul class="courses">${m.comms.list.map((q, i) => {
+        const fit = m.creations.find((c) => c.family === q.family && c.harmony >= q.min && c.stock >= q.qty);
+        return `<li class="${q.done ? 'done' : ''}"><div><b>${esc(q.who)}</b><small>${q.qty} bottles of a <span class="fam fam-${q.family}">${FAMILIES[q.family].label}</span> scent, harmony ${q.min}+ · ${money(q.ppb)} each</small></div>${q.done ? '<span class="owned-tag">Delivered</span>' : `<button class="btn ${fit ? 'btn-primary' : ''}" data-action="mcomm" data-i="${i}" ${fit ? '' : 'disabled'}>${fit ? 'Deliver ' + esc(fit.name) : 'No match in stock'} · ${short(q.qty * q.ppb)}</button>`}</li>`;
+      }).join('')}</ul></article>
+      <article class="panel"><p class="eyebrow">Sales ledger</p><ul class="ledger">${m.ledger.slice().reverse().map((l) => `<li><span>Day ${l.day}</span><span>${l.units} sold</span><b>${short(l.revenue)}</b></li>`).join('') || '<li class="muted">Sales show here after your first day on the market.</li>'}</ul></article>
+    </div>`;
+  }
+
+  function launchDraft() {
+    const m = M(), d = ui.atelier.draft, c = draftCreation();
+    if (!c.name || m.creations.some((x) => x.name.toLowerCase() === c.name.toLowerCase())) return;
+    c.price = Math.max(5, Math.round(d.price)); const u = unitCost(c), total = devFee() + u * d.qty;
+    if (S.cash < total) { SFX.play('error'); return; }
+    S.cash -= total; S.stats.spent += total;
+    Object.assign(c, { id: 'mine-' + (m.creations.length + 1) + '-' + Date.now().toString(36).slice(-4), stock: d.qty, sold: 0, revenue: 0, launched: S.day, today: 0, yesterday: 0 });
+    c.reviews = makeReviews(c);
+    const avg = c.reviews.reduce((x, r) => x + r.stars, 0) / 3; m.rep = Math.max(0, Math.min(100, m.rep + (avg - 3) * 3));
+    m.creations.push(c);
+    const it = Maison.register(m, c);
+    S.owned[c.id] = { day: S.day, paid: u, batch: batchCode(S.seed + c.id), from: 'your house' };
+    ui.showroomDirty = true; ui.atelier = { view: 'range', step: 0, draft: newDraft(), found: ui.atelier.found };
+    SFX.play('unlock');
+    toast(`<b>${esc(c.name)} is on sale</b><span>Critics gave it ${avg.toFixed(1)} stars. ${d.qty} bottles in stock at ${money(c.price)}.</span>`, 'gold');
+    checkProgress(); save(); renderHeader(); renderAtelier();
+    unbox(it);
+  }
+
+  /* ---------- collector requests and mystery boxes ---------- */
+  const BUYERS = ['@GrailHunter', '@OudCollector', '@BlindBuyBen', '@ScentSommelier', '@DecantQueen', '@BottleShelfie', '@MarlyMaven', '@VaultViolet'];
+  function genWants() {
+    const r = rng(S.seed + ':wants:' + S.day), ownedIds = Object.keys(S.owned).filter((id) => !ITEM_BY_ID[id].mine);
+    const pool = CATALOG.filter((c) => !c.limited); const wants = []; const seen = new Set();
+    let guard = 0;
+    while (wants.length < 4 && guard++ < 60) {
+      const id = ownedIds.length && r() < 0.55 ? pick(ownedIds, r) : pick(pool, r).id;
+      if (seen.has(id)) continue; seen.add(id);
+      wants.push({ id, who: pick(BUYERS, r), mult: Math.round((1.25 + r() * 0.65) * 100) / 100, done: false });
+    }
+    S.market.wants = wants;
+    S.market.trend = pick(Object.keys(FAMILIES), r);
+  }
+  const MYSTERY = [
+    { id: 'sampler', name: 'Discovery box', price: 120, lo: 0.3, hi: 1.9, blurb: 'A value or designer bottle you don’t own yet.' },
+    { id: 'niche', name: 'Niche box', price: 900, lo: 0.45, hi: 1.9, blurb: 'Something from the niche shelves.' },
+    { id: 'haute', name: 'Haute box', price: 8000, lo: 0.4, hi: 2.2, blurb: 'A luxury or haute bottle. Big swings.' },
+  ];
+  function mysteryPool(b) { return CATALOG.filter((c) => !c.disc && !c.limited && !owns(c.id) && c.base >= b.price * b.lo && c.base <= b.price * b.hi); }
+  function renderMystery() {
+    const el = $('#mystery'); if (!el) return;
+    el.innerHTML = MYSTERY.map((b) => { const n = mysteryPool(b).length; return `<article class="panel mystery-box"><div class="mb-art" aria-hidden="true"><span>?</span></div><div><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.blurb)} ${n} possible bottles.</p></div><button class="btn btn-primary" data-action="mystery" data-id="${b.id}" ${S.cash < b.price || !n ? 'disabled' : ''}>Open · ${money(b.price)}</button></article>`; }).join('');
+  }
+
   /* ---------- routing ---------- */
   function setTab(tab, push = true) {
     if (!TABS.includes(tab)) tab = 'work';
@@ -832,6 +1117,7 @@
       case 'collection': renderCollection(); break;
       case 'career': renderCareer(); break;
       case 'trophies': renderTrophies(); break;
+      case 'atelier': if (S.maison && !ui.atelier.draft) ui.atelier.draft = newDraft(); renderAtelier(); break;
       case 'showroom': enterShowroom(); break;
     }
   }
@@ -842,7 +1128,7 @@
     'next-shift': startShift,
     spritz,
     answer: (el) => answer(Number(el.dataset.i)),
-    'end-day': () => { cancelAnimationFrame(needleRaf); newDay(); ui.work = { phase: 'idle' }; save(); SFX.play('tab'); renderHeader(); renderWork(); },
+    'end-day': () => { cancelAnimationFrame(needleRaf); const ms = maisonTick((3 - S.shift) / 3); if (ms.units) toast(`<b>${esc(S.maison.name)}</b><span>Sold ${ms.units} bottles for ${money(ms.revenue)} today.</span>`, 'good'); newDay(); ui.work = { phase: 'idle' }; save(); SFX.play('tab'); renderHeader(); renderWork(); },
     buy: (el) => buy(el.dataset.id, shopPrice(ITEM_BY_ID[el.dataset.id]), 'boutique'),
     'vault-buy': (el) => buy(el.dataset.id, vaultPrice(ITEM_BY_ID[el.dataset.id]), 'grey market'),
     'shop-more': () => { ui.shop.limit += 48; renderBoutiqueGrid(); },
@@ -898,6 +1184,57 @@
       if (S.settings.music && ui.tab === 'showroom') SFX.startMusic();
       save(); renderHeader();
     },
+    pal: (el) => { ui.atelier.found.pal = Number(el.dataset.i); renderAtelier(); },
+    found: () => {
+      const f = ui.atelier.found, name = ($('#mf-name').value || '').trim();
+      if (!name) { toast('<b>Name your house</b><span>Every maison needs a name on the door.</span>', 'bad'); return; }
+      if (S.cash < FOUND_COST || ownedCount() < FOUND_BOTTLES || S.maison) return;
+      const [lbg, lfg] = Maison.PALETTES[f.pal];
+      S.cash -= FOUND_COST; S.stats.spent += FOUND_COST;
+      S.maison = { name, city: $('#mf-city').value, lbg, lfg, day: S.day, rep: 10, lab: 1, nose: 0, factory: 0, shops: 0, ads: [], creations: [], ledger: [], stats: { sold: 0, revenue: 0 } };
+      ui.atelier.draft = newDraft(); ui.atelier.view = 'lab'; ui.atelier.step = 0;
+      SFX.play('unlock'); toast(`<b>${esc(name)} is open</b><span>Compose your first fragrance in the lab.</span>`, 'gold');
+      checkProgress(); save(); renderHeader(); renderAtelier();
+    },
+    mview: (el) => { ui.atelier.view = el.dataset.v; if (!ui.atelier.draft) ui.atelier.draft = newDraft(); SFX.play('tab'); renderAtelier(); },
+    mstep: (el) => { const a = ui.atelier; a.step = el.dataset.s === '+' ? Math.min(3, a.step + 1) : el.dataset.s === '-' ? Math.max(0, a.step - 1) : Number(el.dataset.s); SFX.play('click'); renderAtelier(); },
+    mreset: () => { ui.atelier.draft = newDraft(); ui.atelier.step = 0; renderAtelier(); },
+    note: (el) => {
+      const sel = ui.atelier.draft.sel, l = el.dataset.l, id = el.dataset.id, list = sel[l];
+      const total = sel.top.length + sel.heart.length + sel.base.length;
+      if (list.includes(id)) list.splice(list.indexOf(id), 1);
+      else if (total >= maxNotes()) { toast(`<b>Your lab holds ${maxNotes()} notes</b><span>Upgrade the laboratory in Business for more.</span>`, 'bad'); return; }
+      else list.push(id);
+      ui.atelier.draft.price = 0; SFX.play('clink'); renderAtelier();
+    },
+    mlaunch: launchDraft,
+    mprice: (el) => { const c = M().creations[Number(el.dataset.i)]; c.price = el.dataset.d === 'fair' ? fairPrice(c) : Math.max(5, Math.round(c.price * (1 + Number(el.dataset.d)))); SFX.play('click'); save(); renderAtelier(); },
+    mproduce: (el) => { const c = M().creations[Number(el.dataset.i)], q = Number(el.dataset.q), cost = Math.round(q * unitCost(c)); if (S.cash < cost) return; S.cash -= cost; S.stats.spent += cost; c.stock += q; SFX.play('buy'); toast(`<b>${q.toLocaleString('en-US')} bottles of ${esc(c.name)}</b><span>Off the line for ${money(cost)}.</span>`, 'good'); save(); renderHeader(); renderAtelier(); },
+    mlab: () => { const m = M(), cost = LAB_COST[m.lab + 1]; if (m.lab >= 5 || S.cash < cost) return; S.cash -= cost; m.lab++; SFX.play('unlock'); save(); renderHeader(); renderAtelier(); },
+    mnose: () => { const m = M(); if (m.nose >= 2) return; const n = NOSES[m.nose + 1]; if (S.cash < n.cost) return; S.cash -= n.cost; m.nose++; SFX.play('unlock'); toast(`<b>Hired: ${esc(n.name)}</b><span>+${n.bonus} harmony on new formulas.</span>`, 'good'); save(); renderHeader(); renderAtelier(); },
+    mfactory: () => { const m = M(), cost = factoryCost(m.factory); if (m.factory >= 5 || S.cash < cost) return; S.cash -= cost; m.factory++; SFX.play('unlock'); save(); renderHeader(); renderAtelier(); },
+    mshop: () => { const m = M(), cost = shopCost(m.shops); if (m.shops >= 6 || S.cash < cost) return; S.cash -= cost; toast(`<b>Opened: ${esc(SHOP_NAMES[m.shops])}</b><span>More customers through the door every day.</span>`, 'gold'); m.shops++; SFX.play('unlock'); save(); renderHeader(); renderAtelier(); },
+    mad: (el) => { const m = M(), x = ADS.find((a) => a.id === el.dataset.id); if (S.cash < x.cost) return; S.cash -= x.cost; S.stats.spent += x.cost; m.ads.push({ id: x.id, name: x.name, mult: x.mult, until: S.day + x.days - 1 }); m.rep = Math.min(100, m.rep + 1); SFX.play('coins'); save(); renderHeader(); renderAtelier(); },
+    mcomm: (el) => {
+      const m = M(), q = m.comms.list[Number(el.dataset.i)]; if (q.done) return;
+      const c = m.creations.find((x) => x.family === q.family && x.harmony >= q.min && x.stock >= q.qty); if (!c) return;
+      const pay = q.qty * q.ppb; c.stock -= q.qty; c.sold += q.qty; c.revenue += pay; S.cash += pay; S.stats.earned += pay; m.stats.sold += q.qty; m.stats.revenue += pay; m.rep = Math.min(100, m.rep + 2); q.done = true;
+      SFX.play('coins'); toast(`<b>Commission delivered</b><span>${esc(q.who)} paid ${money(pay)} for ${q.qty} bottles of ${esc(c.name)}.</span>`, 'gold');
+      checkProgress(); save(); renderHeader(); renderAtelier();
+    },
+    'want-sell': (el) => {
+      const w = S.market.wants[Number(el.dataset.i)]; if (!w || w.done || !owns(w.id)) return;
+      const it = ITEM_BY_ID[w.id], offer = Math.round(value(it) * w.mult);
+      delete S.owned[w.id]; if (S.signature === w.id) S.signature = null;
+      S.cash += offer; S.stats.sold++; w.done = true; ui.showroomDirty = true;
+      SFX.play('sell'); toast(`<b>Sold to ${esc(w.who)}</b><span>${esc(it.name)} went for ${money(offer)}.</span>`, 'good');
+      save(); renderHeader(); renderVault();
+    },
+    mystery: (el) => {
+      const b = MYSTERY.find((x) => x.id === el.dataset.id), pool = mysteryPool(b);
+      if (!pool.length || S.cash < b.price) return;
+      buy(pick(pool).id, b.price, 'mystery box');
+    },
     'reset-game': (el) => {
       if (el.dataset.armed !== '1') { el.dataset.armed = '1'; el.textContent = 'Tap again to erase your save'; setTimeout(() => { el.dataset.armed = ''; el.textContent = 'Start over'; }, 3500); return; }
       adopt(null); ui.work = { phase: 'idle' }; ui.showroomDirty = true; genMarket(); save(); toast('<b>New game</b><span>$250 and a kitchen table. Good luck.</span>'); setTab('work');
@@ -911,6 +1248,23 @@
     const el = e.target.closest('[data-action]');
     if (el && !el.disabled && actions[el.dataset.action]) { e.preventDefault(); actions[el.dataset.action](el); }
   });
+  // Atelier form fields: colours refresh only the 3D preview so the picker keeps focus.
+  const FIELD = { shape: ['design', 'shape'], glass: ['design', 'glass'], color: ['design', 'color'], juice: ['design', 'juice'], cap: ['design', 'cap'], capFin: ['design', 'capFin'], label: ['design', 'label'], ink: ['design', 'ink'], boxStyle: ['box', 'style'], paper: ['box', 'paper'], boxInk: ['box', 'ink'], pattern: ['box', 'pattern'] };
+  document.addEventListener('input', (e) => {
+    const t = e.target; if (!t.closest || !t.closest('#tab-atelier')) return;
+    const d = ui.atelier.draft;
+    if (t.id === 'mf-name') { ui.atelier.found.name = t.value; const p = $('.fp-name'); if (p) p.textContent = (t.value || 'Your house').toUpperCase(); return; }
+    if (t.id === 'mf-city') { ui.atelier.found.city = t.value; return; }
+    if (!d) return;
+    if (t.id === 'ml-name') { d.name = t.value; return; }
+    if (t.id === 'ml-price') { d.price = Number(t.value) || 0; return; }
+    const f = t.dataset.field; if (!f) return;
+    if (f === 'conc' || f === 'qty') { d[f] = f === 'qty' ? Number(t.value) : t.value; if (f === 'conc') d.price = 0; renderAtelier(); return; }
+    const [grp, k] = FIELD[f]; d[grp][k] = t.value;
+    if (t.type === 'color') showDraft(); else renderAtelier();
+  });
+  document.addEventListener('change', (e) => { if (e.target.id === 'ml-name' || e.target.id === 'ml-price') renderAtelier(); });
+
   document.addEventListener('keydown', (e) => {
     if (typeof Unbox !== 'undefined' && Unbox.busy) {
       if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); Unbox.open(); }
