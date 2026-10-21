@@ -75,7 +75,7 @@
     k.flat(0.32, 0.16, 0, 0.115, 0.157, paint(0.32, 0.16, (P) => {
       if (o.logo) o.logo(P, ink);
       const lines = o.lines || [item.name.toUpperCase()];
-      lines.forEach((s, i) => P.text(s, 0.5, (o.ly || 0.62) + i * 0.17, o.ls || 0.15, ink, { font: 'roman', weight: 600, track: 0.12, maxW: 0.8 }));
+      lines.forEach((s, i) => P.text(s, 0.5, (o.ly || 0.62) + i * 0.17, o.ls || 0.19, ink, { font: 'roman', weight: 600, track: 0.12, maxW: 0.8 }));
     }));
     xjCap(k, 0.62, capMat);
     k.top(0.62);
@@ -92,7 +92,7 @@
   // Casamorati Mefisto: stepped blue flacon with flared shoulders and a navy tassel.
   const mefisto = () => {
     const k = kit(), t = T();
-    const pts = [[-0.17, 0], [0.17, 0], [0.17, 0.36], [0.195, 0.45], [0.215, 0.53], [0.21, 0.6], [0.13, 0.6], [0.075, 0.625], [-0.075, 0.625], [-0.13, 0.6], [-0.21, 0.6], [-0.215, 0.53], [-0.195, 0.45], [-0.17, 0.36]];
+    const pts = [[-0.16, 0], [0.16, 0], [0.165, 0.34], [0.2, 0.43], [0.235, 0.5], [0.25, 0.57], [0.23, 0.61], [0.14, 0.595], [0.075, 0.625], [-0.075, 0.625], [-0.14, 0.595], [-0.23, 0.61], [-0.25, 0.57], [-0.235, 0.5], [-0.2, 0.43], [-0.165, 0.34]];
     const geo = profile(pts, 0.22, 0.03); gradient(geo, '#0c2490', '#1a3cb4', 1);
     k.solidBody(geo, solid({ grad: true, rough: 0.2, coat: 0.4, env: 0.9 }));
     k.flat(0.38, 0.56, 0, 0.32, 0.113, paint(0.38, 0.56, (P) => {
@@ -113,10 +113,10 @@
     }));
     // Tassel: a cord from the right shoulder and the tasselled bundle.
     const navy = solid({ color: '#1a2350', rough: 0.8, coat: 0 });
-    const c = new t.CatmullRomCurve3([new t.Vector3(0.14, 0.62, 0.02), new t.Vector3(0.22, 0.6, 0.05), new t.Vector3(0.25, 0.48, 0.06), new t.Vector3(0.255, 0.4, 0.06)]);
+    const c = new t.CatmullRomCurve3([new t.Vector3(0.1, 0.63, 0.02), new t.Vector3(0.24, 0.62, 0.05), new t.Vector3(0.28, 0.5, 0.06), new t.Vector3(0.285, 0.4, 0.06)]);
     k.part(new t.TubeGeometry(c, 20, 0.012, 8), navy);
-    k.part(sphere(0.022, 0.39).translate(0.255, 0, 0.06), metal(GOLD));
-    const tas = cyl(0.02, 0.06, 0.26, 0.12, 24, 0.255, 0.06); k.part(tas, navy);
+    k.part(sphere(0.022, 0.39).translate(0.285, 0, 0.06), metal(GOLD));
+    const tas = cyl(0.02, 0.06, 0.26, 0.12, 24, 0.285, 0.06); k.part(tas, navy);
     
     xjCap(k, 0.625, metal(GOLD), { collar: 'CASAMORATI' });
     k.top(0.62);
@@ -164,15 +164,15 @@
   const guidance = (item) => {
     const k = kit();
     const W = 0.6, H = 0.5, D = 0.22;
-    k.solidBody(gradient(box(W, D, H, 0.09), '#eeb1a2', '#f4c4b6', 1), solid({ grad: true, rough: 0.15, coat: 0.4, env: 1 }));
+    k.solidBody(gradient(box(W, D, H, 0.09), '#d47a68', '#dc8a78', 1), solid({ grad: true, rough: 0.3, coat: 0.2, env: 0.5 }));
     k.flat(W * 0.8, H * 0.7, 0, 0.24, D / 2 + 0.003, paint(W * 0.8, H * 0.7, (P) => {
       crest(P, 0.5, 0.36, 0.15, 'rgba(200,140,120,0.9)', 'rgba(255,230,220,0.6)');
       P.text('AMOUAGE', 0.5, 0.68, 0.085, '#e8b896', { font: 'roman', weight: 600, track: 0.12 });
       P.text('GUIDANCE', 0.5, 0.8, 0.05, '#e8b896', { font: 'roman', weight: 600, track: 0.2 });
     }), { foil: true });
     k.part(cyl(0.09, 0.09, 0.03, H, 32), fin('gold'));
-    k.part(lathe([[0, 0], [0.13, 0], [0.135, 0.03], [0.13, 0.08], [0.11, 0.12], [0.07, 0.15], [0.02, 0.165], [0, 0.166]], H + 0.03, 1, 18), solid({ color: '#d9a89a', rough: 0.3, coat: 0.4, flat: true, env: 1.2 }));
-    k.part(sphere(0.02, H + 0.205), metal('#e2b49a'));
+    k.part(lathe([[0, 0], [0.13, 0], [0.14, 0.04], [0.135, 0.1], [0.115, 0.15], [0.075, 0.19], [0.02, 0.205], [0, 0.206]], H + 0.03, 1, 18), solid({ color: '#a87a72', rough: 0.35, coat: 0.2, flat: true, env: 0.6 }));
+    k.part(sphere(0.02, H + 0.245), metal('#e2b49a'));
     k.top(H);
     return k.done();
   };
@@ -208,8 +208,8 @@
   const initio = (o) => () => {
     const k = kit();
     initioShell(k, o.color, o.capColor);
-    const m = new (T().BoxGeometry)(0.155, 0.155, 0.02); m.rotateZ(Math.PI / 4); m.translate(0, 0.23, ID / 2 + 0.005); k.part(m, metal(o.metal || '#d8c08a', 0.3));
-    k.flat(0.215, 0.215, 0, 0.23, ID / 2 + 0.017, paint(0.215, 0.215, (P) => filigree(P, o.metal || '#d8c08a', o.line || '#7a6430')), { foil: true });
+    const m = new (T().BoxGeometry)(0.175, 0.175, 0.02); m.rotateZ(Math.PI / 4); m.translate(0, 0.23, ID / 2 + 0.005); k.part(m, metal(o.metal || '#d8c08a', 0.3));
+    k.flat(0.245, 0.245, 0, 0.23, ID / 2 + 0.017, paint(0.245, 0.245, (P) => filigree(P, o.metal || '#d8c08a', o.line || '#7a6430')), { foil: true });
     k.top(IH);
     return k.done();
   };
@@ -221,12 +221,13 @@
     k.flat(IW - 0.02, IH - 0.02, 0, IH / 2, ID / 2 + 0.004, paint(IW - 0.02, IH - 0.02, (P) => {
       const gd = '#d8b260', a = ax(P);
       P.frame(0.04, 0.04, 0.92, 0.92, gd, 0.006);
-      P.path([[0.5, 0.06], [0.95, 0.52], [0.5, 0.96], [0.05, 0.52], [0.5, 0.06]], gd, false, 0.008);
-      P.circle(0.5, 0.52, 0.3, gd, 0.012); P.circle(0.5, 0.52, 0.26, gd, 0.004); P.circle(0.5, 0.52, 0.2, gd, 0.004);
-      P.path([[0.5, 0.3], [0.72, 0.68], [0.28, 0.68], [0.5, 0.3]], gd, false, 0.006);
+      P.path([[0.5, 0.06], [0.95, 0.52], [0.5, 0.96], [0.05, 0.52], [0.5, 0.06]], gd, false, 0.016);
+      P.circle(0.5, 0.52, 0.31, gd, 0.03); P.circle(0.5, 0.52, 0.265, gd, 0.01); P.circle(0.5, 0.52, 0.2, gd, 0.008);
+      for (const [x, y] of [[0.5, 0.06], [0.95, 0.52], [0.5, 0.96], [0.05, 0.52]]) P.path([[x, y], [0.5 + (x - 0.5) * 0.45 + (y - 0.52) * 0.12, 0.52 + (y - 0.52) * 0.45 + (x - 0.5) * 0.12], [0.5 + (x - 0.5) * 0.45 - (y - 0.52) * 0.12, 0.52 + (y - 0.52) * 0.45 - (x - 0.5) * 0.12]], 'rgba(216,178,96,0.55)');
+      P.path([[0.5, 0.3], [0.72, 0.68], [0.28, 0.68], [0.5, 0.3]], gd, false, 0.014);
       P.ellipse(0.5, 0.54, 0.09, 0.04, 0, gd); P.circle(0.5, 0.54, 0.03, '#121212'); P.circle(0.5, 0.54, 0.014, gd);
       for (let i = 0; i < 24; i++) { const t = (i / 24) * Math.PI * 2; P.line(0.5 + Math.cos(t) * 0.21 * a, 0.52 + Math.sin(t) * 0.21, 0.5 + Math.cos(t) * 0.25 * a, 0.52 + Math.sin(t) * 0.25, gd, 0.004); }
-      P.text('BLACK GOLD PROJECT', 0.5, 0.15, 0.04, gd, { font: 'roman', weight: 600, track: 0.1 });
+      P.text('BLACK GOLD PROJECT', 0.5, 0.17, 0.05, gd, { font: 'roman', weight: 600, track: 0.1 });
       P.rect(0.14, 0.86, 0.72, 0.07, gd); P.text('OUD FOR GREATNESS', 0.5, 0.897, 0.045, '#121212', { font: 'roman', weight: 700, track: 0.04 });
     }), { foil: true });
     k.top(IH);
@@ -278,6 +279,9 @@
     const jg = box(W, D, H, 0.08); jg.scale(0.9, o.level || 0.78, 0.9); jg.translate(0, 0.04, 0);
     k.part(jg, new (T().MeshBasicMaterial)({ color: B.C(o.juice), map: jt, transparent: true, opacity: o.jop || 0.92, depthWrite: false }), 1);
     k.part(box(W, D, 0.2, 0.08, H + 0.005), mat);
+    // Light catching the cut facets: an additive overlay that stays bright whatever the glass opacity.
+    const sp = new (T().MeshBasicMaterial)({ map: tex, transparent: true, opacity: 0.22, blending: T().AdditiveBlending, depthWrite: false });
+    for (const [h, y] of [[H, 0], [0.2, H + 0.005]]) { const g = box(W, D, h, 0.08, y); g.scale(1.004, 1.002, 1.004); k.part(g, sp, 3); }
     k.part(cyl(0.05, 0.05, 0.15, H - 0.05, 20), glass({ op: 0.35 }), 3);
     const lines = o.lines || item.name.toUpperCase().split(' ');
     k.flat(0.26, 0.26, 0, 0.24, D / 2 + 0.006, paint(0.26, 0.26, (P) => {
@@ -285,7 +289,7 @@
       lines.forEach((s, i) => P.text(s, 0.5, 0.36 + i * 0.1 - (lines.length - 2) * 0.05, 0.09, '#fff6dc', { font: 'helv', weight: 400, maxW: 0.6 }));
       P.text('Kilian', 0.5, 0.64, 0.12, '#fff6dc', { font: 'serif', italic: true });
       if (o.sub) P.text(o.sub, 0.5, 0.74, 0.04, '#fff6dc', { font: 'helv', track: 0.1 });
-    }), { foil: true });
+    }), { foil: false });
     k.top(H);
     return k.done();
   };
@@ -345,7 +349,7 @@
   const rojaCologne = (o) => () => {
     const k = kit();
     const W = 0.52, H = 0.52, D = 0.22;
-    const geo = box(W, D, H, 0.04); gradient(geo, o.grad[0], o.grad[1], o.gc || 1);
+    const geo = box(W, D, H, 0.04); gradStops(geo, o.stops);
     k.solidBody(geo, solid({ grad: true, rough: 0.15, coat: 0.35, env: 0.8 }));
     k.flat(W * 0.9, H * 0.9, 0, H / 2, D / 2 + 0.003, paint(W * 0.9, H * 0.9, o.draw));
     if (o.capFin === 'black') {
@@ -437,23 +441,24 @@
   /* ---------- Baccarat: Les Larmes Sacrées de Thèbes ---------- */
   const larmes = () => {
     const k = kit();
-    const crystal = glass({ op: 0.1, env: 2.4, flat: true });
-    const pyr = cyl(0.06, 0.44, 0.28, 0, 4); pyr.rotateY(Math.PI / 4);
+    const crystal = glass({ op: 0.08, env: 2.8, flat: true });
+    const pyr = cyl(0.05, 0.33, 0.26, 0, 4);
     k.glassBody(pyr, crystal, null);
+    const edges = new (T().LineSegments)(new (T().EdgesGeometry)(pyr), new (T().LineBasicMaterial)({ color: 0xffffff, transparent: true, opacity: 0.55 }));
+    edges.renderOrder = 5; k.g.add(edges);
     // The amber teardrop reservoir and the gilded pool in the base.
     const amber = new (T().MeshBasicMaterial)({ color: B.C('#d89a14'), transparent: true, opacity: 0.92, depthWrite: false });
-    k.part(lathe([[0, 0], [0.035, 0.004], [0.06, 0.035], [0.058, 0.075], [0.035, 0.11], [0.018, 0.14], [0.018, 0.2], [0, 0.2]], 0.075), amber, 1);
-    k.part(sphere(0.085, 0.0, 1, 0.42, 1), amber, 1);
+    k.part(lathe([[0, 0], [0.03, 0.004], [0.05, 0.03], [0.048, 0.065], [0.03, 0.095], [0.016, 0.12], [0.016, 0.17], [0, 0.17]], 0.07), amber, 1);
+    k.part(sphere(0.075, 0.0, 1, 0.42, 1), amber, 1);
     // Sapphire cabochons on the corners and faces.
     const blue = gem('#1a1a6a', { metal: 0.2 }), dots = [];
-    for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + (i * Math.PI) / 2; dots.push(sphere(0.028, 0.028).translate(Math.cos(a) * 0.4, 0, Math.sin(a) * 0.4)); }
-    for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 2; dots.push(sphere(0.024, 0.08, 1, 1, 0.5).translate(Math.cos(a) * 0.235, 0, Math.sin(a) * 0.235)); }
+    for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 2; dots.push(sphere(0.026, 0.026).translate(Math.sin(a) * 0.31, 0, Math.cos(a) * 0.31)); }
+    for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + (i * Math.PI) / 2; dots.push(sphere(0.022, 0.07, 1, 1, 0.5).translate(Math.sin(a) * 0.172, 0, Math.cos(a) * 0.172)); }
     k.part(merge(dots), blue);
-    k.part(cyl(0.035, 0.042, 0.03, 0.275, 24), metal(GOLD));
-    k.part(sphere(0.012, 0.29).translate(0, 0, 0.04), solid({ color: '#ffffff', rough: 0, coat: 1, env: 3 }));
-    const st = cyl(0, 0.07, 0.1, 0.305, 4); st.rotateY(Math.PI / 4); k.part(st, gem('#141a5a'));
-    k.flat(0.1, 0.03, 0.2, 0.03, 0.27, paint(0.1, 0.03, (P) => P.text('baccarat', 0.5, 0.5, 0.7, 'rgba(255,255,255,0.7)', { font: 'serif', italic: true })));
-    k.top(0.28);
+    k.part(cyl(0.032, 0.04, 0.03, 0.255, 24), metal(GOLD));
+    k.part(sphere(0.012, 0.27).translate(0, 0, 0.038), solid({ color: '#ffffff', rough: 0, coat: 1, env: 3 }));
+    const st = cyl(0, 0.06, 0.09, 0.285, 4); k.part(st, gem('#141a5a'));
+    k.top(0.26);
     return k.done();
   };
 
@@ -465,8 +470,8 @@
     k.solidBody(geo, solid({ grad: true, rough: 0.2, coat: 0.3, env: 0.7 }));
     k.wrap(R + 0.003, 0.3, 0.3, 2.4, paint(2.4 * (R + 0.003), 0.3, (P) => {
       P.rect(0, 0, 1, 1, '#f6f4f0');
-      P.text(o.l1, 0.5, 0.15, 0.13, '#111111', { font: 'helv', weight: 500 });
-      P.text(o.l2, 0.5, 0.3, 0.13, '#111111', { font: 'serif', italic: true, weight: 600 });
+      P.text(o.l1, 0.5, 0.15, 0.16, '#111111', { font: 'helv', weight: 500 });
+      P.text(o.l2, 0.5, 0.31, 0.16, '#111111', { font: 'serif', italic: true, weight: 600 });
       P.text('EXTRAIT DE PARFUM', 0.5, 0.44, 0.045, o.acc, { font: 'helv', weight: 700, track: 0.08 });
       P.text('Maison', 0.48, 0.83, 0.07, '#111111', { font: 'serif', align: 'right' }); P.text('Crivelli', 0.5, 0.83, 0.07, '#111111', { font: 'serif', italic: true, align: 'left' });
     }));
@@ -524,22 +529,22 @@
     /* Xerjoff */
     'xerjoff|Naxos': xj({ color: '#f1efe9', rough: 0.25, cap: 'rose', ink: '#c8a050', logo: naxosLogo, ly: 0.82, ls: 0.13 }),
     'xerjoff|Alexandria II': xj({ stops: [[0, '#f0d0a0'], [0.16, '#e8701e'], [0.42, '#901c0a'], [0.72, '#2c0a06'], [1, '#140604']], cap: 'rose', ink: '#e8c27a', logo: alexLogo, ly: 0.7, ls: 0.1, lines: ['ALEXANDRIA II'] }),
-    'xerjoff|Erba Pura': xj({ color: '#2a94a8', cap: 'gold', ink: '#f2f6f6', lines: ['ERBA', 'PURA'], ly: 0.45, ls: 0.14 }),
+    'xerjoff|Erba Pura': xj({ color: '#10606e', cap: 'gold', ink: '#f2f6f6', lines: ['ERBA', 'PURA'], ly: 0.45, ls: 0.14 }),
     'xerjoff|Torino21': xj({ stops: [[0, '#e4e8f4'], [0.2, '#b0bcec'], [0.4, '#2a3cc0'], [1, '#141c78']], cap: 'rose', ink: '#f4f4fa', lines: ['TORINO21'], ly: 0.6 }),
     'xerjoff|Mefisto': mefisto,
     'xerjoff|40 Knots': xj({ stops: [[0, '#e6ebf4'], [0.2, '#a4b4e0'], [0.45, '#26368c'], [1, '#0e1446']], cap: 'rose', ink: '#a8884a', lines: ['40', 'KNOTS'], ly: 0.4, ls: 0.15 }),
     'xerjoff|More Than Words': xj({ stops: [[0, '#e6e9f2'], [0.2, '#a8b2dc'], [0.45, '#2a3488'], [1, '#101444']], cap: 'rose', ink: '#a8884a', lines: ['MORE', 'THAN', 'WORDS'], ly: 0.3, ls: 0.13 }),
-    'xerjoff|Accento': xj({ color: '#3e2492', cap: 'gold', ink: '#f2eefa', lines: ['ACCENTO'], ly: 0.6 }),
+    'xerjoff|Accento': xj({ color: '#311a7e', cap: 'gold', ink: '#f2eefa', lines: ['ACCENTO'], ly: 0.6 }),
 
     /* Amouage */
     'amouage|Interlude Man': amouage({ grad: ['#0a1640', '#1838a0'], gc: 0.9, gem: '#2038c8' }),
     'amouage|Reflection Man': amouage({ juice: '#eef0ee', cap: 'silver', ink: '#5a5e64', crest: '#a8acb2', crestDark: 'rgba(60,60,70,0.45)', gem: '#6a7ac8' }),
     'amouage|Jubilation XXV': amouage({ juice: '#e8c040', ink: '#6a5020', crest: '#c8a050', crestDark: 'rgba(90,60,10,0.5)', title: 'JUBILATION XXV' }),
-    'amouage|Epic Man': amouage({ grad: ['#060c08', '#1e6a3a'], gc: 0.9, gem: '#1a8a4a' }),
+    'amouage|Epic Man': amouage({ grad: ['#040806', '#145a2e'], gc: 0.9, gem: '#1a8a4a' }),
     'amouage|Guidance': guidance,
-    'amouage|Search': amouage({ color: '#7c9c98', capColor: '#e8dcd4', collar: 'gold', ink: '#f4f2ee', crest: '#eceae4', crestDark: 'rgba(90,110,106,0.6)', gem: '#c8a050', titleFont: 'helv' }),
-    'amouage|Enclave': amouage({ color: '#1a3038', capColor: '#c6d4dc', collar: 'gold', ink: '#e6cf98', crest: '#cfd8de', crestDark: 'rgba(20,40,48,0.6)', gem: '#1a8a5a' }),
-    'amouage|Purpose': amouage({ color: '#3a4a30', capColor: '#ecebe6', collar: 'gold', ink: '#f2f0ea', crest: '#e8e8e4', crestDark: 'rgba(40,52,32,0.6)', gem: '#b8a48a', titleFont: 'helv' }),
+    'amouage|Search': amouage({ color: '#5e807c', capColor: '#e8dcd4', collar: 'gold', ink: '#f4f2ee', crest: '#eceae4', crestDark: 'rgba(90,110,106,0.6)', gem: '#c8a050', titleFont: 'helv' }),
+    'amouage|Enclave': amouage({ color: '#13262e', capColor: '#c6d4dc', collar: 'gold', ink: '#e6cf98', crest: '#cfd8de', crestDark: 'rgba(20,40,48,0.6)', gem: '#1a8a5a' }),
+    'amouage|Purpose': amouage({ color: '#2e3c26', capColor: '#ecebe6', collar: 'gold', ink: '#f2f0ea', crest: '#e8e8e4', crestDark: 'rgba(40,52,32,0.6)', gem: '#b8a48a', titleFont: 'helv' }),
     'amouage|Beach Hut Man': amouage({ juice: '#efe9a8', cap: 'silver', ink: '#8a8070', crest: '#b8bcc0', crestDark: 'rgba(80,80,80,0.45)', gem: '#d89a20', draw: (P) => {
       // The hand-drawn hut sketch behind the crest.
       const c = 'rgba(120,110,80,0.55)';
@@ -563,31 +568,31 @@
 
     /* Kilian */
     "kilian|Angels' Share": liquor({ juice: '#c88a1a', lines: ["ANGELS'", 'SHARE'] }),
-    "kilian|Love, Don't Be Shy": kilian({ color: '#f6d6cc', plaque: '#f2d8c8', ink: '#5a3a30', lines: ['Love,', "don't be shy"] }),
+    "kilian|Love, Don't Be Shy": kilian({ color: '#e09a88', plaque: '#f0c8b4', ink: '#5a3a30', lines: ['Love,', "don't be shy"] }),
     'kilian|Black Phantom': kilian({ color: '#0b0b0b', lines: ['Black', 'Phantom'], sub: '"MEMENTO MORI"' }),
     'kilian|Good Girl Gone Bad': kilian({ color: '#f4f2ee', plaque: '#f6f2e8', ink: '#b8964a', lines: ['Good girl', 'gone bad'] }),
     'kilian|Straight to Heaven': kilian({ color: '#0b0b0b', lines: ['Straight', 'to Heaven'], sub: 'white cristal' }),
     'kilian|Intoxicated': kilian({ color: '#0b0b0b', lines: ['Intoxicated'] }),
     'kilian|Back to Black': kilian({ color: '#0b0b0b', cap: 'gunmetal', lines: ['Back', 'to Black'], sub: 'aphrodisiac' }),
-    'kilian|Moonlight in Heaven': kilian({ color: '#2848b8', cap: 'gunmetal', lines: ['Moonlight', 'in Heaven'] }),
+    'kilian|Moonlight in Heaven': kilian({ color: '#14228a', cap: 'gunmetal', lines: ['Moonlight', 'in Heaven'] }),
     'kilian|Roses on Ice': liquor({ juice: '#e8eedc', jop: 0.5, lines: ['ROSES', 'ON ICE'] }),
     'kilian|Smoking Hot': kilian({ color: '#0b0b0b', cap: 'gunmetal', lines: ['Smoking', 'Hot'] }),
     'kilian|Apple Brandy on the Rocks': liquor({ juice: '#d8a83a', lines: ['APPLE', 'BRANDY'], sub: 'ON THE ROCKS' }),
     'kilian|Old Fashioned': liquor({ juice: '#c07a14', lines: ['OLD', 'FASHIONED'] }),
-    'kilian|Vodka on the Rocks': kilian({ color: '#2848c0', cap: 'gunmetal', lines: ['Vodka', 'on the rocks'] }),
+    'kilian|Vodka on the Rocks': kilian({ color: '#14248e', cap: 'gunmetal', lines: ['Vodka', 'on the rocks'] }),
 
     /* Roja */
     'roja|Elysium Pour Homme': roja({ jewel: '#0e0e12' }),
-    'roja|Enigma Pour Homme': rojaCologne({ grad: ['#f08a1a', '#8a1a08'], gc: 0.8, draw: (P) => {
+    'roja|Enigma Pour Homme': rojaCologne({ stops: [[0, '#f07a10'], [0.45, '#d0400a'], [1, '#5e0c04']], draw: (P) => {
       P.text('ENIGMA', 0.5, 0.12, 0.08, '#f6d0a8', { font: 'helv', weight: 400, track: 0.3 });
       P.text('PARFUM COLOGNE', 0.5, 0.21, 0.035, '#f6d0a8', { font: 'helv', track: 0.15 });
       P.text('ROJA', 0.5, 0.8, 0.09, 'rgba(255,220,180,0.5)', { font: 'helv', weight: 300, track: 0.2 });
       P.text('PARFUMS', 0.5, 0.9, 0.03, 'rgba(255,220,180,0.5)', { font: 'helv', track: 0.3 });
     } }),
     'roja|Burlington 1819': roja({ jewel: '#c8945a', label: burlington, lw: 0.48, lh: 0.42 }),
-    'roja|Isola Blu': roja({ jewel: '#3ab8d8', ink: '#1888b8', bg: '#f4e6b4' }),
+    'roja|Isola Blu': roja({ jewel: '#3ab8d8', ink: '#0a5a90', bg: '#f0dca0' }),
     'roja|Danger Pour Homme': roja({ jewel: '#0e0e12' }),
-    'roja|Apex': rojaCologne({ grad: ['#1aa030', '#06180a'], gc: 0.7, capFin: 'black', draw: (P) => {
+    'roja|Apex': rojaCologne({ stops: [[0, '#0e6a1c'], [0.4, '#083410'], [1, '#020a04']], capFin: 'black', draw: (P) => {
       P.text('APEX', 0.5, 0.18, 0.14, '#e8ece8', { font: 'helv', weight: 300, track: 0.15, shadow: 'rgba(0,0,0,0.9)' }); P.text('APEX', 0.5, 0.18, 0.14, '#1a2a1c', { font: 'helv', weight: 100, track: 0.15 });
       P.text('ROJA', 0.5, 0.78, 0.1, '#f2f2f2', { font: 'helv', weight: 300, track: 0.2 });
       P.text('PARFUMS', 0.5, 0.88, 0.035, '#f2f2f2', { font: 'helv', track: 0.3 });
@@ -599,9 +604,9 @@
     'nishane|Hacivat': nishane({ solid: '#e8e0d0', ink: '#6a6a6a', brand: '#5a5c60', title: 'HACIVAT' }),
     'nishane|Ani': nishane({ bg: '#0b0b0b', juice: '#e8c070', city: 'PARIS' }),
     'nishane|Wulong Cha': nishane({ bg: '#f2ead6', titleInk: '#2a2418', juice: '#e8e0b0', title: 'WŪLÓNG CHÁ', city: 'SHANGHAI' }),
-    'nishane|Fan Your Flames': nishane({ bg: '#1e3aa8', titleInk: '#f2e8d0', juice: '#e8a040', city: 'NEW YORK' }),
-    'nishane|Hundred Silent Ways': nishane({ bg: '#b0162a', titleInk: '#f2e8d0', juice: '#f0c890', city: 'PARIS' }),
-    'nishane|Ege': nishane({ solid: '#3274a8', ink: '#ecd8a0', title: 'EGE / ΑΙΓΑΙΟ', city: 'IZMIR / ΑΘΗΝΑ' }),
+    'nishane|Fan Your Flames': nishane({ bg: '#14287a', titleInk: '#f2e8d0', juice: '#e8a040', city: 'NEW YORK' }),
+    'nishane|Hundred Silent Ways': nishane({ bg: '#7a0c18', titleInk: '#f2e8d0', juice: '#f0c890', city: 'PARIS' }),
+    'nishane|Ege': nishane({ solid: '#1e5288', ink: '#ecd8a0', title: 'EGE / ΑΙΓΑΙΟ', city: 'IZMIR / ΑΘΗΝΑ' }),
     'nishane|Tempfluo': nishane({ bg: '#f8f6f2', draw: ribbons, frame: false, ink: '#f2c81a', titleInk: '#3a2a20', juice: '#f0d8a0', city: 'TOKYO' }),
     'nishane|Karagöz': nishane({ solid: '#111112', ink: '#d8d8d8', title: 'KARAGOZ' }),
 
@@ -609,8 +614,8 @@
     'baccarat|Les Larmes Sacrées de Thèbes': larmes,
 
     /* Maison Crivelli */
-    'crivelli|Hibiscus Mahajád': crivelli({ grad: ['#d82a16', '#8a0e0a'], l1: 'Hibiscus', l2: 'Mahajád', acc: '#c81e1e' }),
-    'crivelli|Oud Maracujá': crivelli({ grad: ['#1e3a9a', '#0e1838'], l1: 'Oud', l2: 'Maracujá', acc: '#1a2a7a' }),
+    'crivelli|Hibiscus Mahajád': crivelli({ grad: ['#8a1408', '#520604'], l1: 'Hibiscus', l2: 'Mahajád', acc: '#c81e1e' }),
+    'crivelli|Oud Maracujá': crivelli({ grad: ['#0e1e6a', '#060a24'], l1: 'Oud', l2: 'Maracujá', acc: '#1a2a7a' }),
 
     /* DKNY */
     'dkny|Be Delicious Men': apple({ glass: '#7a4a14', juice: '#a8641a', top: () => fin('chrome'), badge: '#5a6a3a' }),
