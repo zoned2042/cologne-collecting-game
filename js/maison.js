@@ -376,5 +376,46 @@ const Maison = (() => {
     return { mount, show, get mode() { return mode; } };
   })();
 
-  return { NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, DECOR, EXTRAS, BOX_STYLES, PATTERNS, EMBLEMS, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
+  /* ---------- product photos for the house website ---------- */
+  // Renders a creation's bottle (or boxed bottle) once to a transparent PNG and caches it.
+  const Snap = (() => {
+    let r = null, scene, cam; const cache = {};
+    function init() {
+      const T = window.THREE, L = typeof Showroom !== 'undefined' && Showroom.lib;
+      if (!T || !L) return false;
+      if (r) return true;
+      try { r = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); } catch (e) { return false; }
+      r.setSize(320, 400); r.outputEncoding = T.sRGBEncoding; r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = 1.15;
+      scene = new T.Scene(); scene.environment = L.buildEnvironment(r);
+      scene.add(new T.HemisphereLight('#fff6ec', '#3a2c22', 0.8));
+      const d = new T.DirectionalLight('#ffffff', 1.15); d.position.set(2, 4, 5); scene.add(d);
+      cam = new T.PerspectiveCamera(28, 320 / 400, 0.05, 30);
+      return true;
+    }
+    function shot(item, mode = 'bottle') {
+      const key = item.id + ':' + mode;
+      if (cache[key]) return cache[key];
+      if (!init()) return '';
+      const T = window.THREE, L = Showroom.lib;
+      let g = L.makeBottle(item).group, own = false;
+      if (mode === 'box') {
+        g.scale.setScalar(0.8); g.updateMatrixWorld(true);
+        const s = new T.Box3().setFromObject(g).getSize(new T.Vector3());
+        const bx = BoxCraft.build(item, { w: s.x, d: s.z, h: s.y + 0.04 });
+        if (bx) { g = bx.group; own = true; g.rotation.y = -0.45; }
+      } else g.rotation.y = -0.22;
+      scene.add(g); g.updateMatrixWorld(true);
+      const bb = new T.Box3().setFromObject(g), c = bb.getCenter(new T.Vector3()), s = bb.getSize(new T.Vector3());
+      const dist = Math.max(s.y / 0.84, s.x * 1.2) / (2 * Math.tan(14 * Math.PI / 180)) * 1.08;
+      cam.position.set(c.x, c.y + s.y * (mode === 'box' ? 0.3 : 0.06), dist); cam.lookAt(c.x, c.y, 0);
+      r.render(scene, cam);
+      const url = r.domElement.toDataURL('image/png');
+      scene.remove(g);
+      if (own) g.traverse((o) => { if (o.geometry && !o.userData.item) o.geometry.dispose(); });
+      return (cache[key] = url);
+    }
+    return { shot };
+  })();
+
+  return { Snap, NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, DECOR, EXTRAS, BOX_STYLES, PATTERNS, EMBLEMS, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
 })();

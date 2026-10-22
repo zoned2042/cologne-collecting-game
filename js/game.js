@@ -90,6 +90,7 @@
     if (S.maison && typeof Maison !== 'undefined') {
       S.maison = Object.assign({ rep: 10, lab: 1, nose: 0, factory: 0, shops: 0, ads: [], creations: [], ledger: [], stats: { sold: 0, revenue: 0 } }, S.maison);
       for (const c of S.maison.creations) Maison.register(S.maison, c);
+      if (S.maison.site) S.maison.site = Object.assign(SITE_DEFAULT(), S.maison.site);
     }
     // Drop items that no longer exist in the catalog.
     for (const id of Object.keys(S.owned)) if (!ITEM_BY_ID[id]) delete S.owned[id];
@@ -205,6 +206,8 @@
     { id: 'master', name: 'Masterpiece', desc: 'Launch a fragrance with harmony 90 or more', reward: 25000, test: () => !!(S.maison && S.maison.creations.some((c) => c.harmony >= 90)) },
     { id: 'range', name: 'Full Range', desc: 'Have 5 fragrances in your house', reward: 40000, test: () => !!(S.maison && S.maison.creations.length >= 5) },
     { id: 'kbottles', name: 'Ten Thousand Sold', desc: 'Sell 10,000 bottles of your own', reward: 100000, test: () => !!(S.maison && S.maison.stats.sold >= 10000) },
+    { id: 'online', name: 'Open for Business', desc: 'Launch your house website', reward: 5000, test: () => !!(S.maison && S.maison.site) },
+    { id: 'eshop', name: 'E-commerce Empire', desc: 'Take 1,000 online orders', reward: 75000, test: () => !!(S.maison && S.maison.site && S.maison.site.days.reduce((a, d) => a + d.o, 0) + S.maison.site.today.o >= 1000) },
     { id: 'cult', name: 'Cult House', desc: 'Reach reputation 80', reward: 250000, test: () => !!(S.maison && S.maison.rep >= 80) },
   ];
 
@@ -884,13 +887,15 @@
       m.todayUnits = (m.todayUnits || 0) + units; m.todayRev = (m.todayRev || 0) + revenue;
       m.rep = Math.max(0, Math.min(100, m.rep + Math.min(3 * frac, rep)));
     }
-    return { units, revenue };
+    const wt = webTick(frac);
+    return { units: units + wt.units, revenue: revenue + wt.revenue };
   }
   function maisonNewDay() {
     const m = M(); if (!m) return;
     m.ledger.push({ day: S.day - 1, units: m.todayUnits || 0, revenue: m.todayRev || 0 }); m.ledger = m.ledger.slice(-14);
     m.todayUnits = 0; m.todayRev = 0;
     for (const c of m.creations) { c.yesterday = c.today || 0; c.today = 0; }
+    webNewDay();
   }
   function ensureComms() {
     const m = M(); if (m.comms && m.comms.day === S.day) return;
@@ -958,13 +963,17 @@
     const a = ui.atelier; const trend = trendFam();
     const head = `<div class="section-head"><div><p class="eyebrow">${esc(m.city)} · founded day ${m.day}</p><h1>${esc(m.name)}</h1></div>
       <div class="maison-stats"><div><span class="muted">Reputation</span><b>${Math.round(m.rep)}</b><div class="bar"><i style="width:${m.rep}%"></i></div></div><div><span class="muted">Bottles sold</span><b>${m.stats.sold.toLocaleString('en-US')}</b></div><div><span class="muted">Revenue</span><b>${short(m.stats.revenue)}</b></div><div><span class="muted">Trending today</span><b><span class="fam fam-${trend}">${FAMILIES[trend].label}</span></b></div></div></div>
-      <div class="subnav">${[['range', 'Your range'], ['lab', 'Create a fragrance'], ['biz', 'Business']].map(([k, l]) => `<button class="${a.view === k ? 'on' : ''}" data-action="mview" data-v="${k}">${l}</button>`).join('')}</div>`;
+      <div class="subnav">${[['range', 'Your range'], ['lab', 'Create a fragrance'], ['biz', 'Business'], ['site', 'Website']].map(([k, l]) => `<button class="${a.view === k ? 'on' : ''}" data-action="mview" data-v="${k}">${l}</button>`).join('')}</div>`;
     let body = '';
     if (a.view === 'range') body = renderRange();
     else if (a.view === 'lab') body = renderLab();
+    else if (a.view === 'site') body = renderWebsite();
     else body = renderBiz();
+    // Keep the website's scroll position across re-renders unless the page changed.
+    const sv = $('#site-view'); if (sv && !site.jump) site.scrollTop = sv.scrollTop; site.jump = false;
     el.innerHTML = head + body;
     if (a.view === 'lab' && (a.step === 1 || a.step === 2 || a.step === 3)) showDraft();
+    if (a.view === 'site') { const nv = $('#site-view'); if (nv) nv.scrollTop = site.scrollTop; fillSnaps(); }
   }
 
   function renderRange() {
@@ -1192,6 +1201,314 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     if (ui.tab === 'atelier') renderAtelier();
   }
 
+  /* ---------- YOUR HOUSE WEBSITE: a storefront in a browser window, plus its dashboard ---------- */
+  const SITE_COST = 25000, HOSTING = 40;
+  const SEO_COST = [8000, 25000, 70000, 200000, 600000];
+  const TEMPLATES = { luxe: 'Luxe (house colours, dark)', atelier: 'Atelier (cream, editorial)', modern: 'Modern (white, bold grid)' };
+  const FIRST = ['Emma', 'Liam', 'Sofia', 'Noah', 'Aisha', 'Mateo', 'Yuki', 'Omar', 'Chloé', 'Lucas', 'Amara', 'Leo', 'Mei', 'Hugo', 'Zara', 'Ethan', 'Nadia', 'Kai', 'Lina', 'Marco', 'Fatima', 'Jonas', 'Isla', 'Ravi'];
+  const CITIES_W = ['Lyon', 'London', 'New York', 'Dubai', 'Milan', 'Toronto', 'Sydney', 'Berlin', 'Riyadh', 'Seoul', 'Madrid', 'Austin', 'Lagos', 'Mumbai', 'Stockholm', 'Mexico City', 'Doha', 'Paris', 'Tokyo', 'Cape Town'];
+  const INBOX_T = [
+    { s: 'Do you ship to Canada?', b: 'Hi! I loved the reviews of {c}. Do you ship to Toronto, and how long does it take?', kind: 'q' },
+    { s: 'Is {c} good for summer?', b: 'Thinking about a blind buy of {c}. Will it work in hot weather or is it more of a winter scent?', kind: 'q' },
+    { s: 'My bottle arrived leaking', b: 'My {c} arrived today but the cap was loose and some leaked into the box. Can you help?', kind: 'issue' },
+    { s: 'Collaboration request', b: 'Hey! I run a fragrance channel with 240k subscribers and would love to feature {h}. Would you sponsor a video?', kind: 'collab' },
+    { s: 'Wholesale enquiry', b: 'We own a concept store and would like to stock {h}. Could you send a price list?', kind: 'q' },
+    { s: 'Compliment!', b: 'Just wanted to say {c} is the best thing I have smelled this year. Bravo.', kind: 'q' },
+  ];
+  const SITE_DEFAULT = () => ({ domain: '', template: 'luxe', headline: '', tagline: '', story: '', announce: '', featured: null, launched: 0, seo: 0, freeShip: false, ads: [], posts: [], codes: [], orders: [], days: [], today: { v: 0, o: 0, r: 0 }, subs: 0, inbox: [], seq: 1001, reviews: {} });
+  const W = () => (S.maison && S.maison.site) || null;
+  const slug = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
+  function siteTheme() {
+    const m = M(), w = W(), dark = lum(m.lbg) < lum(m.lfg) ? m.lbg : m.lfg, light = dark === m.lbg ? m.lfg : m.lbg;
+    if (w.template === 'luxe') return { bg: m.lbg, fg: m.lfg, accent: m.lfg, card: 'color-mix(in srgb, ' + m.lfg + ' 6%, ' + m.lbg + ')', font: 'serif' };
+    if (w.template === 'atelier') return { bg: '#f6f1e9', fg: '#1d1712', accent: lum(dark) < 0.5 ? dark : '#1d1712', card: '#efe7da', font: 'serif' };
+    return { bg: '#ffffff', fg: '#111111', accent: lum(dark) < 0.6 ? dark : '#111111', card: '#f3f3f3', font: 'sans' };
+  }
+  const liveCreations = () => M().creations.filter((c) => ITEM_BY_ID[c.id]);
+  const avgStars = (c) => { const r = c.reviews.concat((W() && W().reviews[c.id]) || []); return r.length ? r.reduce((a, x) => a + x.stars, 0) / r.length : 0; };
+  const webActiveMult = (list) => list.filter((a) => a.until >= S.day).reduce((x, a) => x * a.mult, 1);
+  function webVisitors() {
+    const m = M(), w = W(); if (!w) return 0;
+    const posts = Math.min(2, webActiveMult(w.posts.map((p) => ({ until: p.day + 5, mult: 1.15 }))));
+    return (40 + m.rep * 6 + w.subs * 0.03 + liveCreations().length * 15) * (1 + 0.35 * w.seo) * webActiveMult(w.ads) * posts;
+  }
+  function webConversion() {
+    const w = W(), cs = liveCreations().filter((c) => c.stock > 0); if (!cs.length) return 0;
+    const h = cs.reduce((a, c) => a + c.harmony, 0) / cs.length;
+    const price = cs.reduce((a, c) => a + Math.min(1.6, fairPrice(c) / Math.max(1, c.price)), 0) / cs.length;
+    const code = w.codes.filter((x) => x.active).reduce((a, x) => Math.max(a, x.pct), 0);
+    return 0.022 * Math.pow(h / 70, 1.5) * Math.pow(price, 1.5) * (w.freeShip ? 1.25 : 1) * (1 + code / 80);
+  }
+  function newOrder(items, o = {}) {
+    const w = W(); const sub = items.reduce((a, x) => a + x.q * x.price, 0);
+    const code = o.code || null, disc = code ? Math.round(sub * code.pct / 100) : 0;
+    const ship = o.ship != null ? o.ship : 0;
+    const ord = { n: w.seq++, day: S.day, who: o.who || pick(FIRST) + ' ' + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + '.', city: o.city || pick(CITIES_W), items, sub, disc, ship, total: sub - disc + ship, code: code ? code.code : '', test: !!o.test };
+    w.orders.unshift(ord); w.orders = w.orders.slice(0, 40);
+    return ord;
+  }
+  // Online orders for a fraction of a day: visitors arrive, some buy from what's in stock.
+  function webTick(frac) {
+    const w = W(); if (!w) return { units: 0, revenue: 0 };
+    const v = webVisitors() * frac * (0.8 + Math.random() * 0.4);
+    w.today.v += v;
+    let orders = Math.floor(v * webConversion() + Math.random()), units = 0, revenue = 0;
+    const cs = liveCreations();
+    while (orders-- > 0) {
+      const pool = cs.filter((c) => c.stock > 0); if (!pool.length) break;
+      const wts = pool.map((c) => Math.max(0.1, demand(c))), tot = wts.reduce((a, b) => a + b, 0);
+      let x = Math.random() * tot, c = pool[0]; for (let i = 0; i < pool.length; i++) { x -= wts[i]; if (x <= 0) { c = pool[i]; break; } }
+      const q = Math.min(c.stock, Math.random() < 0.2 ? 2 : 1);
+      const active = w.codes.filter((k) => k.active);
+      const code = active.length && Math.random() < 0.35 ? pick(active) : null; if (code) code.uses++;
+      const ord = newOrder([{ id: c.id, name: c.name, q, price: c.price, size: '100 ml' }], { code });
+      const cost = w.freeShip ? 6 : 0;
+      c.stock -= q; c.sold += q; c.revenue += ord.total; units += q; revenue += ord.total - cost;
+      w.today.o++; w.today.r += ord.total - cost;
+      if (Math.random() < 0.08) {
+        const st = Math.max(1, Math.min(5, Math.round((c.harmony - 20) / 15 + (Math.random() - 0.4))));
+        (w.reviews[c.id] = w.reviews[c.id] || []).unshift({ who: ord.who, stars: st, text: pick(REVIEW[st]).replace('{acc}', (c.accords[0] || 'blend').toLowerCase()).replace('{fam}', FAMILIES[c.family].label.toLowerCase()).replace('{note}', Maison.NOTE[c.notes.heart[0] || c.notes.top[0] || c.notes.base[0]].name.toLowerCase()), verified: true });
+        w.reviews[c.id] = w.reviews[c.id].slice(0, 12);
+      }
+      if (Math.random() < 0.3) w.subs++;
+    }
+    if (units) { const m = M(); S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue; }
+    return { units, revenue };
+  }
+  function webNewDay() {
+    const w = W(); if (!w) return;
+    w.days.push({ day: S.day - 1, v: Math.round(w.today.v), o: w.today.o, r: Math.round(w.today.r) }); w.days = w.days.slice(-14);
+    w.today = { v: 0, o: 0, r: 0 };
+    S.cash -= HOSTING;
+    const r = rng(S.seed + ':inbox:' + S.day), cs = liveCreations();
+    const n = r() < 0.6 ? 1 : r() < 0.85 ? 2 : 0;
+    for (let i = 0; i < n && cs.length; i++) {
+      const t = pick(INBOX_T, r), c = pick(cs, r);
+      w.inbox.unshift({ id: S.day + '-' + i, day: S.day, from: pick(FIRST, r) + ' · ' + pick(CITIES_W, r), subject: t.s.replace('{c}', c.name).replace('{h}', M().name), body: t.b.replace('{c}', c.name).replace('{h}', M().name), kind: t.kind, done: false });
+    }
+    w.inbox = w.inbox.slice(0, 20);
+  }
+
+  // Browser state: history stack for back/forward, the bag and the checkout form.
+  const site = { hist: [{ p: 'home' }], hi: 0, bag: [], code: null, codeMsg: '', q: '', fam: '', sort: 'featured', shot: 'bottle', size: '100', qty: 1, err: {}, form: {}, msg: '', lastOrder: null, scrollTop: 0, mode: 'visit', newsletter: '' };
+  const cur = () => site.hist[site.hi];
+  function go(p, extra = {}) { site.hist = site.hist.slice(0, site.hi + 1); site.hist.push(Object.assign({ p }, extra)); site.hi = site.hist.length - 1; site.shot = 'bottle'; site.qty = 1; site.err = {}; site.scrollTop = 0; site.jump = true; site.flash = ''; site.msg = ''; site.newsMsg = ''; SFX.play('click'); renderAtelier(); }
+  function sitePath(pg) {
+    const c = pg.id && M().creations.find((x) => x.id === pg.id), post = pg.post != null && W().posts[pg.post];
+    return { home: '/', shop: '/shop' + (site.fam ? '?family=' + site.fam : ''), product: '/products/' + (c ? slug(c.name) : ''), journal: '/journal', post: '/journal/' + (post ? slug(post.title) : ''), story: '/our-story', contact: '/contact', cart: '/cart', checkout: '/checkout', done: '/checkout/thank-you', search: '/search?q=' + encodeURIComponent(site.q) }[pg.p] || '/';
+  }
+  const bagCount = () => site.bag.reduce((a, x) => a + x.q, 0);
+  const sizePrice = (c, size) => (size === '50' ? Math.round(c.price * 0.68) : c.price);
+  const img = (c, mode = 'bottle', cls = '') => `<img class="w-img ${cls}" data-snap="${c.id}" data-mode="${mode}" alt="${esc(c.name)} ${mode === 'box' ? 'in its box' : 'bottle'}">`;
+  function stars5(v) { const n = Math.round(v); return `<span class="w-stars" aria-label="${v.toFixed(1)} of 5">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`; }
+  function productCard(c) {
+    const out = c.stock <= 0;
+    return `<article class="w-card"><button class="w-card-img" data-action="w-go" data-p="product" data-id="${c.id}">${img(c)}</button>
+      <div class="w-card-body"><p class="w-kicker">${esc(FAMILIES[c.family].label)} · ${esc(Maison.CONC[c.conc].label)}</p><h3><button data-action="w-go" data-p="product" data-id="${c.id}">${esc(c.name)}</button></h3>
+      <p class="w-price">${money(c.price)} ${avgStars(c) ? stars5(avgStars(c)) : ''}</p>
+      ${out ? '<p class="w-muted">Sold out</p>' : `<button class="w-btn w-btn-line" data-action="w-add" data-id="${c.id}">Add to bag</button>`}</div></article>`;
+  }
+
+  function sitePage() {
+    const m = M(), w = W(), pg = cur(), cs = liveCreations();
+    const feat = cs.find((c) => c.id === w.featured) || cs[0];
+    const head = w.headline || (feat ? feat.name : m.name), tag = w.tagline || `Fragrances composed in ${m.city}.`;
+    if (pg.p === 'home') return `
+      <section class="w-hero"><div class="w-hero-copy"><p class="w-kicker">${feat ? 'New · ' + esc(Maison.CONC[feat.conc].label) : esc(m.city)}</p><h1>${esc(head)}</h1><p class="w-lede">${esc(tag)}</p>
+        <div class="w-row">${feat ? `<button class="w-btn" data-action="w-go" data-p="product" data-id="${feat.id}">Discover ${esc(feat.name)}</button>` : ''}<button class="w-btn w-btn-line" data-action="w-go" data-p="shop">Shop all</button></div></div>
+        ${feat ? `<div class="w-hero-art">${img(feat, 'box', 'w-hero-box')}${img(feat, 'bottle', 'w-hero-bottle')}</div>` : ''}</section>
+      <section class="w-sec"><div class="w-sec-head"><h2>The collection</h2><button class="w-link" data-action="w-go" data-p="shop">View all</button></div><div class="w-grid">${cs.slice(0, 4).map(productCard).join('') || '<p class="w-muted">New fragrances coming soon.</p>'}</div></section>
+      <section class="w-band"><div><p class="w-kicker">Our story</p><h2>${esc(m.name)}</h2><p>${esc((w.story || `${m.name} was founded in ${m.city} on day ${m.day} by a collector who knew what was missing from their shelf.`).slice(0, 260))}</p><button class="w-link" data-action="w-go" data-p="story">Read more</button></div></section>
+      ${w.posts.length ? `<section class="w-sec"><div class="w-sec-head"><h2>From the journal</h2><button class="w-link" data-action="w-go" data-p="journal">All stories</button></div><div class="w-posts">${w.posts.slice(-3).reverse().map((p, i) => postCard(p, w.posts.indexOf(p))).join('')}</div></section>` : ''}
+      ${newsletter()}`;
+    if (pg.p === 'shop' || pg.p === 'search') {
+      let list = cs.slice();
+      if (pg.p === 'search') { const q = site.q.toLowerCase(); list = list.filter((c) => (c.name + ' ' + FAMILIES[c.family].label + ' ' + c.notes.top.concat(c.notes.heart, c.notes.base).map((n) => Maison.NOTE[n].name).join(' ')).toLowerCase().includes(q)); }
+      if (site.fam) list = list.filter((c) => c.family === site.fam);
+      if (site.sort === 'low') list.sort((a, b) => a.price - b.price); else if (site.sort === 'high') list.sort((a, b) => b.price - a.price); else if (site.sort === 'rated') list.sort((a, b) => avgStars(b) - avgStars(a)); else if (site.sort === 'new') list.sort((a, b) => b.launched - a.launched);
+      const fams = [...new Set(cs.map((c) => c.family))];
+      return `<section class="w-sec"><h1 class="w-title">${pg.p === 'search' ? `Results for “${esc(site.q)}”` : 'Shop all fragrances'}</h1>
+        <div class="w-filters"><div class="w-chips"><button class="${site.fam ? '' : 'on'}" data-action="w-fam" data-f="">All</button>${fams.map((f) => `<button class="${site.fam === f ? 'on' : ''}" data-action="w-fam" data-f="${f}">${FAMILIES[f].label}</button>`).join('')}</div>
+        <label class="w-select">Sort <select id="w-sort">${[['featured', 'Featured'], ['new', 'Newest'], ['low', 'Price: low to high'], ['high', 'Price: high to low'], ['rated', 'Top rated']].map(([k, l]) => `<option value="${k}" ${site.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+        <p class="w-muted">${list.length} ${list.length === 1 ? 'fragrance' : 'fragrances'}</p><div class="w-grid">${list.map(productCard).join('') || '<p class="w-muted">Nothing matches. Try another note or family.</p>'}</div></section>`;
+    }
+    if (pg.p === 'product') {
+      const c = cs.find((x) => x.id === pg.id); if (!c) return '<section class="w-sec"><h1 class="w-title">Not found</h1><p class="w-muted">This fragrance is no longer available.</p></section>';
+      const revs = c.reviews.map((r) => Object.assign({ critic: true }, r)).concat(w.reviews[c.id] || []), avg = avgStars(c), n = Maison.NOTE;
+      const p50 = sizePrice(c, '50'), lng = c.longevity || Maison.longevity({ basePot: c.notes.base.reduce((a, id) => a + n[id].pot, 0) }, c.conc);
+      return `<section class="w-sec w-product">
+        <div class="w-gallery"><div class="w-main-img">${img(c, site.shot)}</div><div class="w-thumbs">${['bottle', 'box'].map((mo) => `<button class="${site.shot === mo ? 'on' : ''}" data-action="w-shot" data-m="${mo}">${img(c, mo)}</button>`).join('')}</div></div>
+        <div class="w-buy"><p class="w-kicker">${esc(m.name)} · ${esc(Maison.CONC[c.conc].label)}</p><h1>${esc(c.name)}</h1>
+          <p class="w-rating">${avg ? stars5(avg) + ` <button class="w-link" data-action="w-jump" data-t="w-reviews">${revs.length} ${revs.length === 1 ? 'review' : 'reviews'}</button>` : 'No reviews yet'}</p>
+          <p class="w-big-price">${money(sizePrice(c, site.size))}</p>
+          <div class="w-opts"><span class="w-label">Size</span>${[['50', '50 ml', p50], ['100', '100 ml', c.price]].map(([k, l, pr]) => `<button class="${site.size === k ? 'on' : ''}" data-action="w-size" data-s="${k}">${l}<small>${money(pr)}</small></button>`).join('')}</div>
+          <div class="w-row"><div class="w-qty"><button data-action="w-qty" data-d="-1" aria-label="Fewer">−</button><span>${site.qty}</span><button data-action="w-qty" data-d="1" aria-label="More">+</button></div>
+            ${c.stock > 0 ? `<button class="w-btn w-grow" data-action="w-add" data-id="${c.id}" data-q="${site.qty}">Add to bag · ${money(sizePrice(c, site.size) * site.qty)}</button>` : `<button class="w-btn w-grow" data-action="w-notify">Notify me when it’s back</button>`}</div>
+          <p class="w-stock">${c.stock <= 0 ? 'Sold out' : c.stock < 50 ? `Only ${c.stock} left` : 'In stock · ships in 1–2 days'}</p>
+          <details open><summary>Notes</summary><dl class="w-pyramid"><div><dt>Top</dt><dd>${c.notes.top.map((x) => n[x].name).join(', ') || '—'}</dd></div><div><dt>Heart</dt><dd>${c.notes.heart.map((x) => n[x].name).join(', ') || '—'}</dd></div><div><dt>Base</dt><dd>${c.notes.base.map((x) => n[x].name).join(', ') || '—'}</dd></div></dl></details>
+          <details><summary>The perfumer’s note</summary><p>${c.accords.length ? `Built on ${c.accords.join(', ').toLowerCase()}. ` : ''}A ${FAMILIES[c.family].label.toLowerCase()} fragrance that lasts around ${lng} hours on skin.</p></details>
+          <details><summary>Shipping &amp; returns</summary><p>${w.freeShip ? 'Free shipping on every order.' : 'Free shipping over $150, otherwise $12.'} Returns accepted within 30 days on unopened bottles.</p></details>
+        </div></section>
+        <section class="w-sec" id="w-reviews"><div class="w-sec-head"><h2>Reviews</h2>${avg ? `<p>${stars5(avg)} ${avg.toFixed(1)} out of 5</p>` : ''}</div>
+          <ul class="w-reviews">${revs.map((r) => `<li><p>${stars5(r.stars)} <b>${esc(r.who)}</b> <span class="w-muted">${r.critic ? 'Critic' : 'Verified buyer'}</span></p><p>${esc(r.text)}</p></li>`).join('') || '<li class="w-muted">Be the first to review it.</li>'}</ul></section>
+        ${cs.length > 1 ? `<section class="w-sec"><h2>You may also like</h2><div class="w-grid">${cs.filter((x) => x.id !== c.id).slice(0, 4).map(productCard).join('')}</div></section>` : ''}`;
+    }
+    if (pg.p === 'cart') {
+      const t = bagTotals();
+      return `<section class="w-sec w-cart"><h1 class="w-title">Your bag</h1>${site.bag.length ? `<div class="w-cart-grid"><ul class="w-lines">${site.bag.map((x, i) => { const c = M().creations.find((k) => k.id === x.id); return `<li>${c ? img(c, 'bottle', 'w-line-img') : ''}<div><b>${esc(x.name)}</b><p class="w-muted">${x.size} ml · ${money(x.price)}</p><div class="w-qty"><button data-action="w-line" data-i="${i}" data-d="-1" aria-label="Fewer">−</button><span>${x.q}</span><button data-action="w-line" data-i="${i}" data-d="1" aria-label="More">+</button></div></div><div class="w-line-end"><b>${money(x.q * x.price)}</b><button class="w-link" data-action="w-remove" data-i="${i}">Remove</button></div></li>`; }).join('')}</ul>
+        <aside class="w-summary"><form data-form="w-code" class="w-code"><label class="w-label" for="w-code">Discount code</label><div class="w-row"><input id="w-code" autocomplete="off" value="${esc(site.code ? site.code.code : '')}" placeholder="Enter code"><button class="w-btn w-btn-line">Apply</button></div>${site.codeMsg ? `<p class="w-small ${site.code ? '' : 'w-bad'}">${esc(site.codeMsg)}</p>` : ''}</form>
+          <dl class="w-totals"><div><dt>Subtotal</dt><dd>${money(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount (${esc(site.code.code)})</dt><dd>−${money(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? money(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${money(t.total)}</dd></div></dl>
+          <button class="w-btn w-wide" data-action="w-go" data-p="checkout">Checkout</button></aside></div>` : '<p class="w-muted">Your bag is empty.</p><button class="w-btn" data-action="w-go" data-p="shop">Continue shopping</button>'}</section>`;
+    }
+    if (pg.p === 'checkout') {
+      if (!site.bag.length) return '<section class="w-sec"><h1 class="w-title">Checkout</h1><p class="w-muted">Your bag is empty.</p></section>';
+      const t = bagTotals(), f = site.form, e = site.err;
+      const fld = (id, label, attrs = '') => `<label class="w-field ${e[id] ? 'err' : ''}"><span>${label}</span><input id="w-${id}" value="${esc(f[id] || '')}" ${attrs}>${e[id] ? `<small>${esc(e[id])}</small>` : ''}</label>`;
+      return `<section class="w-sec w-checkout"><h1 class="w-title">Checkout</h1><div class="w-cart-grid"><form data-form="w-checkout" class="w-form" novalidate>
+        <p class="w-test">Test mode: no card is charged and nothing ships. The order appears in your dashboard marked TEST. Use card 4242 4242 4242 4242.</p>
+        <h3>Contact</h3>${fld('name', 'Full name', 'autocomplete="name"')}${fld('email', 'Email', 'type="email" autocomplete="email"')}
+        <h3>Shipping address</h3>${fld('address', 'Address', 'autocomplete="street-address"')}<div class="w-two">${fld('city', 'City', 'autocomplete="address-level2"')}${fld('zip', 'Postcode', 'autocomplete="postal-code"')}</div>
+        <h3>Payment</h3>${fld('card', 'Card number', 'inputmode="numeric" autocomplete="cc-number" placeholder="1234 1234 1234 1234"')}<div class="w-two">${fld('exp', 'Expiry (MM/YY)', 'inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY"')}${fld('cvc', 'CVC', 'inputmode="numeric" autocomplete="cc-csc" placeholder="123"')}</div>
+        <button class="w-btn w-wide">Place order · ${money(t.total)}</button></form>
+        <aside class="w-summary"><h3>Order summary</h3><ul class="w-mini">${site.bag.map((x) => `<li><span>${x.q} × ${esc(x.name)} <small>${x.size} ml</small></span><b>${money(x.q * x.price)}</b></li>`).join('')}</ul><dl class="w-totals"><div><dt>Subtotal</dt><dd>${money(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount</dt><dd>−${money(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? money(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${money(t.total)}</dd></div></dl></aside></div></section>`;
+    }
+    if (pg.p === 'done') { const o = site.lastOrder; return `<section class="w-sec w-done"><p class="w-kicker">Order confirmed</p><h1 class="w-title">Thank you${o ? ', ' + esc(o.who.split(' ')[0]) : ''}</h1><p>Your order <b>#${o ? o.n : ''}</b> is confirmed. A receipt is on its way to ${esc(site.form.email || 'your inbox')}.</p><p class="w-test">This was a test order. It is listed in your dashboard and no stock was used.</p><button class="w-btn" data-action="w-go" data-p="shop">Keep shopping</button></section>`; }
+    if (pg.p === 'journal') return `<section class="w-sec"><h1 class="w-title">Journal</h1>${w.posts.length ? `<div class="w-posts">${w.posts.slice().reverse().map((p) => postCard(p, w.posts.indexOf(p))).join('')}</div>` : '<p class="w-muted">No stories yet. Write the first one in your dashboard.</p>'}</section>`;
+    if (pg.p === 'post') { const p = w.posts[pg.post]; return p ? `<article class="w-sec w-article"><p class="w-kicker">Journal · Day ${p.day}</p><h1 class="w-title">${esc(p.title)}</h1>${p.body.split(/\n+/).map((t) => `<p>${esc(t)}</p>`).join('')}<button class="w-link" data-action="w-go" data-p="journal">← All stories</button></article>` : ''; }
+    if (pg.p === 'story') return `<article class="w-sec w-article"><p class="w-kicker">Since day ${m.day} · ${esc(m.city)}</p><h1 class="w-title">Our story</h1>${(w.story || `${m.name} was founded in ${m.city} by a collector who had smelled everything and still found something missing.\nEvery fragrance is composed in our own lab, bottled in glass we design ourselves and boxed by hand.`).split(/\n+/).map((t) => `<p>${esc(t)}</p>`).join('')}
+      <dl class="w-facts"><div><dt>Fragrances</dt><dd>${cs.length}</dd></div><div><dt>Bottles sold</dt><dd>${m.stats.sold.toLocaleString('en-US')}</dd></div><div><dt>Boutiques</dt><dd>${m.shops}</dd></div></dl></article>`;
+    if (pg.p === 'contact') return `<section class="w-sec w-article"><h1 class="w-title">Contact us</h1><p>Questions about an order, a fragrance or a collaboration? We reply within a day.</p>${site.msg ? `<p class="w-ok">${esc(site.msg)}</p>` : ''}
+      <form data-form="w-contact" class="w-form" novalidate><label class="w-field ${site.err.cname ? 'err' : ''}"><span>Name</span><input id="w-cname">${site.err.cname ? `<small>${esc(site.err.cname)}</small>` : ''}</label><label class="w-field ${site.err.cmail ? 'err' : ''}"><span>Email</span><input id="w-cmail" type="email">${site.err.cmail ? `<small>${esc(site.err.cmail)}</small>` : ''}</label><label class="w-field ${site.err.cmsg ? 'err' : ''}"><span>Message</span><textarea id="w-cmsg" rows="4"></textarea>${site.err.cmsg ? `<small>${esc(site.err.cmsg)}</small>` : ''}</label><button class="w-btn">Send message</button></form></section>`;
+    return '';
+  }
+  function postCard(p, i) { return `<article class="w-post"><p class="w-kicker">Day ${p.day}</p><h3><button data-action="w-go" data-p="post" data-post="${i}">${esc(p.title)}</button></h3><p class="w-muted">${esc(p.body.slice(0, 120))}${p.body.length > 120 ? '…' : ''}</p></article>`; }
+  function newsletter() { return `<section class="w-news"><h2>Join the list</h2><p>New launches, journal stories and private sales, first.</p><form data-form="w-news" class="w-row"><input id="w-news" type="email" placeholder="Your email" aria-label="Email" value="${esc(site.newsletter)}"><button class="w-btn">Subscribe</button></form>${site.newsMsg ? `<p class="w-small">${esc(site.newsMsg)}</p>` : ''}</section>`; }
+  function bagTotals() {
+    const sub = site.bag.reduce((a, x) => a + x.q * x.price, 0), disc = site.code ? Math.round(sub * site.code.pct / 100) : 0;
+    const ship = W().freeShip || sub - disc >= 150 || !sub ? 0 : 12;
+    return { sub, disc, ship, total: sub - disc + ship };
+  }
+
+  function renderWebsite() {
+    const w = W(), m = M();
+    if (!w) {
+      const ok = liveCreations().length > 0, dom = (site.domain != null ? site.domain : slug(m.name).replace(/-/g, '')) || 'mymaison';
+      return `<article class="panel launch-site"><p class="eyebrow">Your website</p><h2>Take ${esc(m.name)} online</h2>
+        <p class="muted">A real storefront for your house: a home page, a shop, product pages with your bottles and boxes, a bag and checkout, a journal and a contact page. Online customers buy from the same stock as your boutiques, around the clock.</p>
+        <label class="field"><span>Domain</span><div class="domain"><span>www.</span><input id="ws-domain" maxlength="24" value="${esc(dom)}"><span>.com</span></div></label>
+        <label class="field"><span>Look</span><select id="ws-template">${opt(TEMPLATES, site.template || 'luxe')}</select></label>
+        <button class="btn btn-primary btn-big" data-action="ws-launch" ${ok && S.cash >= SITE_COST ? '' : 'disabled'}>Launch the website · ${money(SITE_COST)}</button>
+        <p class="hint">${ok ? (S.cash >= SITE_COST ? `Hosting costs ${money(HOSTING)} a day.` : `You need ${money(SITE_COST - S.cash)} more.`) : 'Launch your first fragrance before opening a shop.'}</p></article>`;
+    }
+    const sw = `<div class="subnav site-switch"><button class="${site.mode === 'visit' ? 'on' : ''}" data-action="ws-mode" data-m="visit">Visit your site</button><button class="${site.mode === 'admin' ? 'on' : ''}" data-action="ws-mode" data-m="admin">Dashboard${w.inbox.some((x) => !x.done) ? ` <span class="pill">${w.inbox.filter((x) => !x.done).length}</span>` : ''}</button></div>`;
+    if (site.mode === 'admin') return sw + renderSiteAdmin();
+    const th = siteTheme(), pg = cur(), n = bagCount();
+    const nav = [['home', 'Home'], ['shop', 'Shop'], ['journal', 'Journal'], ['story', 'Our story'], ['contact', 'Contact']];
+    const announce = w.announce || (w.freeShip ? 'Free shipping on every order' : 'Free shipping on orders over $150');
+    return sw + `<div class="browser">
+      <div class="b-chrome"><span class="b-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <button class="b-nav" data-action="w-back" ${site.hi > 0 ? '' : 'disabled'} aria-label="Back">‹</button><button class="b-nav" data-action="w-fwd" ${site.hi < site.hist.length - 1 ? '' : 'disabled'} aria-label="Forward">›</button><button class="b-nav" data-action="w-reload" aria-label="Reload">↻</button>
+        <div class="b-url"><span class="b-lock" aria-hidden="true">🔒</span><span>https://www.${esc(w.domain)}.com</span><span class="b-path">${esc(sitePath(pg))}</span></div></div>
+      <div class="site-view" id="site-view" style="--s-bg:${th.bg};--s-fg:${th.fg};--s-accent:${th.accent};--s-card:${th.card}" data-font="${th.font}" data-tpl="${w.template}">
+        <p class="w-announce">${esc(announce)}</p>
+        <header class="w-header"><button class="w-logo" data-action="w-go" data-p="home">${esc(m.name.toUpperCase())}</button>
+          <nav class="w-nav">${nav.map(([k, l]) => `<button class="${pg.p === k ? 'on' : ''}" data-action="w-go" data-p="${k}">${l}</button>`).join('')}</nav>
+          <form data-form="w-search" class="w-search" role="search"><input id="w-q" type="search" placeholder="Search" aria-label="Search the shop" value="${esc(site.q)}"></form>
+          <button class="w-bag" data-action="w-go" data-p="cart" aria-label="Bag, ${n} items">Bag <span>${n}</span></button></header>
+        <main class="w-main">${site.flash ? `<p class="w-flash" role="status">${esc(site.flash)} <button class="w-link" data-action="w-go" data-p="cart">View bag</button></p>` : ''}${sitePage()}</main>
+        <footer class="w-footer"><div><p class="w-logo-f">${esc(m.name.toUpperCase())}</p><p class="w-muted">${esc(m.city)} · since day ${m.day}</p></div>
+          <div><p class="w-label">Shop</p><button class="w-link" data-action="w-go" data-p="shop">All fragrances</button><button class="w-link" data-action="w-go" data-p="journal">Journal</button></div>
+          <div><p class="w-label">Help</p><button class="w-link" data-action="w-go" data-p="contact">Contact</button><button class="w-link" data-action="w-go" data-p="story">Our story</button></div>
+          <p class="w-muted w-copy">© ${m.name} · www.${esc(w.domain)}.com</p></footer>
+      </div></div>`;
+  }
+
+  function renderSiteAdmin() {
+    const w = W(), m = M(), cs = liveCreations();
+    const days = w.days.concat([{ day: S.day, v: Math.round(w.today.v), o: w.today.o, r: Math.round(w.today.r), live: true }]).slice(-14);
+    const max = Math.max(1, ...days.map((d) => d.r));
+    const tot = w.days.reduce((a, d) => a + d.r, 0) + w.today.r, ords = w.days.reduce((a, d) => a + d.o, 0) + w.today.o, vis = w.days.reduce((a, d) => a + d.v, 0) + w.today.v;
+    const ads = w.ads.filter((a) => a.until >= S.day);
+    return `<div class="site-admin">
+      <div class="kpis"><div><span class="muted">Visitors today</span><b>${Math.round(w.today.v).toLocaleString('en-US')}</b><small>~${Math.round(webVisitors()).toLocaleString('en-US')} a day</small></div><div><span class="muted">Orders today</span><b>${w.today.o}</b><small>${(webConversion() * 100).toFixed(1)}% conversion</small></div><div><span class="muted">Online revenue</span><b>${short(tot)}</b><small>${ords.toLocaleString('en-US')} orders · ${Math.round(vis).toLocaleString('en-US')} visits</small></div><div><span class="muted">Subscribers</span><b>${w.subs.toLocaleString('en-US')}</b><small>newsletter list</small></div></div>
+      <div class="admin-grid">
+        <article class="panel"><p class="eyebrow">Online revenue · last ${days.length} days</p>
+          <div class="rev-chart" role="img" aria-label="Online revenue per day">${days.map((d) => `<div class="rev-bar ${d.live ? 'live' : ''}" tabindex="0"><i style="height:${Math.max(2, (d.r / max) * 100)}%"></i><span class="rev-tip">Day ${d.day}${d.live ? ' (so far)' : ''}<br>${money(d.r)} · ${d.o} orders · ${d.v} visits</span><em>${d.day}</em></div>`).join('')}</div>
+          <p class="hint">Hover a bar for the day’s numbers. Orders come in every shift while you play.</p></article>
+        <article class="panel"><p class="eyebrow">Recent orders</p><div class="orders"><table><thead><tr><th>#</th><th>Customer</th><th>Items</th><th>Code</th><th>Total</th><th>Status</th></tr></thead><tbody>${w.orders.slice(0, 12).map((o) => `<tr class="${o.test ? 'test' : ''}"><td>${o.n}</td><td>${esc(o.who)}<small>${esc(o.city)}</small></td><td>${o.items.map((x) => `${x.q}× ${esc(x.name)}`).join(', ')}</td><td>${esc(o.code || '—')}</td><td>${money(o.total)}</td><td>${o.test ? 'TEST' : S.day - o.day >= 3 ? 'Delivered' : S.day - o.day >= 1 ? 'Shipped' : 'Processing'}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">No orders yet. Work a shift and they’ll start coming in.</td></tr>'}</tbody></table></div></article>
+        <article class="panel"><p class="eyebrow">Inbox</p><ul class="inbox">${w.inbox.map((x, i) => `<li class="${x.done ? 'done' : ''}"><p><b>${esc(x.subject)}</b> <small class="muted">${esc(x.from)} · day ${x.day}</small></p><p class="muted small">${esc(x.body)}</p>${x.done ? `<p class="small good">${esc(x.done)}</p>` : `<div class="row-actions">${x.kind === 'collab' ? `<button class="btn btn-small btn-primary" data-action="ws-mail" data-i="${i}" data-r="collab" ${S.cash < 2000 ? 'disabled' : ''}>Sponsor it · $2,000</button>` : ''}${x.kind === 'issue' ? `<button class="btn btn-small btn-primary" data-action="ws-mail" data-i="${i}" data-r="replace">Send a replacement · $${Math.round(cs[0] ? unitCost(cs[0]) : 40)}</button>` : ''}<button class="btn btn-small" data-action="ws-mail" data-i="${i}" data-r="reply">Reply</button><button class="btn btn-small btn-ghost" data-action="ws-mail" data-i="${i}" data-r="archive">Archive</button></div>`}</li>`).join('') || '<li class="muted">No messages. Customers write in as your site gets busier.</li>'}</ul></article>
+        <article class="panel"><p class="eyebrow">Discount codes</p>
+          <form data-form="ws-code" class="row-actions code-form"><input id="ws-code" maxlength="14" placeholder="CODE" aria-label="Code"><select id="ws-pct" aria-label="Discount">${[5, 10, 15, 20, 25, 30, 40, 50].map((p) => `<option value="${p}" ${p === 10 ? 'selected' : ''}>${p}% off</option>`).join('')}</select><button class="btn">Create</button></form>
+          <ul class="courses">${w.codes.map((k, i) => `<li><div><b class="mono">${esc(k.code)}</b><small>${k.pct}% off · used ${k.uses} times</small></div><div class="row-actions"><button class="btn btn-small" data-action="ws-code-toggle" data-i="${i}">${k.active ? 'Pause' : 'Resume'}</button><button class="btn btn-small btn-ghost" data-action="ws-code-del" data-i="${i}">Delete</button></div></li>`).join('') || '<li class="muted">Active codes lift conversion; about a third of orders use one.</li>'}</ul></article>
+        <article class="panel"><p class="eyebrow">Growth</p><ul class="courses">
+          <li><div><b>SEO · level ${w.seo}</b><small>+35% visitors per level</small></div>${w.seo >= 5 ? '<span class="owned-tag">Maxed</span>' : `<button class="btn" data-action="ws-seo" ${S.cash < SEO_COST[w.seo] ? 'disabled' : ''}>Improve · ${short(SEO_COST[w.seo])}</button>`}</li>
+          <li><div><b>Search ads</b><small>Visitors ×1.6 for 5 days${ads.length ? ' · running until day ' + Math.max(...ads.map((a) => a.until)) : ''}</small></div><button class="btn" data-action="ws-ads" ${S.cash < 6000 ? 'disabled' : ''}>Run · $6,000</button></li>
+          <li><div><b>Free shipping</b><small>+25% conversion; costs you $6 an order</small></div><button class="btn ${w.freeShip ? 'on' : ''}" data-action="ws-ship">${w.freeShip ? 'On' : 'Off'}</button></li>
+        </ul><p class="hint">Hosting ${money(HOSTING)} a day.</p></article>
+        <article class="panel"><p class="eyebrow">Journal</p>
+          <form data-form="ws-post" class="studio-ctrls"><label class="field"><span>Title</span><input id="ws-ptitle" maxlength="80" value="${esc(site.ptitle || '')}"></label><label class="field"><span>Story</span><textarea id="ws-pbody" rows="5" maxlength="2000">${esc(site.pbody || '')}</textarea></label>
+          <div class="row-actions"><button class="btn btn-primary">Publish post</button>${aiSample ? `<button type="button" class="btn" data-action="ws-ai" data-k="post" ${site.aiBusy ? 'disabled' : ''}>${site.aiBusy === 'post' ? 'Writing…' : 'Write it with AI'}</button>` : ''}</div></form>
+          <p class="hint">${site.aiMsg ? esc(site.aiMsg) : 'Each post lifts visitors 15% for five days.'} ${w.posts.length} published.</p></article>
+        <article class="panel"><p class="eyebrow">Site settings</p><form data-form="ws-settings" class="studio-ctrls">
+          <label class="field"><span>Look</span><select id="ws-tpl">${opt(TEMPLATES, w.template)}</select></label>
+          <label class="field"><span>Homepage headline</span><input id="ws-head" maxlength="60" value="${esc(w.headline)}" placeholder="${esc((cs[0] && cs[0].name) || m.name)}"></label>
+          <label class="field"><span>Tagline</span><input id="ws-tag" maxlength="120" value="${esc(w.tagline)}" placeholder="Fragrances composed in ${esc(m.city)}."></label>
+          <label class="field"><span>Featured fragrance</span><select id="ws-feat">${cs.map((c) => `<option value="${c.id}" ${c.id === w.featured ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>
+          <label class="field"><span>Announcement bar</span><input id="ws-ann" maxlength="80" value="${esc(w.announce)}" placeholder="Free shipping on orders over $150"></label>
+          <label class="field"><span>Our story</span><textarea id="ws-story" rows="4" maxlength="1500">${esc(w.story)}</textarea></label>
+          <div class="row-actions"><button class="btn btn-primary">Save changes</button>${aiSample ? `<button type="button" class="btn" data-action="ws-ai" data-k="story" ${site.aiBusy ? 'disabled' : ''}>${site.aiBusy === 'story' ? 'Writing…' : 'Write the story with AI'}</button>` : ''}</div></form></article>
+      </div></div>`;
+  }
+
+  // Product photos are rendered one per frame after the page draws, then cached.
+  function fillSnaps() {
+    const el = $('#site-view') || $('.site-admin'); if (!el || typeof Maison === 'undefined') return;
+    const todo = $$('img[data-snap]:not([src])', el);
+    const step = () => { const im = todo.shift(); if (!im || !im.isConnected) return; const it = ITEM_BY_ID[im.dataset.snap]; if (it) { const url = Maison.Snap.shot(it, im.dataset.mode); if (url) im.src = url; } if (todo.length) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+  async function siteAi(kind) {
+    if (!aiSample || site.aiBusy) return;
+    const m = M(), w = W(), cs = liveCreations();
+    const facts = `House: ${m.name}, founded in ${m.city}. Fragrances: ${cs.map((c) => `${c.name} (${FAMILIES[c.family].label}; ${c.notes.top.concat(c.notes.heart, c.notes.base).map((n) => Maison.NOTE[n].name).join(', ')})`).join('; ')}.`;
+    const ask = kind === 'post'
+      ? `Write a short journal post for the website of a perfume house in a fragrance-collecting game. ${facts} Previous post titles: ${w.posts.map((p) => p.title).join(' | ') || 'none'}. Pick a fresh angle (a note, an ingredient's origin, how a fragrance was made, wearing tips). Reply with only JSON: {"title": string (max 70 chars), "body": string (2-4 short paragraphs separated by \\n\\n, max 900 chars)}.`
+      : `Write the "Our story" page for a perfume house in a fragrance-collecting game. ${facts} Warm, specific, under 600 characters, 2-3 short paragraphs separated by \\n\\n. Reply with only JSON: {"story": string}.`;
+    site.aiBusy = kind; site.aiMsg = ''; renderAtelier();
+    try {
+      const out = await aiSample.json(ask, { modelTier: 'quick', cache: false });
+      if (kind === 'post' && out && typeof out.title === 'string' && typeof out.body === 'string') { site.ptitle = out.title.slice(0, 80); site.pbody = out.body.slice(0, 2000); site.aiMsg = 'Draft ready. Edit it, then publish.'; }
+      else if (kind === 'story' && out && typeof out.story === 'string') { w.story = out.story.slice(0, 1500); save(); site.aiMsg = 'Story written and saved.'; }
+      else site.aiMsg = 'That didn’t come back as text. Try again.';
+    } catch (e) {
+      const code = e && e.code;
+      if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) aiSample = null;
+      site.aiMsg = AI_ERR[code] || (code === 'not_granted' ? 'Claude isn’t enabled for this page.' : 'Something went wrong. Try again.');
+    }
+    site.aiBusy = null; if (ui.tab === 'atelier') renderAtelier();
+  }
+  const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  function checkout() {
+    const f = site.form, e = {};
+    for (const k of ['name', 'email', 'address', 'city', 'zip', 'card', 'exp', 'cvc']) f[k] = (($('#w-' + k) || {}).value || '').trim();
+    if (!f.name) e.name = 'Enter your name';
+    if (!EMAIL.test(f.email)) e.email = 'Enter a valid email';
+    if (!f.address) e.address = 'Enter your address';
+    if (!f.city) e.city = 'Enter your city';
+    if (!f.zip) e.zip = 'Enter your postcode';
+    if (f.card.replace(/\s/g, '').length !== 16) e.card = 'Card number must be 16 digits';
+    const mm = /^(\d{2})\/(\d{2})$/.exec(f.exp); if (!mm || +mm[1] < 1 || +mm[1] > 12) e.exp = 'Use MM/YY';
+    if (!/^\d{3,4}$/.test(f.cvc)) e.cvc = '3 or 4 digits';
+    site.err = e;
+    if (Object.keys(e).length) { SFX.play('error'); renderAtelier(); return; }
+    const t = bagTotals();
+    const ord = newOrder(site.bag.map((x) => ({ id: x.id, name: x.name, q: x.q, price: x.price, size: x.size + ' ml' })), { who: f.name, city: f.city, code: site.code, ship: t.ship, test: true });
+    if (site.code) site.code.uses++;
+    site.lastOrder = ord; site.bag = []; site.code = null; site.codeMsg = '';
+    SFX.play('coins'); save(); go('done');
+  }
+
   /* ---------- routing ---------- */
   function setTab(tab, push = true) {
     if (!TABS.includes(tab)) tab = 'work';
@@ -1280,6 +1597,51 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
       save(); renderHeader();
     },
     pal: (el) => { ui.atelier.found.pal = Number(el.dataset.i); renderAtelier(); },
+    'w-go': (el) => go(el.dataset.p, el.dataset.id ? { id: el.dataset.id } : el.dataset.post != null ? { post: Number(el.dataset.post) } : {}),
+    'w-back': () => { if (site.hi > 0) { site.hi--; site.jump = true; site.scrollTop = 0; renderAtelier(); } },
+    'w-fwd': () => { if (site.hi < site.hist.length - 1) { site.hi++; site.jump = true; site.scrollTop = 0; renderAtelier(); } },
+    'w-reload': () => { const sv = $('#site-view'); if (sv) sv.style.opacity = '0.2'; setTimeout(() => { site.jump = true; site.scrollTop = 0; renderAtelier(); }, 220); },
+    'w-add': (el) => {
+      const c = M().creations.find((x) => x.id === el.dataset.id); if (!c) return;
+      const onProduct = cur().p === 'product', size = onProduct ? site.size : '100', q = Number(el.dataset.q) || 1;
+      const line = site.bag.find((x) => x.id === c.id && x.size === size);
+      if (line) line.q = Math.min(10, line.q + q); else site.bag.push({ id: c.id, name: c.name, size, price: sizePrice(c, size), q });
+      site.flash = `Added ${q} × ${c.name} (${size} ml) to your bag.`; SFX.play('clink'); renderAtelier();
+    },
+    'w-fam': (el) => { site.fam = el.dataset.f; if (cur().p !== 'shop' && cur().p !== 'search') go('shop'); else renderAtelier(); },
+    'w-shot': (el) => { site.shot = el.dataset.m; renderAtelier(); },
+    'w-size': (el) => { site.size = el.dataset.s; renderAtelier(); },
+    'w-qty': (el) => { site.qty = Math.max(1, Math.min(10, site.qty + Number(el.dataset.d))); renderAtelier(); },
+    'w-line': (el) => { const x = site.bag[Number(el.dataset.i)]; if (!x) return; x.q += Number(el.dataset.d); if (x.q <= 0) site.bag.splice(Number(el.dataset.i), 1); else x.q = Math.min(10, x.q); renderAtelier(); },
+    'w-remove': (el) => { site.bag.splice(Number(el.dataset.i), 1); renderAtelier(); },
+    'w-notify': () => { W().subs++; site.flash = 'We’ll email you the moment it’s back in stock.'; save(); renderAtelier(); },
+    'w-jump': (el) => { const sv = $('#site-view'), t = document.getElementById(el.dataset.t); if (sv && t) sv.scrollTo({ top: t.offsetTop - 12, behavior: 'smooth' }); },
+    'ws-mode': (el) => { site.mode = el.dataset.m; SFX.play('tab'); renderAtelier(); },
+    'ws-launch': () => {
+      const m = M(); if (m.site) return;
+      const dom = (($('#ws-domain') || {}).value || '').toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '');
+      if (dom.length < 3) { toast('<b>Pick a domain</b><span>At least 3 letters or numbers.</span>', 'bad'); return; }
+      if (S.cash < SITE_COST || !liveCreations().length) return;
+      S.cash -= SITE_COST; S.stats.spent += SITE_COST;
+      m.site = Object.assign(SITE_DEFAULT(), { domain: dom, template: ($('#ws-template') || {}).value || 'luxe', launched: S.day, featured: liveCreations()[0].id });
+      site.hist = [{ p: 'home' }]; site.hi = 0; site.mode = 'visit'; site.jump = true;
+      SFX.play('unlock'); toast(`<b>www.${esc(dom)}.com is live</b><span>Online orders start coming in as you play.</span>`, 'gold');
+      checkProgress(); save(); renderHeader(); renderAtelier();
+    },
+    'ws-mail': (el) => {
+      const w = W(), x = w.inbox[Number(el.dataset.i)]; if (!x || x.done) return; const r = el.dataset.r, m = M();
+      if (r === 'collab') { if (S.cash < 2000) return; S.cash -= 2000; w.ads.push({ until: S.day + 2, mult: 1.8 }); m.rep = Math.min(100, m.rep + 1); x.done = 'Sponsored. Traffic is up for 3 days.'; }
+      else if (r === 'replace') { const cost = Math.round(liveCreations()[0] ? unitCost(liveCreations()[0]) : 40); S.cash -= cost; m.rep = Math.min(100, m.rep + 1); x.done = 'Replacement sent. They left a glowing review.'; }
+      else if (r === 'reply') { m.rep = Math.min(100, m.rep + 0.3); x.done = 'Replied.'; }
+      else x.done = 'Archived.';
+      SFX.play('click'); save(); renderHeader(); renderAtelier();
+    },
+    'ws-code-toggle': (el) => { const k = W().codes[Number(el.dataset.i)]; if (k) { k.active = !k.active; save(); renderAtelier(); } },
+    'ws-code-del': (el) => { W().codes.splice(Number(el.dataset.i), 1); save(); renderAtelier(); },
+    'ws-seo': () => { const w = W(); if (w.seo >= 5 || S.cash < SEO_COST[w.seo]) return; S.cash -= SEO_COST[w.seo]; S.stats.spent += SEO_COST[w.seo]; w.seo++; SFX.play('unlock'); save(); renderHeader(); renderAtelier(); },
+    'ws-ads': () => { const w = W(); if (S.cash < 6000) return; S.cash -= 6000; S.stats.spent += 6000; w.ads.push({ until: S.day + 4, mult: 1.6 }); SFX.play('coins'); save(); renderHeader(); renderAtelier(); },
+    'ws-ship': () => { const w = W(); w.freeShip = !w.freeShip; SFX.play('click'); save(); renderAtelier(); },
+    'ws-ai': (el) => siteAi(el.dataset.k),
     'ai-design': () => aiDesign(false),
     'ai-surprise': () => aiDesign(true),
     'ai-stop': () => { if (aiCtl) aiCtl.abort(); },
@@ -1354,6 +1716,16 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     if (t.id === 'mf-name') { ui.atelier.found.name = t.value; const p = $('.fp-name'); if (p) p.textContent = (t.value || 'Your house').toUpperCase(); return; }
     if (t.id === 'mf-city') { ui.atelier.found.city = t.value; return; }
     if (!d) return;
+    if (t.id === 'w-card') { const v = t.value.replace(/\D/g, '').slice(0, 16); t.value = v.replace(/(.{4})(?=.)/g, '$1 '); return; }
+    if (t.id === 'w-exp') { const v = t.value.replace(/\D/g, '').slice(0, 4); t.value = v.length > 2 ? v.slice(0, 2) + '/' + v.slice(2) : v; return; }
+    if (t.id === 'w-cvc') { t.value = t.value.replace(/\D/g, '').slice(0, 4); return; }
+    if (t.id === 'w-sort') { site.sort = t.value; renderAtelier(); return; }
+    if (t.id === 'ws-domain') { site.domain = t.value; return; }
+    if (t.id === 'ws-template') { site.template = t.value; return; }
+    if (t.id === 'ws-ptitle') { site.ptitle = t.value; return; }
+    if (t.id === 'ws-pbody') { site.pbody = t.value; return; }
+    if (t.id === 'w-news') { site.newsletter = t.value; return; }
+    if (t.id && t.id.startsWith('w-')) { if (site.form) site.form[t.id.slice(2)] = t.value; return; }
     if (t.id === 'ai-prompt') { ui.atelier.aiText = t.value; return; }
     if (t.id === 'ml-name') { d.name = t.value; return; }
     if (t.id === 'ml-price') { d.price = Number(t.value) || 0; return; }
@@ -1363,6 +1735,38 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     if (t.type === 'color') showDraft(); else renderAtelier();
   });
   document.addEventListener('change', (e) => { if (e.target.id === 'ml-name' || e.target.id === 'ml-price') renderAtelier(); });
+
+  // Website and dashboard forms (Enter submits, like a real site).
+  const FORMS = {
+    'w-search': () => { site.q = ($('#w-q').value || '').trim(); if (site.q) go('search'); },
+    'w-news': () => { const v = ($('#w-news').value || '').trim(); if (!EMAIL.test(v)) { site.newsMsg = 'Please enter a valid email.'; renderAtelier(); return; } W().subs++; site.newsletter = ''; site.newsMsg = 'You’re on the list. Welcome.'; SFX.play('good'); save(); renderAtelier(); },
+    'w-code': () => { const v = ($('#w-code').value || '').trim().toUpperCase(); const k = W().codes.find((x) => x.active && x.code === v); site.code = k || null; site.codeMsg = k ? `${k.code}: ${k.pct}% off applied.` : v ? 'That code isn’t valid.' : ''; SFX.play(k ? 'good' : 'error'); renderAtelier(); },
+    'w-checkout': checkout,
+    'w-contact': () => {
+      const n = $('#w-cname').value.trim(), em = $('#w-cmail').value.trim(), msg = $('#w-cmsg').value.trim(), e = {};
+      if (!n) e.cname = 'Enter your name'; if (!EMAIL.test(em)) e.cmail = 'Enter a valid email'; if (msg.length < 5) e.cmsg = 'Write a short message';
+      site.err = e; if (Object.keys(e).length) { renderAtelier(); return; }
+      W().inbox.unshift({ id: 'me-' + Date.now(), day: S.day, from: n + ' · ' + em, subject: 'Website contact form', body: msg, kind: 'q', done: false });
+      site.msg = 'Thanks, your message was sent. It’s waiting in your dashboard inbox.'; SFX.play('good'); save(); renderAtelier();
+    },
+    'ws-code': () => {
+      const w = W(), v = ($('#ws-code').value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), pct = Number($('#ws-pct').value);
+      if (v.length < 3) { toast('<b>Code too short</b><span>Use 3 to 14 letters or numbers.</span>', 'bad'); return; }
+      if (w.codes.some((k) => k.code === v)) { toast('<b>Code exists</b><span>Pick another name.</span>', 'bad'); return; }
+      w.codes.push({ code: v, pct, active: true, uses: 0 }); SFX.play('good'); save(); renderAtelier();
+    },
+    'ws-post': () => {
+      const t = ($('#ws-ptitle').value || '').trim(), b = ($('#ws-pbody').value || '').trim();
+      if (!t || b.length < 20) { toast('<b>Almost there</b><span>A post needs a title and a few sentences.</span>', 'bad'); return; }
+      const w = W(); w.posts.push({ day: S.day, title: t.slice(0, 80), body: b.slice(0, 2000) }); M().rep = Math.min(100, M().rep + 0.5);
+      site.ptitle = ''; site.pbody = ''; site.aiMsg = ''; SFX.play('unlock'); toast('<b>Post published</b><span>Visitors up 15% for five days.</span>', 'good'); save(); renderAtelier();
+    },
+    'ws-settings': () => {
+      const w = W(); w.template = $('#ws-tpl').value; w.headline = $('#ws-head').value.trim(); w.tagline = $('#ws-tag').value.trim(); w.featured = $('#ws-feat').value || w.featured; w.announce = $('#ws-ann').value.trim(); w.story = $('#ws-story').value.trim();
+      SFX.play('good'); toast('<b>Site updated</b><span>Changes are live on your website.</span>', 'good'); save(); renderAtelier();
+    },
+  };
+  document.addEventListener('submit', (e) => { const f = e.target.closest && e.target.closest('form[data-form]'); if (!f || !FORMS[f.dataset.form]) return; e.preventDefault(); FORMS[f.dataset.form](); });
 
   document.addEventListener('keydown', (e) => {
     if (typeof Unbox !== 'undefined' && Unbox.busy) {
