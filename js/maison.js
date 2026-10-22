@@ -82,41 +82,119 @@ const Maison = (() => {
   function longevity(an, conc) { return Math.round((CONC[conc].hours + Math.min(4, an.basePot / 4)) * 10) / 10; }
 
   /* ---------- bottle designs ---------- */
+  const circle = (r, cy, n = 28) => Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2; return [Math.cos(a) * r, cy + Math.sin(a) * r]; });
+  const HEART = Array.from({ length: 36 }, (_, i) => { const t = (i / 36) * Math.PI * 2; return [0.017 * 16 * Math.pow(Math.sin(t), 3), 0.33 + 0.017 * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))]; });
+  const STAR = Array.from({ length: 10 }, (_, i) => { const a = Math.PI / 2 + (i / 10) * Math.PI * 2, r = i % 2 ? 0.14 : 0.32; return [Math.cos(a) * r, 0.31 + Math.sin(a) * r]; });
+  const ARCH = [[-0.24, 0], [0.24, 0]].concat(Array.from({ length: 13 }, (_, i) => { const a = (i / 12) * Math.PI; return [Math.cos(a) * 0.24, 0.44 + Math.sin(a) * 0.24]; }));
+  const VIOLIN = (() => { const r = [[0.21, 0], [0.235, 0.03], [0.238, 0.11], [0.205, 0.26], [0.18, 0.36], [0.19, 0.46], [0.225, 0.56], [0.236, 0.62], [0.21, 0.67], [0.13, 0.7], [0.075, 0.71]]; return r.concat(r.slice().reverse().map(([x, y]) => [-x, y])); })();
   const SHAPES = {
     block: { label: 'Classic block', cost: 4, body: { w: 0.5, h: 0.6, d: 0.26, r: 0.02 } },
     tall: { label: 'Tall column', cost: 4, body: { w: 0.34, h: 0.8, d: 0.22, r: 0.02 } },
-    round: { label: 'Apothecary', cost: 5, body: { body: 'lathe', w: 0.5, d: 0.5, h: 0.66, pts: [[0, 0], [0.225, 0], [0.246, 0.016], [0.252, 0.05], [0.252, 0.5], [0.24, 0.565], [0.2, 0.615], [0.13, 0.648], [0.085, 0.662], [0.078, 0.672], [0.078, 0.69], [0, 0.69]] } },
+    slim: { label: 'Slim pillar', cost: 4, body: { w: 0.28, h: 0.84, d: 0.2, r: 0.015 } },
+    cube: { label: 'Cube', cost: 5, body: { w: 0.48, h: 0.48, d: 0.48, r: 0.03 } },
+    round: { label: 'Apothecary', cost: 5, body: { body: 'lathe', w: 0.5, d: 0.5, h: 0.69, pts: [[0, 0], [0.225, 0], [0.246, 0.016], [0.252, 0.05], [0.252, 0.5], [0.24, 0.565], [0.2, 0.615], [0.13, 0.648], [0.085, 0.662], [0.078, 0.672], [0.078, 0.69], [0, 0.69]] } },
     flask: { label: 'Pebble flask', cost: 6, body: { body: 'pillow', w: 0.58, h: 0.6, d: 0.26, ex: 0.3, ey: 0.3 } },
+    hipflask: { label: 'Hip flask', cost: 5, body: { body: 'pillow', w: 0.5, h: 0.64, d: 0.15, ex: 0.22, ey: 0.28 } },
     orb: { label: 'Orb', cost: 7, body: { body: 'sphere', w: 0.58, h: 0.58, d: 0.5 } },
     gem: { label: 'Faceted gem', cost: 9, body: { body: 'cyl', seg: 8, w: 0.56, h: 0.6, d: 0.4 } },
+    hexagon: { label: 'Hexagon', cost: 6, body: { body: 'cyl', seg: 6, w: 0.54, h: 0.6, d: 0.54 } },
+    triangle: { label: 'Triangle prism', cost: 6, body: { body: 'cyl', seg: 3, w: 0.62, h: 0.6, d: 0.62 } },
+    pyramid: { label: 'Pyramid', cost: 8, body: { body: 'cyl', seg: 4, w: 0.18, wb: 0.66, h: 0.56, d: 0.18 } },
     tower: { label: 'Skyline tower', cost: 8, body: { body: 'profile', pts: [[-0.2, 0], [0.2, 0], [0.2, 0.62], [0.12, 0.74], [-0.12, 0.74], [-0.2, 0.62]], round: 0.02, w: 0.4, h: 0.74, d: 0.24 } },
+    ingot: { label: 'Gold ingot', cost: 6, body: { body: 'profile', pts: [[-0.3, 0], [0.3, 0], [0.22, 0.56], [-0.22, 0.56]], round: 0.03, w: 0.6, h: 0.56, d: 0.26 } },
+    arch: { label: 'Arch', cost: 6, body: { body: 'profile', pts: ARCH, round: 0.01, w: 0.48, h: 0.68, d: 0.22 } },
+    disc: { label: 'Disc', cost: 7, body: { body: 'profile', pts: circle(0.3, 0.3), round: 0.01, w: 0.6, h: 0.6, d: 0.15 } },
+    heart: { label: 'Heart', cost: 9, body: { body: 'profile', pts: HEART, round: 0.01, w: 0.56, h: 0.58, d: 0.22 } },
+    star: { label: 'Star', cost: 10, body: { body: 'profile', pts: STAR, round: 0.03, w: 0.62, h: 0.6, d: 0.2 } },
+    violin: { label: 'Violin', cost: 9, body: { body: 'profile', pts: VIOLIN, round: 0.025, w: 0.48, h: 0.71, d: 0.22 } },
+    bell: { label: 'Bell jar', cost: 7, body: { body: 'lathe', w: 0.56, d: 0.56, h: 0.64, pts: [[0, 0], [0.27, 0], [0.282, 0.04], [0.262, 0.2], [0.205, 0.42], [0.14, 0.55], [0.09, 0.6], [0.08, 0.64], [0, 0.64]] } },
+    decanter: { label: 'Decanter', cost: 8, body: { body: 'lathe', w: 0.64, d: 0.64, h: 0.66, pts: [[0, 0], [0.3, 0], [0.32, 0.03], [0.31, 0.18], [0.22, 0.32], [0.1, 0.42], [0.07, 0.62], [0.08, 0.66], [0, 0.66]] } },
+    teardrop: { label: 'Teardrop', cost: 7, body: { body: 'lathe', w: 0.54, d: 0.4, h: 0.62, pts: [[0, 0], [0.12, 0], [0.24, 0.08], [0.27, 0.22], [0.22, 0.4], [0.12, 0.56], [0.07, 0.62], [0, 0.62]] } },
+    amphora: { label: 'Amphora', cost: 8, body: { body: 'lathe', w: 0.54, d: 0.54, h: 0.64, pts: [[0, 0], [0.14, 0], [0.2, 0.05], [0.27, 0.25], [0.25, 0.42], [0.14, 0.55], [0.1, 0.6], [0.12, 0.64], [0, 0.64]] } },
+    trophy: { label: 'Trophy', cost: 9, body: { body: 'lathe', w: 0.6, d: 0.42, h: 0.62, pts: [[0, 0], [0.18, 0], [0.18, 0.04], [0.07, 0.08], [0.07, 0.16], [0.2, 0.2], [0.29, 0.36], [0.3, 0.56], [0.26, 0.62], [0, 0.62]] } },
+    torso: { label: 'Sculpted torso', cost: 12, body: { body: 'geo', torso: true, w: 0.5, h: 0.77, d: 0.28 } },
   };
   const GLASS = {
-    clear: { label: 'Clear glass, juice shows', cost: 0 },
-    tinted: { label: 'Tinted glass', cost: 1 },
-    lacquer: { label: 'Lacquered', cost: 3 },
-    frosted: { label: 'Frosted', cost: 2 },
-    metal: { label: 'Metallised', cost: 5 },
+    clear: { label: 'Clear glass, juice shows', cost: 0 }, crystal: { label: 'Heavy crystal', cost: 3 },
+    tinted: { label: 'Tinted glass', cost: 1 }, smoked: { label: 'Smoked glass', cost: 1 },
+    fade: { label: 'Colour fade', cost: 2 }, lacquer: { label: 'Lacquered', cost: 3 },
+    frosted: { label: 'Frosted', cost: 2 }, pearl: { label: 'Pearlescent', cost: 4 },
+    iridescent: { label: 'Iridescent', cost: 5 }, metal: { label: 'Metallised', cost: 5 }, mirror: { label: 'Mirror chrome', cost: 7 },
   };
   const CAPS = {
-    cylinder: { label: 'Column', cost: 2 }, cube: { label: 'Cube', cost: 2 }, sphere: { label: 'Ball', cost: 3 },
-    faceted: { label: 'Faceted', cost: 4 }, dome: { label: 'Dome', cost: 3 }, crown: { label: 'Crown', cost: 8 }, tall: { label: 'Obelisk', cost: 4 },
+    cylinder: { label: 'Column', cost: 2 }, cube: { label: 'Cube', cost: 2 }, sphere: { label: 'Ball', cost: 3 }, facetball: { label: 'Faceted ball', cost: 4 },
+    faceted: { label: 'Faceted', cost: 4 }, dome: { label: 'Dome', cost: 3 }, mushroom: { label: 'Mushroom', cost: 3 }, crown: { label: 'Crown', cost: 8 },
+    tall: { label: 'Obelisk', cost: 4 }, pyramid: { label: 'Pyramid', cost: 4 }, spire: { label: 'Spire', cost: 5 }, flame: { label: 'Flame', cost: 5 },
+    teardrop: { label: 'Teardrop', cost: 4 }, rings: { label: 'Stacked rings', cost: 5 }, ring: { label: 'Ring', cost: 4 }, cork: { label: 'Cork', cost: 1 },
   };
-  const FINISH = { gold: 'Gold', silver: 'Silver', chrome: 'Chrome', black: 'Black lacquer', white: 'White', wood: 'Wood', crystal: 'Crystal' };
-  const LABELS = { plate: 'Metal plate', paper: 'Paper label', print: 'Printed on glass', none: 'No label' };
-  const designCost = (d) => SHAPES[d.shape].cost + GLASS[d.glass].cost + CAPS[d.cap].cost + (d.capFin === 'gold' || d.capFin === 'crystal' ? 2 : 0) + (d.label === 'plate' ? 2 : 0);
+  const FINISH = { gold: 'Gold', rosegold: 'Rose gold', silver: 'Silver', chrome: 'Chrome', gunmetal: 'Gunmetal', bronze: 'Bronze', black: 'Black lacquer', white: 'White', wood: 'Wood', crystal: 'Crystal', colour: 'Bottle colour' };
+  const LABELS = { plate: 'Metal plate', paper: 'Paper label', print: 'Printed on glass', tag: 'Hanging tag', none: 'No label' };
+  const DECOR = { none: 'None', stripes: 'Sailor stripes', ribs: 'Fine ribs', lattice: 'Lattice', chevron: 'Chevrons', dots: 'Dots', waves: 'Waves', deco: 'Art deco fans', studs: 'Pyramid studs', crest: 'Raised crest', band: 'Metal band' };
+  const EXTRAS = { none: 'None', tassel: 'Tassel', pendant: 'Chain pendant', bow: 'Ribbon bow', neckring: 'Neck ring', gem: 'Jewel on the cap', chain: 'Neck chain' };
+  const designCost = (d) => SHAPES[d.shape].cost + GLASS[d.glass].cost + CAPS[d.cap].cost + (['gold', 'rosegold', 'crystal'].includes(d.capFin) ? 2 : 0) + (d.label === 'plate' ? 2 : 0) + ({ none: 0, studs: 4, crest: 3, band: 2 }[d.decor || 'none'] ?? 1) + ({ none: 0, gem: 4, pendant: 3 }[d.extra || 'none'] ?? 2);
 
-  function capParts(d, H) {
-    const f = d.capFin;
-    const m = f === 'wood' ? { color: '#7a5230', rough: 0.75, coat: 0.1 } : f === 'crystal' ? { glass: '#eaf4ff', op: 0.6 } : f === 'white' ? { color: '#f2efe8', rough: 0.3 } : f === 'black' ? { color: '#0c0c0d', rough: 0.15 } : { fin: f };
-    const neck = { s: 'cyl', r: 0.055, h: 0.03, fin: f === 'gold' ? 'gold' : 'silver' };
+  function finishMat(f, d) {
+    if (f === 'wood') return { color: '#7a5230', rough: 0.75, coat: 0.1 };
+    if (f === 'crystal') return { glass: '#eaf4ff', op: 0.6 };
+    if (f === 'white') return { color: '#f2efe8', rough: 0.3 };
+    if (f === 'black') return { color: '#0c0c0d', rough: 0.15 };
+    if (f === 'rosegold') return { color: '#e3a98c', metal: 1, rough: 0.28, coat: 0 };
+    if (f === 'colour') return { color: d.color, rough: 0.2 };
+    return { fin: f };
+  }
+  function capParts(d) {
+    const m = finishMat(d.capFin, d);
+    const neck = Object.assign({ s: 'cyl', r: 0.055, h: 0.03 }, d.capFin === 'gold' || d.capFin === 'rosegold' ? finishMat(d.capFin, d) : { fin: 'silver' });
+    const L = (pts, seg) => ({ s: 'lathe', pts, seg });
     const top = {
-      cylinder: { s: 'cyl', r: 0.12, h: 0.2 }, cube: { s: 'box', w: 0.26, d: 0.2, h: 0.2 }, sphere: { s: 'sphere', r: 0.12 },
-      faceted: { s: 'cyl', r: 0.15, rb: 0.13, h: 0.18, seg: 6 }, dome: { s: 'lathe', pts: [[0, 0], [0.15, 0], [0.15, 0.06], [0.12, 0.13], [0.06, 0.17], [0, 0.18]] },
-      crown: { s: 'lathe', pts: [[0, 0], [0.13, 0], [0.15, 0.06], [0.11, 0.12], [0.14, 0.2], [0.09, 0.2], [0.06, 0.14], [0, 0.26]], seg: 8 },
-      tall: { s: 'cyl', r: 0.06, rb: 0.09, h: 0.32, seg: 4 },
+      cylinder: [{ s: 'cyl', r: 0.12, h: 0.2 }], cube: [{ s: 'box', w: 0.26, d: 0.2, h: 0.2 }], sphere: [{ s: 'sphere', r: 0.12 }],
+      facetball: [L([[0, 0], [0.08, 0.02], [0.13, 0.08], [0.14, 0.14], [0.12, 0.2], [0.07, 0.25], [0, 0.26]], 8)],
+      faceted: [{ s: 'cyl', r: 0.15, rb: 0.13, h: 0.18, seg: 6 }], dome: [L([[0, 0], [0.15, 0], [0.15, 0.06], [0.12, 0.13], [0.06, 0.17], [0, 0.18]])],
+      mushroom: [{ s: 'cyl', r: 0.05, h: 0.06 }, L([[0, 0], [0.2, 0], [0.2, 0.02], [0.16, 0.08], [0.08, 0.12], [0, 0.13]])],
+      crown: [L([[0, 0], [0.13, 0], [0.15, 0.06], [0.11, 0.12], [0.14, 0.2], [0.09, 0.2], [0.06, 0.14], [0, 0.26]], 8)],
+      tall: [{ s: 'cyl', r: 0.06, rb: 0.09, h: 0.32, seg: 4 }], pyramid: [{ s: 'cyl', r: 0.005, rb: 0.15, h: 0.22, seg: 4 }],
+      spire: [L([[0, 0], [0.09, 0], [0.1, 0.04], [0.05, 0.12], [0.035, 0.3], [0, 0.42]], 24)],
+      flame: [L([[0, 0], [0.07, 0], [0.11, 0.06], [0.1, 0.14], [0.06, 0.22], [0.02, 0.3], [0, 0.34]], 24)],
+      teardrop: [L([[0, 0], [0.04, 0], [0.1, 0.06], [0.12, 0.12], [0.08, 0.2], [0.03, 0.26], [0, 0.28]], 32)],
+      rings: [0, 1, 2, 3].map((i) => ({ s: 'cyl', r: i % 2 ? 0.1 : 0.13, h: 0.045 })),
+      ring: [{ s: 'cyl', r: 0.05, h: 0.04 }, { s: 'ring', r: 0.1, tube: 0.026 }],
+      cork: [{ s: 'cyl', r: 0.085, rb: 0.075, h: 0.16 }],
     }[d.cap];
-    return [neck, Object.assign(top, m)];
+    const corkMat = { color: '#c49a6c', rough: 0.85, coat: 0 };
+    return [neck].concat(top.map((t) => Object.assign(t, d.cap === 'cork' ? corkMat : m)));
+  }
+
+  // Painted surface patterns, drawn over the whole front.
+  function decorArt(P, kind, ink) {
+    const { g, W, H } = P;
+    const line = (x1, y1, x2, y2, w = 0.008) => P.line(x1, y1, x2, y2, ink, w);
+    if (kind === 'stripes') for (let i = 0; i < 7; i++) P.rect(0, 0.12 + i * 0.1, 1, 0.045, ink);
+    if (kind === 'ribs') for (let i = 0; i < 46; i++) line(0, i / 46, 1, i / 46, 0.004);
+    if (kind === 'lattice') for (let i = -6; i < 12; i++) { line(i * 0.12, 0, i * 0.12 + 0.6, 1, 0.006); line(i * 0.12 + 0.6, 0, i * 0.12, 1, 0.006); }
+    if (kind === 'chevron') for (let i = 0; i < 12; i++) P.path([[0, 0.05 + i * 0.09], [0.5, 0.1 + i * 0.09], [1, 0.05 + i * 0.09]], ink, false, 0.012);
+    if (kind === 'dots') for (let y = 0.05; y < 1; y += 0.08) for (let x = 0.06; x < 1; x += 0.1) P.circle(x + ((Math.round(y / 0.08) % 2) * 0.05), y, 0.012, ink);
+    if (kind === 'waves') for (let i = 0; i < 14; i++) P.path(Array.from({ length: 17 }, (_, j) => [j / 16, 0.04 + i * 0.07 + Math.sin(j * 0.9 + i) * 0.015]), ink, false, 0.006);
+    if (kind === 'deco') for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const cx = 0.125 + c * 0.25, cy = 0.2 + r * 0.25; for (let k = 1; k < 5; k++) { g.beginPath(); g.arc(cx * W, cy * H, k * 0.03 * H, Math.PI, 0); g.strokeStyle = ink; g.lineWidth = 0.004 * H; g.stroke(); } }
+  }
+  // Raised or attached details as geometry (studs, crest, band and the accessories).
+  function extras(d, sh) {
+    const fns = [], fm = finishMat(d.capFin, d);
+    const H = sh.h, W = sh.w, D = sh.d;
+    fns.push((k) => {
+      const B = BottleCraft.tools, T = B.T, mat = B.matOf(fm);
+      const z = D / 2;
+      if (d.decor === 'studs') { const gs = []; for (let y = 0.1; y < H - 0.06; y += 0.07) for (let x = -W / 2 + 0.06; x < W / 2 - 0.04; x += 0.07) { const c = new T.ConeGeometry(0.022, 0.03, 4); c.rotateX(Math.PI / 2); c.rotateZ(Math.PI / 4); c.translate(x, y, z + 0.012); gs.push(c); } if (gs.length) k.part(B.merge(gs), mat); }
+      if (d.decor === 'crest') { const cy = H * 0.78, cr = Math.min(0.07, H * 0.11); const c = new T.CylinderGeometry(cr, cr, 0.02, 40); c.rotateX(Math.PI / 2); c.translate(0, cy, z + 0.008); k.part(c, mat); const r = new T.TorusGeometry(cr, 0.007, 8, 40); r.translate(0, cy, z + 0.016); k.part(r, mat); }
+      if (d.decor === 'band') { const b = sh.body === 'lathe' || sh.body === 'sphere' || (sh.body === 'cyl' && !sh.seg) ? new T.CylinderGeometry(W / 2 + 0.008, W / 2 + 0.008, 0.06, 48) : new T.BoxGeometry(W + 0.016, 0.06, D + 0.016); if (b.type === 'CylinderGeometry') b.scale(1, 1, D / W); b.translate(0, H * 0.3, 0); k.part(b, mat); }
+      const neckY = H + 0.015;
+      if (d.extra === 'tassel') { const tc = B.solid({ color: d.ink, rough: 0.8, coat: 0 }), tz = z + 0.03, tx = Math.min(0.12, W * 0.3); k.part(B.cyl(0.006, 0.006, 0.2, neckY - 0.2, 6, tx, tz), tc); k.part(B.sphere(0.024, neckY - 0.2).translate(tx, 0, tz), tc); k.part(B.cyl(0.014, 0.05, 0.2, neckY - 0.44, 14, tx, tz), tc); }
+      if (d.extra === 'pendant') { const tz = z + 0.025, tx = Math.min(0.1, W * 0.25); k.part(B.cyl(0.004, 0.004, 0.22, neckY - 0.22, 6, tx, tz), mat); const c = new T.CylinderGeometry(0.065, 0.065, 0.014, 32); c.rotateX(Math.PI / 2); c.translate(tx, neckY - 0.28, tz + 0.01); k.part(c, mat); }
+      if (d.extra === 'bow') { const bc = B.solid({ color: d.ink, rough: 0.5, coat: 0.3 }); for (const s of [-1, 1]) k.part(B.sphere(0.06, neckY - 0.03, 1.1, 0.6, 0.35).translate(s * 0.06, 0, z * 0.3 + 0.06), bc); k.part(B.sphere(0.025, neckY - 0.03).translate(0, 0, z * 0.3 + 0.07), bc); }
+      if (d.extra === 'neckring') { const r = new T.TorusGeometry(0.082, 0.022, 10, 40); r.rotateX(Math.PI / 2); r.translate(0, neckY, 0); k.part(r, mat); }
+      if (d.extra === 'chain') { for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2, r = new T.TorusGeometry(0.018, 0.005, 6, 12); r.rotateY(a + (i % 2) * Math.PI / 2); r.translate(Math.cos(a) * 0.085, neckY - 0.01, Math.sin(a) * 0.085); k.part(r, mat); } }
+      if (d.extra === 'gem') { const capTop = H + 0.03 + ({ cylinder: 0.2, cube: 0.2, sphere: 0.24, facetball: 0.26, faceted: 0.18, dome: 0.18, mushroom: 0.19, crown: 0.26, tall: 0.32, pyramid: 0.22, spire: 0.42, flame: 0.34, teardrop: 0.28, rings: 0.18, ring: 0.24, cork: 0.16 }[d.cap] || 0.2); k.part(B.sphere(0.035, capTop + 0.02, 1, 1, 1), B.glass({ tint: d.juice, op: 0.85 })); }
+    });
+    return fns;
   }
 
   // A BottleCraft spec from a design (uses the generic builder from bottles-designer.js).
@@ -124,53 +202,114 @@ const Maison = (() => {
     return () => {
       const B = BottleCraft.tools, sh = SHAPES[d.shape].body;
       const o = Object.assign({}, sh);
+      if (sh.torso) o.geo = () => B.torsoGeo(B.TORSO_MALE, { sculpt: 1.2 });
       const H = sh.h, W = sh.w;
+      const darker = (hex, k) => { const c = new B.T.Color(hex); c.multiplyScalar(k); return '#' + c.getHexString(); };
       if (d.glass === 'clear') { o.juice = d.juice; o.level = 0.9; o.inset = 0.93; }
+      else if (d.glass === 'crystal') { o.glass = '#f4f8ff'; o.op = 0.32; o.juice = d.juice; o.level = 0.86; o.inset = 0.84; }
       else if (d.glass === 'tinted') { o.glass = d.color; o.op = 0.82; o.juice = d.juice; o.level = 0.88; o.jop = 0.5; }
+      else if (d.glass === 'smoked') { o.glass = darker(d.color, 0.45); o.op = 0.9; o.juice = darker(d.juice, 0.6); o.level = 0.88; o.jop = 0.5; }
+      else if (d.glass === 'fade') { o.solid = '#ffffff'; o.grad = [d.juice, d.color]; o.gc = 0.9; o.rough = 0.15; o.coat = 0.5; o.env = 1; }
+      else if (d.glass === 'iridescent') { o.solid = '#ffffff'; o.grad = [d.juice, d.color]; o.metal = 0.55; o.rough = 0.18; }
       else if (d.glass === 'lacquer') { o.solid = d.color; o.rough = 0.18; o.coat = 0.7; }
       else if (d.glass === 'frosted') { o.solid = d.color; o.rough = 0.65; o.coat = 0.1; o.env = 1; }
+      else if (d.glass === 'pearl') { o.solid = d.color; o.metal = 0.35; o.rough = 0.3; o.coat = 0.9; }
       else if (d.glass === 'metal') { o.solid = d.color; o.metal = 0.9; o.rough = 0.25; }
-      o.cap = capParts(d, H);
-      if (d.label !== 'none') {
+      else if (d.glass === 'mirror') { o.solid = d.color; o.metal = 1; o.rough = 0.06; o.env = 2.6; }
+      o.cap = capParts(d);
+      const wrap = sh.body === 'lathe' || sh.body === 'sphere' || (sh.body === 'cyl' && !sh.seg);
+      const art = [];
+      if (d.decor && !['none', 'studs', 'crest', 'band'].includes(d.decor)) art.push({ w: W * 0.96, h: H * 0.94, y: H / 2, wrap, arc: 2.4, draw: (P) => decorArt(P, d.decor, d.ink + '66') });
+      if (d.label !== 'none' && d.label !== 'tag') {
         const plate = d.label === 'plate', paper = d.label === 'paper';
-        const lw = Math.min(W * 0.78, 0.42), lh = Math.min(H * 0.42, 0.28);
-        const bg = plate ? (d.capFin === 'gold' ? '#d8b462' : '#cfd3d8') : paper ? info.lbg : 'rgba(0,0,0,0)';
+        const lw = Math.min(W * 0.78, 0.42), lh = Math.min(H * (d.decor === 'crest' ? 0.34 : 0.42), 0.28);
+        const bg = plate ? (d.capFin === 'gold' || d.capFin === 'rosegold' ? '#d8b462' : '#cfd3d8') : paper ? info.lbg : 'rgba(0,0,0,0)';
         const ink = plate ? '#1a1a1a' : paper ? info.lfg : (d.ink || info.lfg);
-        o.art = {
-          w: lw, h: lh, y: H * 0.45, wrap: sh.body === 'lathe' || sh.body === 'sphere' || (sh.body === 'cyl' && !sh.seg), arc: 1.3, foil: plate,
-          bg, round: plate ? 0.04 : 0.01, frame: paper ? info.lfg : null,
+        art.push({
+          w: lw, h: lh, y: H * (d.decor === 'crest' ? 0.36 : 0.45), wrap, arc: 1.3, foil: plate, bg, round: plate ? 0.04 : 0.01, frame: paper ? info.lfg : null,
           t: [[info.house.toUpperCase(), 0.2, 0.11, ink, { font: 'roman', weight: 600, track: 0.14, maxW: 0.86 }],
             [info.name, 0.52, 0.22, ink, { font: 'serif', italic: true, maxW: 0.88 }],
             [CONC[info.conc].label.toUpperCase(), 0.82, 0.07, ink, { font: 'helv', track: 0.2, maxW: 0.86 }]],
-        };
+        });
       }
+      if (art.length) o.art = art;
+      o.extra = extras(d, sh);
+      if (d.label === 'tag') o.extra.push((k) => { const B2 = BottleCraft.tools; k.part(B2.cyl(0.004, 0.004, 0.16, H - 0.14, 6, -0.1, sh.d / 2 + 0.02), B2.solid({ color: '#c8b48a', rough: 0.8 })); k.flat(0.16, 0.1, -0.1, H - 0.2, sh.d / 2 + 0.03, B2.paint(0.16, 0.1, (P) => { P.rect(0, 0, 1, 1, info.lbg, 0.05); P.text(info.name, 0.5, 0.42, 0.28, info.lfg, { font: 'serif', italic: true, maxW: 0.9 }); P.text(info.house.toUpperCase(), 0.5, 0.78, 0.14, info.lfg, { font: 'roman', track: 0.1, maxW: 0.9 }); })); });
       return B.Q(o);
     };
   }
 
   /* ---------- box designs ---------- */
-  const BOX_STYLES = { carton: 'Tuck carton', lid: 'Lift-off lid', tube: 'Round tube' };
-  const PATTERNS = { plain: 'Plain', border: 'Fine border', stripes: 'Pinstripes', monogram: 'Monogram', band: 'Centre band' };
+  const BOX_STYLES = { carton: 'Tuck carton', lid: 'Lift-off lid', sleeve: 'Slide-off sleeve', book: 'Book box (opens like a cover)', chest: 'Chest with clasp', tube: 'Round tube', hexagon: 'Hexagonal tube', octagon: 'Octagonal tube', tin: 'Metal tin' };
+  const PATTERNS = { plain: 'Plain', border: 'Fine border', double: 'Double frame', stripes: 'Pinstripes', band: 'Centre band', monogram: 'Monogram', damask: 'Damask', lattice: 'Lattice', greekkey: 'Greek key', chevron: 'Chevrons', dots: 'Polka dots', deco: 'Art deco', stars: 'Starry night', waves: 'Waves', marble: 'Marble', leather: 'Leather grain', croc: 'Croc embossed', wood: 'Wood grain', gradient: 'Gradient wash' };
+  const EMBLEMS = { none: 'None', seal: 'Wax seal', crest: 'Crest', medallion: 'Monogram medallion' };
+  const rnd = (i) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  function boxPattern(P, kind, ink, paper, mono) {
+    const { g, W, H } = P, faint = ink + '30', mid = ink + '55';
+    if (kind === 'stripes') for (let i = 0; i < 60; i++) P.line(i / 60, 0, i / 60, 1, faint, 0.0012);
+    if (kind === 'border') P.frame(0.06, 0.04, 0.88, 0.92, ink, 0.004);
+    if (kind === 'double') { P.frame(0.05, 0.035, 0.9, 0.93, ink, 0.005); P.frame(0.075, 0.05, 0.85, 0.9, ink, 0.002); }
+    if (kind === 'band') P.rect(0, 0.4, 1, 0.14, ink);
+    if (kind === 'monogram') for (let y = 0.04; y < 1; y += 0.07) for (let x = 0.08; x < 1; x += 0.16) P.text(mono, x + ((Math.round(y / 0.07) % 2) * 0.08), y, 0.03, faint, { font: 'serif', weight: 600 });
+    if (kind === 'damask') for (let y = 0; y < 1.1; y += 0.12) for (let x = 0; x < 1.1; x += 0.25) { const cx = x + ((Math.round(y / 0.12) % 2) * 0.125); P.ellipse(cx, y, 0.05, 0.045, 0, faint); P.ellipse(cx, y - 0.04, 0.02, 0.03, 0, faint); P.ellipse(cx - 0.05, y + 0.02, 0.025, 0.012, 0.6, faint); P.ellipse(cx + 0.05, y + 0.02, 0.025, 0.012, -0.6, faint); }
+    if (kind === 'lattice') for (let i = -8; i < 16; i++) { P.line(i * 0.1, 0, i * 0.1 + 0.6, 1, faint, 0.003); P.line(i * 0.1 + 0.6, 0, i * 0.1, 1, faint, 0.003); }
+    if (kind === 'greekkey') for (const y of [0.05, 0.93]) for (let x = 0; x < 1; x += 0.1) P.path([[x, y + 0.02], [x, y - 0.02], [x + 0.07, y - 0.02], [x + 0.07, y + 0.01], [x + 0.03, y + 0.01], [x + 0.03, y], [x + 0.05, y]], ink, false, 0.003);
+    if (kind === 'chevron') for (let i = 0; i < 20; i++) P.path([[0, 0.02 + i * 0.05], [0.5, 0.045 + i * 0.05], [1, 0.02 + i * 0.05]], faint, false, 0.004);
+    if (kind === 'dots') for (let y = 0.03; y < 1; y += 0.05) for (let x = 0.04; x < 1; x += 0.09) P.circle(x + ((Math.round(y / 0.05) % 2) * 0.045), y, 0.006, mid);
+    if (kind === 'deco') for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) { const cx = 0.1 + c * 0.2, cy = 0.1 + r * 0.14; for (let k = 1; k < 4; k++) { g.beginPath(); g.arc(cx * W, cy * H, k * 0.022 * H, Math.PI, 0); g.strokeStyle = faint; g.lineWidth = 0.002 * H; g.stroke(); } }
+    if (kind === 'stars') for (let i = 0; i < 160; i++) P.circle(rnd(i), rnd(i + 500), 0.001 + rnd(i + 9) * 0.003, i % 9 ? mid : ink);
+    if (kind === 'waves') for (let i = 0; i < 26; i++) P.path(Array.from({ length: 17 }, (_, j) => [j / 16, 0.02 + i * 0.04 + Math.sin(j * 0.9 + i) * 0.008]), faint, false, 0.002);
+    if (kind === 'marble') for (let i = 0; i < 12; i++) P.path(Array.from({ length: 10 }, (_, j) => [j / 9, rnd(i) + (j / 9) * (rnd(i + 5) - 0.5) * 0.6 + Math.sin(j * 1.7 + i) * 0.02]), ink + (i % 3 ? '22' : '44'), false, 0.002 + rnd(i + 2) * 0.004);
+    if (kind === 'leather') for (let i = 0; i < 1600; i++) P.circle(rnd(i), rnd(i + 999), 0.0015 + rnd(i + 3) * 0.003, 'rgba(0,0,0,0.12)');
+    if (kind === 'croc') for (let y = 0; y < 1.05; y += 0.04) for (let x = 0; x < 1.05; x += 0.07) P.frame(x + ((Math.round(y / 0.04) % 2) * 0.035) + 0.004, y + 0.004, 0.062, 0.032, 'rgba(0,0,0,0.25)', 0.0015);
+    if (kind === 'wood') for (let i = 0; i < 70; i++) P.path(Array.from({ length: 9 }, (_, j) => [i / 70 + Math.sin(j * 0.8 + i * 0.3) * 0.006, j / 8]), 'rgba(0,0,0,' + (0.08 + rnd(i) * 0.12) + ')', false, 0.0015);
+    if (kind === 'gradient') { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(0,0,0,0.35)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  }
+  function emblem(P, kind, ink, paper, mono, y = 0.3) {
+    const ax = P.H / P.W;
+    if (kind === 'seal') { P.circle(0.5, y, 0.05, '#8a1a1a'); for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; P.circle(0.5 + Math.cos(a) * 0.048 * ax, y + Math.sin(a) * 0.048, 0.012, '#8a1a1a'); } P.circle(0.5, y, 0.034, '#a42424'); P.text(mono, 0.5, y, 0.035, '#5a0e0e', { font: 'serif', weight: 700 }); }
+    if (kind === 'crest') { P.path([[0.5 - 0.05 * ax, y - 0.05], [0.5 + 0.05 * ax, y - 0.05], [0.5 + 0.05 * ax, y], [0.5, y + 0.05], [0.5 - 0.05 * ax, y]], ink); P.text(mono, 0.5, y - 0.012, 0.03, paper, { font: 'serif', weight: 700 }); for (const s of [-1, 1]) P.ellipse(0.5 + s * 0.085 * ax, y - 0.01, 0.025, 0.045, s * 0.4, ink + '99'); }
+    if (kind === 'medallion') { P.circle(0.5, y, 0.055, ink); P.circle(0.5, y, 0.047, paper); P.circle(0.5, y, 0.043, ink, 0.002); P.text(mono, 0.5, y, 0.04, ink, { font: 'serif', weight: 600 }); }
+  }
   function boxSpec(b, info) {
     return (item, fit) => {
       const L = BoxCraft.lib, mono = info.house.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+      const em = b.emblem || 'none', hasEm = em !== 'none';
       const front = (P) => {
         L.fullBg(P, b.paper);
-        if (b.pattern === 'stripes') L.pinstripe(P, b.ink + '33', 60);
-        if (b.pattern === 'monogram') for (let y = 0.04; y < 1; y += 0.07) for (let x = 0.08; x < 1; x += 0.16) P.text(mono, x + ((Math.round(y / 0.07) % 2) * 0.08), y, 0.03, b.ink + '30', { font: 'serif', weight: 600 });
-        if (b.pattern === 'border') P.frame(0.06, 0.04, 0.88, 0.92, b.ink, 0.004);
-        if (b.pattern === 'band') P.rect(0, 0.4, 1, 0.14, b.ink);
+        boxPattern(P, b.pattern, b.ink, b.paper, mono);
         const onBand = b.pattern === 'band';
-        L.tx(P, info.house.toUpperCase(), 0.18, 0.03, b.ink, 'roman', { weight: 600, track: 0.18, maxW: 0.8 });
+        if (hasEm) emblem(P, em, b.ink, b.paper, mono, 0.14);
+        L.tx(P, info.house.toUpperCase(), hasEm ? 0.26 : 0.18, 0.03, b.ink, 'roman', { weight: 600, track: 0.18, maxW: 0.8 });
         L.tx(P, info.name, 0.47, 0.045, onBand ? b.paper : b.ink, 'serif', { italic: true, maxW: 0.84 });
         L.tx(P, CONC[info.conc].label.toUpperCase(), 0.62, 0.012, b.ink, 'sans', { track: 0.3 });
         L.tx(P, info.city.toUpperCase(), 0.86, 0.012, b.ink, 'sans', { track: 0.4 });
         L.tx(P, '100 ml ℮ 3.4 FL.OZ.', 0.92, 0.01, b.ink, 'sans', { track: 0.1 });
       };
-      if (b.style === 'tube') return { shape: 'round', r: Math.max(0.24, Math.hypot(fit.w, fit.d) / 2 + 0.04), h: fit.h + 0.14, lid: (fit.h + 0.14) * 0.32, arc: 1.7, paper: { color: b.paper, rough: 0.6 }, lining: b.ink, front: (P) => { L.fullBg(P, 'rgba(0,0,0,0)'); L.tx(P, info.house.toUpperCase(), 0.3, 0.025, b.ink, 'roman', { weight: 600, track: 0.18, maxW: 0.8 }); L.tx(P, info.name, 0.5, 0.04, b.ink, 'serif', { italic: true, maxW: 0.84 }); L.tx(P, CONC[info.conc].label.toUpperCase(), 0.6, 0.012, b.ink, 'sans', { track: 0.3 }); } };
-      const dims = L.prop(fit, 0.62, 0.38);
-      const top = (P) => { L.fullBg(P, b.paper); P.text(mono, 0.5, 0.5, 0.4, b.ink, { font: 'serif', weight: 600 }); };
-      return Object.assign(dims, b.style === 'lid' ? { lid: 0.3 } : { open: 'flap' }, { paper: { color: b.paper, rough: 0.55 }, lining: b.ink, front, top });
+      const roundFront = (P) => {
+        L.fullBg(P, 'rgba(0,0,0,0)');
+        if (hasEm) emblem(P, em, b.ink, b.paper, mono, 0.2);
+        L.tx(P, info.house.toUpperCase(), 0.32, 0.025, b.ink, 'roman', { weight: 600, track: 0.18, maxW: 0.8 });
+        L.tx(P, info.name, 0.5, 0.04, b.ink, 'serif', { italic: true, maxW: 0.84 });
+        L.tx(P, CONC[info.conc].label.toUpperCase(), 0.6, 0.012, b.ink, 'sans', { track: 0.3 });
+      };
+      const top = (P) => { L.fullBg(P, b.paper); boxPattern(P, b.pattern === 'band' ? 'plain' : b.pattern, b.ink, b.paper, mono); if (hasEm) emblem(P, em === 'none' ? 'medallion' : em, b.ink, b.paper, mono, 0.5); else P.text(mono, 0.5, 0.5, 0.4, b.ink, { font: 'serif', weight: 600 }); };
+      const foil = !!b.foil;
+      const paperMat = { color: b.paper, rough: b.pattern === 'leather' || b.pattern === 'croc' ? 0.7 : 0.55 };
+      const tubeR = Math.max(0.24, Math.hypot(fit.w, fit.d) / 2 + 0.04), tubeH = fit.h + 0.14;
+      if (b.style === 'tube' || b.style === 'hexagon' || b.style === 'octagon') {
+        const seg = { tube: 0, hexagon: 6, octagon: 8 }[b.style];
+        return { shape: 'round', seg: seg || undefined, r: tubeR, h: tubeH, lid: tubeH * 0.32, arc: seg ? 1.45 : 1.7, paper: paperMat, lining: b.ink, foil, front: roundFront, top };
+      }
+      // A tin: metal can with ribs at the foot and a printed label band in the house colours.
+      if (b.style === 'tin') return { shape: 'round', r: tubeR, h: tubeH, lid: tubeH * 0.16, arc: 2.6, ribs: 3, paper: { color: '#c9ced4', metal: 0.9, rough: 0.28 }, ribColor: { color: '#d8dce0', metal: 1, rough: 0.22 }, lining: '#a8a8a8', foil, front: (P) => { P.rect(0, 0.3, 1, 0.42, b.paper); boxPattern(P, b.pattern, b.ink, b.paper, mono); P.rect(0, 0, 1, 0.3, 'rgba(0,0,0,0)'); roundFront(P); }, top };
+      const dims = L.prop(fit, b.style === 'chest' ? 0.78 : 0.62, b.style === 'chest' ? 0.6 : 0.38);
+      const shared = { paper: paperMat, lining: b.ink, front, top, foil };
+      if (b.style === 'lid') return Object.assign(dims, { lid: 0.3 }, shared);
+      if (b.style === 'sleeve') return Object.assign(dims, { lid: 0.86, sleeve: true }, shared);
+      if (b.style === 'book') return Object.assign(dims, { open: 'flap', book: true, clasp: 'gold' }, shared);
+      if (b.style === 'chest') return Object.assign(dims, { open: 'flap', chest: true, clasp: 'gold' }, shared);
+      return Object.assign(dims, { open: 'flap' }, shared);
     };
   }
 
@@ -237,5 +376,5 @@ const Maison = (() => {
     return { mount, show, get mode() { return mode; } };
   })();
 
-  return { NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, BOX_STYLES, PATTERNS, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
+  return { NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, DECOR, EXTRAS, BOX_STYLES, PATTERNS, EMBLEMS, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
 })();

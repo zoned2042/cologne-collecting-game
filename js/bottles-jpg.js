@@ -126,6 +126,9 @@
     return k.done();
   };
 
+  // The torso is also offered in the Your House bottle designer.
+  Object.assign(BottleCraft.tools, { torsoGeo, TORSO_MALE: LE_MALE, TORSO_BEAU: LE_BEAU });
+
   BottleCraft.add({
     'jpg|Le Male': leMale({ bottom: '#09565f', top: '#5aaab6', gc: 1.8, s0: 0.5, s1: 0.93, n: 7, stripe: 'rgba(250,252,252,0.95)', capFin: 'chrome' }),
     'jpg|Ultra Male': leMale({ bottom: '#0b1a40', top: '#1a3068', gc: 1.2, s0: 0.48, s1: 0.93, n: 7, stripe: 'rgba(6,8,16,0.92)', capFin: 'chrome' }),

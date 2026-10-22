@@ -64,6 +64,7 @@
       case 'lathe': geo = lathe(o.pts, 0, 1, o.seg || 48); if (o.seg && o.seg < 12) geo.rotateY(Math.PI / o.seg); geo.scale(1, 1, D / W); break;
       case 'sphere': geo = sphere(1, H / 2, W / 2, H / 2, D / 2); break;
       case 'profile': geo = profile(o.pts, D, o.round || 0.03); break;
+      case 'geo': geo = o.geo(); break;
     }
     if (o.grad) gradient(geo, o.grad[0], o.grad[1], o.gc || 0.8);
     const flat = !!(o.seg && o.seg < 12);

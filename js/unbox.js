@@ -279,6 +279,7 @@ const Unbox = (() => {
         // Anticipation: the lid twitches now and then.
         const w = c.t % 1.6;
         if (c.box.flap) c.box.lid.rotation.x = w < 0.25 ? -Math.sin(w / 0.25 * Math.PI) * 0.12 : 0;
+        else if (c.box.side) c.box.lid.rotation.y = w < 0.25 ? -Math.sin(w / 0.25 * Math.PI) * 0.1 : 0;
         else {
           c.box.lid.position.y = c.box.lidRest + (w < 0.25 ? Math.sin(w / 0.25 * Math.PI) * 0.03 : 0);
           c.box.lid.rotation.z = w < 0.25 ? Math.sin(w / 0.25 * Math.PI * 2) * 0.02 : 0;
@@ -288,7 +289,12 @@ const Unbox = (() => {
         const b = c.box, k = Math.min(1, c.t / b.openTime);
         g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 5);
         const lid = b.lid, up = b.lidRest + b.lift;
-        if (b.flap) {
+        if (b.side) {
+          // Book box: the cover swings round on its spine.
+          const q = Math.min(1, k / 0.6);
+          lid.rotation.y = -(easeOut(q) * 1.95 + Math.sin(q * Math.PI) * 0.15);
+          if (!c.burst && k > 0.35) { c.burst = true; c.bottle.visible = true; burst(c.item, b); SFX.play('shimmer'); SFX.play('whoosh'); }
+        } else if (b.flap) {
           // Tuck-flap carton: the top flap swings open on its back hinge with a little bounce.
           const q = Math.min(1, k / 0.55);
           lid.rotation.x = -(easeOut(q) * 2.35 + Math.sin(q * Math.PI) * 0.25);
@@ -312,6 +318,8 @@ const Unbox = (() => {
       } else if (c.phase === 'rise') {
         const k = Math.min(1, c.t / 1.7); const e = ease(k);
         c.bottle.position.y = 0.04 + e * (c.box.hb + 0.2);
+        // Out through the front of a book box first, then up.
+        if (c.box.exitZ) { c.bottle.position.z = c.box.exitZ * Math.min(1, k * 3); c.bottle.position.y = 0.04 + Math.max(0, (k - 0.25) / 0.75) * (c.box.hb + 0.2); }
         c.bottle.scale.setScalar(IN_SCALE + (OUT_SCALE - IN_SCALE) * e);
         c.bottle.rotation.y = e * Math.PI * 2;
         c.ty = 0.75 + e * 0.75;

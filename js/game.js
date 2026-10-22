@@ -911,8 +911,8 @@
   function newDraft() {
     const m = M();
     return { sel: { top: [], heart: [], base: [] }, conc: 'edp', name: '',
-      design: { shape: 'block', glass: 'clear', color: '#1a1a1a', juice: '#e8c27a', cap: 'cylinder', capFin: 'gold', label: 'paper', ink: m.lfg },
-      box: { style: 'carton', paper: m.lbg, ink: m.lfg, pattern: 'border' }, price: 0, qty: 100 };
+      design: { shape: 'block', glass: 'clear', color: '#1a1a1a', juice: '#e8c27a', cap: 'cylinder', capFin: 'gold', label: 'paper', ink: m.lfg, decor: 'none', extra: 'none' },
+      box: { style: 'carton', paper: m.lbg, ink: m.lfg, pattern: 'border', emblem: 'none', foil: false }, price: 0, qty: 100 };
   }
   // The draft as an item, with its bottle and box specs registered for the 3D preview.
   function draftItem() {
@@ -1008,12 +1008,17 @@
            <label class="field"><span>Cap</span><select data-field="cap">${opt(Maison.CAPS, ds.cap)}</select></label>
            <label class="field"><span>Cap finish</span><select data-field="capFin">${opt(Maison.FINISH, ds.capFin)}</select></label>
            <label class="field"><span>Label</span><select data-field="label">${opt(Maison.LABELS, ds.label)}</select></label>
+           <label class="field"><span>Surface detail</span><select data-field="decor">${opt(Maison.DECOR, ds.decor || 'none')}</select></label>
+           <label class="field"><span>Accessory</span><select data-field="extra">${opt(Maison.EXTRAS, ds.extra || 'none')}</select></label>
            <label class="field color"><span>Print colour</span><input type="color" data-field="ink" value="${ds.ink}"></label>
-           <p class="hint">Bottle and cap add ${money(Maison.designCost(ds))} to each bottle; a striking design lifts the price people will pay.</p>`
+           <p class="hint">${Object.keys(Maison.SHAPES).length} shapes, ${Object.keys(Maison.CAPS).length} caps. This design adds ${money(Maison.designCost(ds))} to each bottle; a striking design lifts the price people will pay.</p>`
         : `<label class="field"><span>Box style</span><select data-field="boxStyle">${opt(Maison.BOX_STYLES, bx.style)}</select></label>
            <label class="field color"><span>Board colour</span><input type="color" data-field="paper" value="${bx.paper}"></label>
            <label class="field color"><span>Ink</span><input type="color" data-field="boxInk" value="${bx.ink}"></label>
-           <label class="field"><span>Pattern</span><select data-field="pattern">${opt(Maison.PATTERNS, bx.pattern)}</select></label>`;
+           <label class="field"><span>Pattern</span><select data-field="pattern">${opt(Maison.PATTERNS, bx.pattern)}</select></label>
+           <label class="field"><span>Emblem</span><select data-field="emblem">${opt(Maison.EMBLEMS, bx.emblem || 'none')}</select></label>
+           <label class="field"><span>Printing</span><select data-field="foil"><option value="matte" ${bx.foil ? '' : 'selected'}>Matte ink</option><option value="foil" ${bx.foil ? 'selected' : ''}>Foil stamped</option></select></label>
+           <p class="hint">${Object.keys(Maison.BOX_STYLES).length} box styles and ${Object.keys(Maison.PATTERNS).length} patterns. Book boxes swing open like a cover; sleeves slide up off the tray.</p>`;
       body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${ctrls}</article>${summary}</div>`;
     } else {
       const c = draftCreation(); c.price = d.price || 0;
@@ -1249,7 +1254,7 @@
     if (el && !el.disabled && actions[el.dataset.action]) { e.preventDefault(); actions[el.dataset.action](el); }
   });
   // Atelier form fields: colours refresh only the 3D preview so the picker keeps focus.
-  const FIELD = { shape: ['design', 'shape'], glass: ['design', 'glass'], color: ['design', 'color'], juice: ['design', 'juice'], cap: ['design', 'cap'], capFin: ['design', 'capFin'], label: ['design', 'label'], ink: ['design', 'ink'], boxStyle: ['box', 'style'], paper: ['box', 'paper'], boxInk: ['box', 'ink'], pattern: ['box', 'pattern'] };
+  const FIELD = { shape: ['design', 'shape'], glass: ['design', 'glass'], color: ['design', 'color'], juice: ['design', 'juice'], cap: ['design', 'cap'], capFin: ['design', 'capFin'], label: ['design', 'label'], ink: ['design', 'ink'], decor: ['design', 'decor'], extra: ['design', 'extra'], boxStyle: ['box', 'style'], paper: ['box', 'paper'], boxInk: ['box', 'ink'], pattern: ['box', 'pattern'], emblem: ['box', 'emblem'], foil: ['box', 'foil'] };
   document.addEventListener('input', (e) => {
     const t = e.target; if (!t.closest || !t.closest('#tab-atelier')) return;
     const d = ui.atelier.draft;
@@ -1260,7 +1265,7 @@
     if (t.id === 'ml-price') { d.price = Number(t.value) || 0; return; }
     const f = t.dataset.field; if (!f) return;
     if (f === 'conc' || f === 'qty') { d[f] = f === 'qty' ? Number(t.value) : t.value; if (f === 'conc') d.price = 0; renderAtelier(); return; }
-    const [grp, k] = FIELD[f]; d[grp][k] = t.value;
+    const [grp, k] = FIELD[f]; d[grp][k] = f === 'foil' ? t.value === 'foil' : t.value;
     if (t.type === 'color') showDraft(); else renderAtelier();
   });
   document.addEventListener('change', (e) => { if (e.target.id === 'ml-name' || e.target.id === 'ml-price') renderAtelier(); });
