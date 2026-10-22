@@ -1028,7 +1028,8 @@
            <label class="field"><span>Emblem</span><select data-field="emblem">${opt(Maison.EMBLEMS, bx.emblem || 'none')}</select></label>
            <label class="field"><span>Printing</span><select data-field="foil"><option value="matte" ${bx.foil ? '' : 'selected'}>Matte ink</option><option value="foil" ${bx.foil ? 'selected' : ''}>Foil stamped</option></select></label>
            <p class="hint">${Object.keys(Maison.BOX_STYLES).length} box styles and ${Object.keys(Maison.PATTERNS).length} patterns. Book boxes swing open like a cover; sleeves slide up off the tray.</p>`;
-      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${aiPanel()}${ctrls}</article>${summary}</div>`;
+      const presets = `<div class="presets"><span class="muted small">Start from a classic</span>${Object.entries(Maison.PRESETS).map(([id, p]) => `<button class="btn btn-small" data-action="mpreset" data-id="${id}">${esc(p.label)}</button>`).join('')}</div>`;
+      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${aiPanel()}${presets}${ctrls}</article>${summary}</div>`;
     } else {
       const c = draftCreation(); c.price = d.price || 0;
       const tmp = Object.assign({}, c); const u = unitCost(tmp); const fair = fairPrice(tmp); if (!d.price) d.price = fair;
@@ -1645,6 +1646,13 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     'ai-design': () => aiDesign(false),
     'ai-surprise': () => aiDesign(true),
     'ai-stop': () => { if (aiCtl) aiCtl.abort(); },
+    mpreset: (el) => {
+      const p = Maison.PRESETS[el.dataset.id]; if (!p) return;
+      const d = ui.atelier.draft;
+      Object.assign(d.design, p.design); Object.assign(d.box, p.box);
+      SFX.play('click'); renderAtelier();
+      toast(`<b>${esc(p.label)} look</b><span>Bottle, cap, lettering and box set. Your names go on in the same letters.</span>`);
+    },
     found: () => {
       const f = ui.atelier.found, name = ($('#mf-name').value || '').trim();
       if (!name) { toast('<b>Name your house</b><span>Every maison needs a name on the door.</span>', 'bad'); return; }

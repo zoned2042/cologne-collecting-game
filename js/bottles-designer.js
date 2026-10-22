@@ -75,7 +75,8 @@
       if (o.juice) {
         // Unlit juice keeps its true colour under the glossy shell.
         const ins = o.inset || 0.93, jg = geo.clone(); jg.scale(ins, o.level || 0.88, ins); jg.translate(0, 0.025, 0);
-        k.part(jg, new (T().MeshBasicMaterial)({ color: B.C(o.juice), transparent: true, opacity: o.jop || 0.9, depthWrite: false }), 1);
+        if (o.jgrad) gradient(jg, o.jgrad[0], o.jgrad[1], 0.7);
+        k.part(jg, new (T().MeshBasicMaterial)(o.jgrad ? { vertexColors: true, transparent: true, opacity: o.jop || 0.9, depthWrite: false } : { color: B.C(o.juice), transparent: true, opacity: o.jop || 0.9, depthWrite: false }), 1);
       }
     }
     addCaps(k, o.cap, H);

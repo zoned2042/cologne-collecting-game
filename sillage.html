@@ -487,6 +487,7 @@ body.unboxing { overflow: hidden; }
 
 /* AI designer */
 .ai-box { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); border-radius: 8px; background: color-mix(in srgb, var(--amber) 6%, transparent); margin-bottom: 4px; }
+.presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ai-box textarea { background: var(--resin); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; resize: vertical; min-height: 4.5em; font: inherit; color: inherit; }
 
 /* ---------- house website: browser window ---------- */
@@ -2675,7 +2676,8 @@ const BottleCraft = (() => {
       if (o.juice) {
         // Unlit juice keeps its true colour under the glossy shell.
         const ins = o.inset || 0.93, jg = geo.clone(); jg.scale(ins, o.level || 0.88, ins); jg.translate(0, 0.025, 0);
-        k.part(jg, new (T().MeshBasicMaterial)({ color: B.C(o.juice), transparent: true, opacity: o.jop || 0.9, depthWrite: false }), 1);
+        if (o.jgrad) gradient(jg, o.jgrad[0], o.jgrad[1], 0.7);
+        k.part(jg, new (T().MeshBasicMaterial)(o.jgrad ? { vertexColors: true, transparent: true, opacity: o.jop || 0.9, depthWrite: false } : { color: B.C(o.juice), transparent: true, opacity: o.jop || 0.9, depthWrite: false }), 1);
       }
     }
     addCaps(k, o.cap, H);
@@ -10999,6 +11001,8 @@ const Maison = (() => {
   const STAR = Array.from({ length: 10 }, (_, i) => { const a = Math.PI / 2 + (i / 10) * Math.PI * 2, r = i % 2 ? 0.14 : 0.32; return [Math.cos(a) * r, 0.31 + Math.sin(a) * r]; });
   const ARCH = [[-0.24, 0], [0.24, 0]].concat(Array.from({ length: 13 }, (_, i) => { const a = (i / 12) * Math.PI; return [Math.cos(a) * 0.24, 0.44 + Math.sin(a) * 0.24]; }));
   const VIOLIN = (() => { const r = [[0.21, 0], [0.235, 0.03], [0.238, 0.11], [0.205, 0.26], [0.18, 0.36], [0.19, 0.46], [0.225, 0.56], [0.236, 0.62], [0.21, 0.67], [0.13, 0.7], [0.075, 0.71]]; return r.concat(r.slice().reverse().map(([x, y]) => [-x, y])); })();
+  // Louis Vuitton's round bottle: a flat-shouldered cylinder with a short neck.
+  const VOYAGER = [[0, 0], [0.17, 0], [0.19, 0.015], [0.196, 0.05], [0.196, 0.45], [0.188, 0.51], [0.16, 0.55], [0.11, 0.575], [0.085, 0.585], [0.08, 0.6], [0, 0.6]];
   const SHAPES = {
     block: { label: 'Classic block', cost: 4, body: { w: 0.5, h: 0.6, d: 0.26, r: 0.02 } },
     tall: { label: 'Tall column', cost: 4, body: { w: 0.34, h: 0.8, d: 0.22, r: 0.02 } },
@@ -11024,6 +11028,7 @@ const Maison = (() => {
     teardrop: { label: 'Teardrop', cost: 7, body: { body: 'lathe', w: 0.54, d: 0.4, h: 0.62, pts: [[0, 0], [0.12, 0], [0.24, 0.08], [0.27, 0.22], [0.22, 0.4], [0.12, 0.56], [0.07, 0.62], [0, 0.62]] } },
     amphora: { label: 'Amphora', cost: 8, body: { body: 'lathe', w: 0.54, d: 0.54, h: 0.64, pts: [[0, 0], [0.14, 0], [0.2, 0.05], [0.27, 0.25], [0.25, 0.42], [0.14, 0.55], [0.1, 0.6], [0.12, 0.64], [0, 0.64]] } },
     trophy: { label: 'Trophy', cost: 9, body: { body: 'lathe', w: 0.6, d: 0.42, h: 0.62, pts: [[0, 0], [0.18, 0], [0.18, 0.04], [0.07, 0.08], [0.07, 0.16], [0.2, 0.2], [0.29, 0.36], [0.3, 0.56], [0.26, 0.62], [0, 0.62]] } },
+    voyager: { label: 'Voyager (Louis Vuitton)', cost: 8, body: { body: 'lathe', w: 0.392, d: 0.392, h: 0.6, pts: VOYAGER, seg: 56 } },
     torso: { label: 'Sculpted torso', cost: 12, body: { body: 'geo', torso: true, w: 0.5, h: 0.77, d: 0.28 } },
   };
   const GLASS = {
@@ -11032,17 +11037,27 @@ const Maison = (() => {
     fade: { label: 'Colour fade', cost: 2 }, lacquer: { label: 'Lacquered', cost: 3 },
     frosted: { label: 'Frosted', cost: 2 }, pearl: { label: 'Pearlescent', cost: 4 },
     iridescent: { label: 'Iridescent', cost: 5 }, metal: { label: 'Metallised', cost: 5 }, mirror: { label: 'Mirror chrome', cost: 7 },
+    juicefade: { label: 'Clear, juice fades (Louis Vuitton)', cost: 3 },
   };
   const CAPS = {
     cylinder: { label: 'Column', cost: 2 }, cube: { label: 'Cube', cost: 2 }, sphere: { label: 'Ball', cost: 3 }, facetball: { label: 'Faceted ball', cost: 4 },
     faceted: { label: 'Faceted', cost: 4 }, dome: { label: 'Dome', cost: 3 }, mushroom: { label: 'Mushroom', cost: 3 }, crown: { label: 'Crown', cost: 8 },
     tall: { label: 'Obelisk', cost: 4 }, pyramid: { label: 'Pyramid', cost: 4 }, spire: { label: 'Spire', cost: 5 }, flame: { label: 'Flame', cost: 5 },
     teardrop: { label: 'Teardrop', cost: 4 }, rings: { label: 'Stacked rings', cost: 5 }, ring: { label: 'Ring', cost: 4 }, cork: { label: 'Cork', cost: 1 },
+    voyager: { label: 'Stacked, flower top (Louis Vuitton)', cost: 6 },
   };
   const FINISH = { gold: 'Gold', rosegold: 'Rose gold', silver: 'Silver', chrome: 'Chrome', gunmetal: 'Gunmetal', bronze: 'Bronze', black: 'Black lacquer', white: 'White', wood: 'Wood', crystal: 'Crystal', colour: 'Bottle colour' };
-  const LABELS = { plate: 'Metal plate', paper: 'Paper label', print: 'Printed on glass', tag: 'Hanging tag', none: 'No label' };
+  const LABELS = { plate: 'Metal plate', paper: 'Paper label', print: 'Printed on glass', tag: 'Hanging tag', voyager: 'Wrap lettering (Louis Vuitton)', none: 'No label' };
   const DECOR = { none: 'None', stripes: 'Sailor stripes', ribs: 'Fine ribs', lattice: 'Lattice', chevron: 'Chevrons', dots: 'Dots', waves: 'Waves', deco: 'Art deco fans', studs: 'Pyramid studs', crest: 'Raised crest', band: 'Metal band' };
   const EXTRAS = { none: 'None', tassel: 'Tassel', pendant: 'Chain pendant', bow: 'Ribbon bow', neckring: 'Neck ring', gem: 'Jewel on the cap', chain: 'Neck chain' };
+  // Ready-made looks the designer can start from.
+  const PRESETS = {
+    lv: {
+      label: 'Louis Vuitton',
+      design: { shape: 'voyager', glass: 'juicefade', color: '#f6e4b8', juice: '#e2a048', cap: 'voyager', capFin: 'black', label: 'voyager', decor: 'none', extra: 'none', ink: '#141414' },
+      box: { style: 'voyager', paper: '#f6f5f1', ink: '#141414', pattern: 'plain', emblem: 'none', foil: false },
+    },
+  };
   const designCost = (d) => SHAPES[d.shape].cost + GLASS[d.glass].cost + CAPS[d.cap].cost + (['gold', 'rosegold', 'crystal'].includes(d.capFin) ? 2 : 0) + (d.label === 'plate' ? 2 : 0) + ({ none: 0, studs: 4, crest: 3, band: 2 }[d.decor || 'none'] ?? 1) + ({ none: 0, gem: 4, pendant: 3 }[d.extra || 'none'] ?? 2);
 
   function finishMat(f, d) {
@@ -11071,8 +11086,10 @@ const Maison = (() => {
       rings: [0, 1, 2, 3].map((i) => ({ s: 'cyl', r: i % 2 ? 0.1 : 0.13, h: 0.045 })),
       ring: [{ s: 'cyl', r: 0.05, h: 0.04 }, { s: 'ring', r: 0.1, tube: 0.026 }],
       cork: [{ s: 'cyl', r: 0.085, rb: 0.075, h: 0.16 }],
+      voyager: [{ s: 'cyl', r: 0.085, h: 0.05 }, { s: 'cyl', r: 0.1, rb: 0.085, h: 0.025 }, { s: 'cyl', r: 0.075, h: 0.035 }, L([[0, 0], [0.11, 0], [0.135, 0.02], [0.14, 0.07], [0.13, 0.08], [0, 0.08]], 48)],
     }[d.cap];
     const corkMat = { color: '#c49a6c', rough: 0.85, coat: 0 };
+    if (d.cap === 'voyager') return top.map((t) => Object.assign(t, m));
     return [neck].concat(top.map((t) => Object.assign(t, d.cap === 'cork' ? corkMat : m)));
   }
 
@@ -11104,7 +11121,14 @@ const Maison = (() => {
       if (d.extra === 'bow') { const bc = B.solid({ color: d.ink, rough: 0.5, coat: 0.3 }); for (const s of [-1, 1]) k.part(B.sphere(0.06, neckY - 0.03, 1.1, 0.6, 0.35).translate(s * 0.06, 0, z * 0.3 + 0.06), bc); k.part(B.sphere(0.025, neckY - 0.03).translate(0, 0, z * 0.3 + 0.07), bc); }
       if (d.extra === 'neckring') { const r = new T.TorusGeometry(0.082, 0.022, 10, 40); r.rotateX(Math.PI / 2); r.translate(0, neckY, 0); k.part(r, mat); }
       if (d.extra === 'chain') { for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2, r = new T.TorusGeometry(0.018, 0.005, 6, 12); r.rotateY(a + (i % 2) * Math.PI / 2); r.translate(Math.cos(a) * 0.085, neckY - 0.01, Math.sin(a) * 0.085); k.part(r, mat); } }
-      if (d.extra === 'gem') { const capTop = H + 0.03 + ({ cylinder: 0.2, cube: 0.2, sphere: 0.24, facetball: 0.26, faceted: 0.18, dome: 0.18, mushroom: 0.19, crown: 0.26, tall: 0.32, pyramid: 0.22, spire: 0.42, flame: 0.34, teardrop: 0.28, rings: 0.18, ring: 0.24, cork: 0.16 }[d.cap] || 0.2); k.part(B.sphere(0.035, capTop + 0.02, 1, 1, 1), B.glass({ tint: d.juice, op: 0.85 })); }
+      if (d.cap === 'voyager') {
+        // The monogram flower inlaid in the cap top.
+        const dark = ['black', 'gunmetal', 'wood'].includes(d.capFin) || (d.capFin === 'colour' && new T.Color(d.color).getHSL({}).l < 0.4);
+        const lid = new T.PlaneGeometry(0.2, 0.2); lid.rotateX(-Math.PI / 2); lid.translate(0, H + 0.192, 0);
+        const flower = B.paint(0.2, 0.2, (P) => { for (let i = 0; i < 4; i++) P.ellipse(0.5, 0.5, 0.4, 0.12, i * Math.PI / 4, dark ? 'rgba(190,190,195,0.85)' : 'rgba(40,40,44,0.55)'); P.circle(0.5, 0.5, 0.08, dark ? '#0c0c0c' : 'rgba(255,255,255,0.5)'); });
+        k.part(lid, new T.MeshStandardMaterial({ map: flower, transparent: true, metalness: 0.6, roughness: 0.3, depthWrite: false }), 4);
+      }
+      if (d.extra === 'gem') { const capTop = H + 0.03 + ({ cylinder: 0.2, cube: 0.2, sphere: 0.24, facetball: 0.26, faceted: 0.18, dome: 0.18, mushroom: 0.19, crown: 0.26, tall: 0.32, pyramid: 0.22, spire: 0.42, flame: 0.34, teardrop: 0.28, rings: 0.18, ring: 0.24, cork: 0.16, voyager: 0.16 }[d.cap] || 0.2); k.part(B.sphere(0.035, capTop + 0.02, 1, 1, 1), B.glass({ tint: d.juice, op: 0.85 })); }
     });
     return fns;
   }
@@ -11128,11 +11152,19 @@ const Maison = (() => {
       else if (d.glass === 'pearl') { o.solid = d.color; o.metal = 0.35; o.rough = 0.3; o.coat = 0.9; }
       else if (d.glass === 'metal') { o.solid = d.color; o.metal = 0.9; o.rough = 0.25; }
       else if (d.glass === 'mirror') { o.solid = d.color; o.metal = 1; o.rough = 0.06; o.env = 2.6; }
+      else if (d.glass === 'juicefade') { o.juice = d.juice; o.jgrad = [d.juice, d.color]; o.level = 0.93; o.inset = 0.965; o.jop = 0.88; o.env = 2.6; }
       o.cap = capParts(d);
       const wrap = sh.body === 'lathe' || sh.body === 'sphere' || (sh.body === 'cyl' && !sh.seg);
       const art = [];
       if (d.decor && !['none', 'studs', 'crest', 'band'].includes(d.decor)) art.push({ w: W * 0.96, h: H * 0.94, y: H / 2, wrap, arc: 2.4, draw: (P) => decorArt(P, d.decor, d.ink + '66') });
-      if (d.label !== 'none' && d.label !== 'tag') {
+      if (d.label === 'voyager') {
+        // Louis Vuitton's lettering: the name in bold tracked capitals, the house in light capitals beneath.
+        art.push({
+          h: Math.min(0.1, H * 0.17), y: H / 2, wrap, arc: 1.4, w: wrap ? undefined : W * 0.86,
+          t: [[info.name.toUpperCase(), 0.3, 0.36, d.ink, { font: 'helv', weight: 700, track: 0.04, maxW: 0.86 }],
+            [info.house.toUpperCase(), 0.74, 0.26, d.ink + 'b0', { font: 'helv', weight: 400, track: 0.12, maxW: 0.76 }]],
+        });
+      } else if (d.label !== 'none' && d.label !== 'tag') {
         const plate = d.label === 'plate', paper = d.label === 'paper';
         const lw = Math.min(W * 0.78, 0.42), lh = Math.min(H * (d.decor === 'crest' ? 0.34 : 0.42), 0.28);
         const bg = plate ? (d.capFin === 'gold' || d.capFin === 'rosegold' ? '#d8b462' : '#cfd3d8') : paper ? info.lbg : 'rgba(0,0,0,0)';
@@ -11152,7 +11184,7 @@ const Maison = (() => {
   }
 
   /* ---------- box designs ---------- */
-  const BOX_STYLES = { carton: 'Tuck carton', lid: 'Lift-off lid', sleeve: 'Slide-off sleeve', book: 'Book box (opens like a cover)', chest: 'Chest with clasp', tube: 'Round tube', hexagon: 'Hexagonal tube', octagon: 'Octagonal tube', tin: 'Metal tin' };
+  const BOX_STYLES = { carton: 'Tuck carton', lid: 'Lift-off lid', sleeve: 'Slide-off sleeve', book: 'Book box (opens like a cover)', chest: 'Chest with clasp', tube: 'Round tube', hexagon: 'Hexagonal tube', octagon: 'Octagonal tube', tin: 'Metal tin', voyager: 'White drum, gold collar (Louis Vuitton)' };
   const PATTERNS = { plain: 'Plain', border: 'Fine border', double: 'Double frame', stripes: 'Pinstripes', band: 'Centre band', monogram: 'Monogram', damask: 'Damask', lattice: 'Lattice', greekkey: 'Greek key', chevron: 'Chevrons', dots: 'Polka dots', deco: 'Art deco', stars: 'Starry night', waves: 'Waves', marble: 'Marble', leather: 'Leather grain', croc: 'Croc embossed', wood: 'Wood grain', gradient: 'Gradient wash' };
   const EMBLEMS = { none: 'None', seal: 'Wax seal', crest: 'Crest', medallion: 'Monogram medallion' };
   const rnd = (i) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
@@ -11209,6 +11241,18 @@ const Maison = (() => {
       const foil = !!b.foil;
       const paperMat = { color: b.paper, rough: b.pattern === 'leather' || b.pattern === 'croc' ? 0.7 : 0.55 };
       const tubeR = Math.max(0.24, Math.hypot(fit.w, fit.d) / 2 + 0.04), tubeH = fit.h + 0.14;
+      if (b.style === 'voyager') {
+        // Louis Vuitton's white drum: a tall sleeve that lifts off a gold collar.
+        const dh = Math.max(1.3, fit.h + 0.3);
+        return {
+          shape: 'round', r: Math.max(0.29, Math.hypot(fit.w, fit.d) / 2 + 0.05), h: dh, lid: dh * 0.83, sleeve: true, arc: 2.0,
+          paper: { color: b.paper, rough: 0.7 }, lining: { color: '#ffffff', rough: 0.8 }, collar: { fin: 'gold', h: 0.14 }, foil,
+          front: (P) => {
+            P.text(info.name.toUpperCase(), 0.5, 0.405, 0.03, 'rgba(160,160,160,0.9)', { font: 'helv', weight: 500, track: 0.04, maxW: 0.66 });
+            P.text(info.house.toUpperCase(), 0.5, 0.45, 0.032, b.ink, { font: 'helv', weight: 700, track: 0.03, maxW: 0.66 });
+          },
+        };
+      }
       if (b.style === 'tube' || b.style === 'hexagon' || b.style === 'octagon') {
         const seg = { tube: 0, hexagon: 6, octagon: 8 }[b.style];
         return { shape: 'round', seg: seg || undefined, r: tubeR, h: tubeH, lid: tubeH * 0.32, arc: seg ? 1.45 : 1.7, paper: paperMat, lining: b.ink, foil, front: roundFront, top };
@@ -11329,7 +11373,7 @@ const Maison = (() => {
     return { shot };
   })();
 
-  return { Snap, NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, DECOR, EXTRAS, BOX_STYLES, PATTERNS, EMBLEMS, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
+  return { Snap, NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, DECOR, EXTRAS, BOX_STYLES, PATTERNS, EMBLEMS, PRESETS, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
 })();
 
 </script>
@@ -12364,7 +12408,8 @@ const Maison = (() => {
            <label class="field"><span>Emblem</span><select data-field="emblem">${opt(Maison.EMBLEMS, bx.emblem || 'none')}</select></label>
            <label class="field"><span>Printing</span><select data-field="foil"><option value="matte" ${bx.foil ? '' : 'selected'}>Matte ink</option><option value="foil" ${bx.foil ? 'selected' : ''}>Foil stamped</option></select></label>
            <p class="hint">${Object.keys(Maison.BOX_STYLES).length} box styles and ${Object.keys(Maison.PATTERNS).length} patterns. Book boxes swing open like a cover; sleeves slide up off the tray.</p>`;
-      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${aiPanel()}${ctrls}</article>${summary}</div>`;
+      const presets = `<div class="presets"><span class="muted small">Start from a classic</span>${Object.entries(Maison.PRESETS).map(([id, p]) => `<button class="btn btn-small" data-action="mpreset" data-id="${id}">${esc(p.label)}</button>`).join('')}</div>`;
+      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${aiPanel()}${presets}${ctrls}</article>${summary}</div>`;
     } else {
       const c = draftCreation(); c.price = d.price || 0;
       const tmp = Object.assign({}, c); const u = unitCost(tmp); const fair = fairPrice(tmp); if (!d.price) d.price = fair;
@@ -12981,6 +13026,13 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     'ai-design': () => aiDesign(false),
     'ai-surprise': () => aiDesign(true),
     'ai-stop': () => { if (aiCtl) aiCtl.abort(); },
+    mpreset: (el) => {
+      const p = Maison.PRESETS[el.dataset.id]; if (!p) return;
+      const d = ui.atelier.draft;
+      Object.assign(d.design, p.design); Object.assign(d.box, p.box);
+      SFX.play('click'); renderAtelier();
+      toast(`<b>${esc(p.label)} look</b><span>Bottle, cap, lettering and box set. Your names go on in the same letters.</span>`);
+    },
     found: () => {
       const f = ui.atelier.found, name = ($('#mf-name').value || '').trim();
       if (!name) { toast('<b>Name your house</b><span>Every maison needs a name on the door.</span>', 'bad'); return; }
