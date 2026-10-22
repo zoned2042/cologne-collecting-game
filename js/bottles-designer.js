@@ -26,6 +26,8 @@
       case 'sphere': { const sy = c.sy || 1; g = sphere(c.r, y + c.r * sy, c.sx || 1, sy, c.sz || 1); h = 2 * c.r * sy; break; }
       case 'lathe': g = lathe(c.pts, y, c.sz || 1, c.seg || 40); h = c.pts[c.pts.length - 1][1]; break;
       case 'ring': g = new t.TorusGeometry(c.r, c.tube || 0.022, 12, 48); g.translate(0, y + c.r, 0); h = 2 * c.r; break;
+      case 'prof': g = profile(c.pts, c.d || 0.06, c.round != null ? c.round : 0.01); g.translate(0, y, 0); h = Math.max(...c.pts.map((q) => q[1])) - Math.min(...c.pts.map((q) => q[1])); break;
+      case 'geo': ({ g, h } = c.make(y)); break;
       default: return null;
     }
     if (c.x || c.z) g.translate(c.x || 0, 0, c.z || 0);
@@ -79,6 +81,7 @@
         k.part(jg, new (T().MeshBasicMaterial)(o.jgrad ? { vertexColors: true, transparent: true, opacity: o.jop || 0.9, depthWrite: false } : { color: B.C(o.juice), transparent: true, opacity: o.jop || 0.9, depthWrite: false }), 1);
       }
     }
+    [].concat(o.skin || []).forEach((sk, i) => addSkin(k, geo, o, sk, W, H, D, i));
     addCaps(k, o.cap, H);
     [].concat(o.art || []).forEach((a) => addArt(k, o, a, W, H, D));
     (o.extra || []).forEach((fn) => fn(k, { W, H, D }));
@@ -86,6 +89,39 @@
     return k.done();
   }
   const S = (o) => () => Q(o);
+  // A pattern printed all the way round the body: a slightly larger copy of the body
+  // geometry, UV-mapped by walking round its outline so the artwork follows any shape.
+  function addSkin(k, geo, o, sk, W, H, D, i) {
+    const t = T();
+    const round = sk.round != null ? sk.round : (o.body === 'lathe' || o.body === 'sphere' || (o.body === 'cyl' && !(o.seg && o.seg < 8)));
+    const g = geo.index ? geo.toNonIndexed() : geo.clone();
+    const grow = 1.005 + i * 0.004; g.scale(grow, 1 + (grow - 1) / 2, grow);
+    const per = round ? Math.PI * (W + D) / 2 : 2 * (W + D);
+    const pos = g.attributes.position, n = pos.count, uv = new Float32Array(n * 2);
+    for (let j = 0; j < n; j++) {
+      const x = pos.getX(j), y = pos.getY(j), z = pos.getZ(j);
+      let u;
+      if (round) u = Math.atan2(x / W, z / D) / (Math.PI * 2) + 0.5;
+      else {
+        // Perimeter position round a W x D rectangle, front centre at u = 0.5.
+        const a = x / (W / 2), b = z / (D / 2);
+        const s = Math.abs(b) >= Math.abs(a) ? (b >= 0 ? W / 2 + x : W + D + (W / 2 - x)) : (a > 0 ? W + (D / 2 - z) : 2 * W + D + (z + D / 2));
+        u = (s - W / 2) / per + 0.5; u -= Math.floor(u);
+      }
+      uv[j * 2] = u; uv[j * 2 + 1] = y / H;
+    }
+    // Triangles straddling the back seam take the long way round otherwise.
+    for (let j = 0; j + 2 < n; j += 3) {
+      const a = uv[j * 2], b = uv[j * 2 + 2], c = uv[j * 2 + 4];
+      if (Math.max(a, b, c) - Math.min(a, b, c) > 0.5) for (let q = 0; q < 3; q++) if (uv[(j + q) * 2] < 0.5) uv[(j + q) * 2] += 1;
+    }
+    g.setAttribute('uv', new t.BufferAttribute(uv, 2));
+    const tex = paint(per, H, sk.draw, 2048); tex.wrapS = t.RepeatWrapping;
+    const mat = new t.MeshStandardMaterial(sk.opaque
+      ? { map: tex, roughness: sk.rough != null ? sk.rough : 0.6, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1 - i }
+      : { map: tex, transparent: true, depthWrite: false, roughness: sk.foil ? 0.25 : 0.45, metalness: sk.foil ? 0.8 : 0, polygonOffset: true, polygonOffsetFactor: -2 - i, side: t.DoubleSide });
+    k.part(g, mat, sk.opaque ? 0 : 4);
+  }
   // A front-view outline extruded to depth d, corners rounded by rr, standing on y = 0.
   function profile(pts, d, rr) {
     const t = T(), sh = new t.Shape(), n = pts.length, bv = Math.min(0.02, d / 4);

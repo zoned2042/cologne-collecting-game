@@ -172,7 +172,7 @@ const Maison = (() => {
       box: { style: 'voyager', paper: '#f6f5f1', ink: '#141414', pattern: 'plain', emblem: 'none', foil: false },
     },
   };
-  const designCost = (d) => SHAPES[d.shape].cost + GLASS[d.glass].cost + CAPS[d.cap].cost + (['gold', 'rosegold', 'crystal'].includes(d.capFin) ? 2 : 0) + (d.label === 'plate' ? 2 : 0) + ({ none: 0, studs: 4, crest: 3, band: 2 }[d.decor || 'none'] ?? 1) + ({ none: 0, gem: 4, pendant: 3 }[d.extra || 'none'] ?? 2);
+  const designCost = (d) => SHAPES[d.shape].cost + GLASS[d.glass].cost + CAPS[d.cap].cost + (['gold', 'rosegold', 'crystal'].includes(d.capFin) ? 2 : 0) + (d.label === 'plate' ? 2 : (LABELS[d.label] && LABELS[d.label].cost) || 0) + ((DECOR[d.decor] && DECOR[d.decor].cost) ?? { none: 0, studs: 4, crest: 3, band: 2 }[d.decor || 'none'] ?? 1) + (['gold', 'silver', 'rosegold'].includes(d.pfin) ? 1 : 0) + ({ none: 0, gem: 4, pendant: 3 }[d.extra || 'none'] ?? 2);
 
   function finishMat(f, d) {
     if (f === 'wood') return { color: '#7a5230', rough: 0.75, coat: 0.1 };
@@ -187,7 +187,7 @@ const Maison = (() => {
     const m = finishMat(d.capFin, d);
     const neck = Object.assign({ s: 'cyl', r: 0.055, h: 0.03 }, d.capFin === 'gold' || d.capFin === 'rosegold' ? finishMat(d.capFin, d) : { fin: 'silver' });
     const L = (pts, seg) => ({ s: 'lathe', pts, seg });
-    const top = {
+    const table = {
       cylinder: [{ s: 'cyl', r: 0.12, h: 0.2 }], cube: [{ s: 'box', w: 0.26, d: 0.2, h: 0.2 }], sphere: [{ s: 'sphere', r: 0.12 }],
       facetball: [L([[0, 0], [0.08, 0.02], [0.13, 0.08], [0.14, 0.14], [0.12, 0.2], [0.07, 0.25], [0, 0.26]], 8)],
       faceted: [{ s: 'cyl', r: 0.15, rb: 0.13, h: 0.18, seg: 6 }], dome: [L([[0, 0], [0.15, 0], [0.15, 0.06], [0.12, 0.13], [0.06, 0.17], [0, 0.18]])],
@@ -201,24 +201,21 @@ const Maison = (() => {
       ring: [{ s: 'cyl', r: 0.05, h: 0.04 }, { s: 'ring', r: 0.1, tube: 0.026 }],
       cork: [{ s: 'cyl', r: 0.085, rb: 0.075, h: 0.16 }],
       voyager: [{ s: 'cyl', r: 0.085, h: 0.05 }, { s: 'cyl', r: 0.1, rb: 0.085, h: 0.025 }, { s: 'cyl', r: 0.075, h: 0.035 }, L([[0, 0], [0.11, 0], [0.135, 0.02], [0.14, 0.07], [0.13, 0.08], [0, 0.08]], 48)],
-    }[d.cap];
+    };
+    const top = CAPS[d.cap].parts ? CAPS[d.cap].parts(L, d) : table[d.cap];
     const corkMat = { color: '#c49a6c', rough: 0.85, coat: 0 };
-    if (d.cap === 'voyager') return top.map((t) => Object.assign(t, m));
-    return [neck].concat(top.map((t) => Object.assign(t, d.cap === 'cork' ? corkMat : m)));
+    // Parts marked own keep their own material (a gold accent on a black cap...).
+    const dress = (t) => (t.own ? t : Object.assign(t, d.cap === 'cork' ? corkMat : m));
+    if (d.cap === 'voyager' || CAPS[d.cap].noNeck) return top.map(dress);
+    return [neck].concat(top.map(dress));
   }
 
-  // Painted surface patterns, drawn over the whole front.
-  function decorArt(P, kind, ink) {
-    const { g, W, H } = P;
-    const line = (x1, y1, x2, y2, w = 0.008) => P.line(x1, y1, x2, y2, ink, w);
-    if (kind === 'stripes') for (let i = 0; i < 7; i++) P.rect(0, 0.12 + i * 0.1, 1, 0.045, ink);
-    if (kind === 'ribs') for (let i = 0; i < 46; i++) line(0, i / 46, 1, i / 46, 0.004);
-    if (kind === 'lattice') for (let i = -6; i < 12; i++) { line(i * 0.12, 0, i * 0.12 + 0.6, 1, 0.006); line(i * 0.12 + 0.6, 0, i * 0.12, 1, 0.006); }
-    if (kind === 'chevron') for (let i = 0; i < 12; i++) P.path([[0, 0.05 + i * 0.09], [0.5, 0.1 + i * 0.09], [1, 0.05 + i * 0.09]], ink, false, 0.012);
-    if (kind === 'dots') for (let y = 0.05; y < 1; y += 0.08) for (let x = 0.06; x < 1; x += 0.1) P.circle(x + ((Math.round(y / 0.08) % 2) * 0.05), y, 0.012, ink);
-    if (kind === 'waves') for (let i = 0; i < 14; i++) P.path(Array.from({ length: 17 }, (_, j) => [j / 16, 0.04 + i * 0.07 + Math.sin(j * 0.9 + i) * 0.015]), ink, false, 0.006);
-    if (kind === 'deco') for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const cx = 0.125 + c * 0.25, cy = 0.2 + r * 0.25; for (let k = 1; k < 5; k++) { g.beginPath(); g.arc(cx * W, cy * H, k * 0.03 * H, Math.PI, 0); g.strokeStyle = ink; g.lineWidth = 0.004 * H; g.stroke(); } }
-  }
+  // Surface patterns and material textures register here (see maison-niche.js);
+  // each draws onto a strip that wraps right round the bottle.
+  const ART = {};
+  const PFIN = { ink: 'Print colour', gold: 'Gold foil', silver: 'Silver foil', rosegold: 'Rose gold foil', white: 'White enamel', black: 'Black enamel' };
+  const PFIN_COL = { gold: '#e2bd6a', silver: '#e2e6ea', rosegold: '#eab29a', white: '#f6f4ef', black: '#141414' };
+  const GEO_DECOR = ['none', 'studs', 'crest', 'band'];
   // Raised or attached details as geometry (studs, crest, band and the accessories).
   function extras(d, sh) {
     const fns = [], fm = finishMat(d.capFin, d);
@@ -242,7 +239,7 @@ const Maison = (() => {
         const flower = B.paint(0.2, 0.2, (P) => { for (let i = 0; i < 4; i++) P.ellipse(0.5, 0.5, 0.4, 0.12, i * Math.PI / 4, dark ? 'rgba(190,190,195,0.85)' : 'rgba(40,40,44,0.55)'); P.circle(0.5, 0.5, 0.08, dark ? '#0c0c0c' : 'rgba(255,255,255,0.5)'); });
         k.part(lid, new T.MeshStandardMaterial({ map: flower, transparent: true, metalness: 0.6, roughness: 0.3, depthWrite: false }), 4);
       }
-      if (d.extra === 'gem') { const capTop = H + 0.03 + ({ cylinder: 0.2, cube: 0.2, sphere: 0.24, facetball: 0.26, faceted: 0.18, dome: 0.18, mushroom: 0.19, crown: 0.26, tall: 0.32, pyramid: 0.22, spire: 0.42, flame: 0.34, teardrop: 0.28, rings: 0.18, ring: 0.24, cork: 0.16, voyager: 0.16 }[d.cap] || 0.2); k.part(B.sphere(0.035, capTop + 0.02, 1, 1, 1), B.glass({ tint: d.juice, op: 0.85 })); }
+      if (d.extra === 'gem') { const capTop = H + 0.03 + ({ cylinder: 0.2, cube: 0.2, sphere: 0.24, facetball: 0.26, faceted: 0.18, dome: 0.18, mushroom: 0.19, crown: 0.26, tall: 0.32, pyramid: 0.22, spire: 0.42, flame: 0.34, teardrop: 0.28, rings: 0.18, ring: 0.24, cork: 0.16, voyager: 0.16 }[d.cap] || CAPS[d.cap].h || 0.2); k.part(B.sphere(0.035, capTop + 0.02, 1, 1, 1), B.glass({ tint: d.juice, op: 0.85 })); }
     });
     return fns;
   }
@@ -253,6 +250,9 @@ const Maison = (() => {
       const B = BottleCraft.tools, sh = SHAPES[d.shape].body;
       const o = Object.assign({}, sh);
       if (sh.torso) o.geo = () => B.torsoGeo(B.TORSO_MALE, { sculpt: 1.2 });
+      if (sh.make) { o.body = 'geo'; o.geo = () => sh.make(B); }
+      o.skin = [];
+      const gl = GLASS[d.glass];
       const H = sh.h, W = sh.w;
       const darker = (hex, k) => { const c = new B.T.Color(hex); c.multiplyScalar(k); return '#' + c.getHexString(); };
       if (d.glass === 'clear') { o.juice = d.juice; o.level = 0.9; o.inset = 0.93; }
@@ -266,19 +266,25 @@ const Maison = (() => {
       else if (d.glass === 'pearl') { o.solid = d.color; o.metal = 0.35; o.rough = 0.3; o.coat = 0.9; }
       else if (d.glass === 'metal') { o.solid = d.color; o.metal = 0.9; o.rough = 0.25; }
       else if (d.glass === 'mirror') { o.solid = d.color; o.metal = 1; o.rough = 0.06; o.env = 2.6; }
+      else if (gl.apply) gl.apply(o, d, darker);
       else if (d.glass === 'juicefade') { o.juice = d.juice; o.jgrad = [d.juice, d.color]; o.level = 0.93; o.inset = 0.965; o.jop = 0.88; o.env = 2.6; }
       o.cap = capParts(d);
       const wrap = sh.body === 'lathe' || sh.body === 'sphere' || (sh.body === 'cyl' && !sh.seg);
       const art = [];
-      if (d.decor && !['none', 'studs', 'crest', 'band'].includes(d.decor)) art.push({ w: W * 0.96, h: H * 0.94, y: H / 2, wrap, arc: 2.4, draw: (P) => decorArt(P, d.decor, d.ink + '66') });
-      if (d.label === 'voyager') {
+      if (gl.skin && ART[gl.skin]) o.skin.push({ opaque: true, rough: gl.rough, round: sh.skinRound, draw: (P) => ART[gl.skin](P, d.color, { d, pal: [d.color, d.juice, d.ink] }) });
+      if (d.decor && !GEO_DECOR.includes(d.decor) && ART[d.decor]) {
+        const pf = d.pfin || 'ink', col = pf === 'ink' ? d.ink : PFIN_COL[pf];
+        o.skin.push({ foil: ['gold', 'silver', 'rosegold'].includes(pf), round: sh.skinRound, draw: (P) => ART[d.decor](P, col, { d, pal: [col, d.ink, d.juice, d.color] }) });
+      }
+      if (LABELS[d.label] && LABELS[d.label].art) art.push(LABELS[d.label].art(info, d, sh, wrap));
+      else if (d.label === 'voyager') {
         // Louis Vuitton's lettering: the name in bold tracked capitals, the house in light capitals beneath.
         art.push({
           h: Math.min(0.1, H * 0.17), y: H / 2, wrap, arc: 1.4, w: wrap ? undefined : W * 0.86,
           t: [[info.name.toUpperCase(), 0.3, 0.36, d.ink, { font: 'helv', weight: 700, track: 0.04, maxW: 0.86 }],
             [info.house.toUpperCase(), 0.74, 0.26, d.ink + 'b0', { font: 'helv', weight: 400, track: 0.12, maxW: 0.76 }]],
         });
-      } else if (d.label !== 'none' && d.label !== 'tag') {
+      } else if (d.label !== 'none' && d.label !== 'tag' && !LABELS[d.label].art) {
         const plate = d.label === 'plate', paper = d.label === 'paper';
         const lw = Math.min(W * 0.78, 0.42), lh = Math.min(H * (d.decor === 'crest' ? 0.34 : 0.42), 0.28);
         const bg = plate ? (d.capFin === 'gold' || d.capFin === 'rosegold' ? '#d8b462' : '#cfd3d8') : paper ? info.lbg : 'rgba(0,0,0,0)';
@@ -290,8 +296,11 @@ const Maison = (() => {
             [CONC[info.conc].label.toUpperCase(), 0.82, 0.07, ink, { font: 'helv', track: 0.2, maxW: 0.86 }]],
         });
       }
+      // Shapes with waists, hollows or tiers say where their label fits.
+      if (sh.label && art.length && d.label !== 'none' && d.label !== 'tag') { const a = art[art.length - 1]; Object.assign(a, sh.label); if (a.wrap && sh.label.w) a.arc = sh.label.w / (W / 2 + 0.004); }
       if (art.length) o.art = art;
       o.extra = extras(d, sh);
+      if (gl.extra) o.extra.push((k) => gl.extra(k, d, sh, B));
       if (d.label === 'tag') o.extra.push((k) => { const B2 = BottleCraft.tools; k.part(B2.cyl(0.004, 0.004, 0.16, H - 0.14, 6, -0.1, sh.d / 2 + 0.02), B2.solid({ color: '#c8b48a', rough: 0.8 })); k.flat(0.16, 0.1, -0.1, H - 0.2, sh.d / 2 + 0.03, B2.paint(0.16, 0.1, (P) => { P.rect(0, 0, 1, 1, info.lbg, 0.05); P.text(info.name, 0.5, 0.42, 0.28, info.lfg, { font: 'serif', italic: true, maxW: 0.9 }); P.text(info.house.toUpperCase(), 0.5, 0.78, 0.14, info.lfg, { font: 'roman', track: 0.1, maxW: 0.9 }); })); });
       return B.Q(o);
     };
@@ -302,6 +311,7 @@ const Maison = (() => {
   const PATTERNS = { plain: 'Plain', border: 'Fine border', double: 'Double frame', stripes: 'Pinstripes', band: 'Centre band', monogram: 'Monogram', damask: 'Damask', lattice: 'Lattice', greekkey: 'Greek key', chevron: 'Chevrons', dots: 'Polka dots', deco: 'Art deco', stars: 'Starry night', waves: 'Waves', marble: 'Marble', leather: 'Leather grain', croc: 'Croc embossed', wood: 'Wood grain', gradient: 'Gradient wash' };
   const EMBLEMS = { none: 'None', seal: 'Wax seal', crest: 'Crest', medallion: 'Monogram medallion' };
   const rnd = (i) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  const BOX_OWN = ['stripes', 'border', 'double', 'band', 'monogram', 'damask', 'lattice', 'greekkey', 'chevron', 'dots', 'deco', 'stars', 'waves', 'marble', 'leather', 'croc', 'wood', 'gradient'];
   function boxPattern(P, kind, ink, paper, mono) {
     const { g, W, H } = P, faint = ink + '30', mid = ink + '55';
     if (kind === 'stripes') for (let i = 0; i < 60; i++) P.line(i / 60, 0, i / 60, 1, faint, 0.0012);
@@ -321,6 +331,7 @@ const Maison = (() => {
     if (kind === 'leather') for (let i = 0; i < 1600; i++) P.circle(rnd(i), rnd(i + 999), 0.0015 + rnd(i + 3) * 0.003, 'rgba(0,0,0,0.12)');
     if (kind === 'croc') for (let y = 0; y < 1.05; y += 0.04) for (let x = 0; x < 1.05; x += 0.07) P.frame(x + ((Math.round(y / 0.04) % 2) * 0.035) + 0.004, y + 0.004, 0.062, 0.032, 'rgba(0,0,0,0.25)', 0.0015);
     if (kind === 'wood') for (let i = 0; i < 70; i++) P.path(Array.from({ length: 9 }, (_, j) => [i / 70 + Math.sin(j * 0.8 + i * 0.3) * 0.006, j / 8]), 'rgba(0,0,0,' + (0.08 + rnd(i) * 0.12) + ')', false, 0.0015);
+    if (ART[kind] && !BOX_OWN.includes(kind)) ART[kind](P, ink + '38', { box: true, pal: [ink + '55', ink + '30', ink + '1c'] });
     if (kind === 'gradient') { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(0,0,0,0.35)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   }
   function emblem(P, kind, ink, paper, mono, y = 0.3) {
@@ -487,5 +498,5 @@ const Maison = (() => {
     return { shot };
   })();
 
-  return { Snap, NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, DECOR, EXTRAS, BOX_STYLES, PATTERNS, EMBLEMS, PRESETS, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
+  return { Snap, NOTES, NOTE, ACCORDS, CLASHES, CONC, CITIES, PALETTES, SHAPES, GLASS, CAPS, FINISH, LABELS, DECOR, EXTRAS, BOX_STYLES, PATTERNS, EMBLEMS, PRESETS, PFIN, ART, analyse, longevity, designCost, register, tierFor, bottleSpec, boxSpec, Preview };
 })();

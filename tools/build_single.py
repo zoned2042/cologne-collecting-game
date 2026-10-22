@@ -7,7 +7,7 @@ Run from the repo root:  python3 tools/build_single.py
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS = ['catalog', 'audio', 'bottles', 'bottles-designer', 'bottles-arabia', 'bottles-margiela', 'bottles-template', 'bottles-niche', 'bottles-artisan', 'bottles-extra', 'bottles-jpg', 'boxes', 'boxes-houses', 'boxes-classic', 'boxes-designer', 'boxes-arabia', 'boxes-niche', 'boxes-maisons', 'showroom', 'unbox', 'maison', 'game']
+SCRIPTS = ['catalog', 'audio', 'bottles', 'bottles-designer', 'bottles-arabia', 'bottles-margiela', 'bottles-template', 'bottles-niche', 'bottles-artisan', 'bottles-extra', 'bottles-jpg', 'boxes', 'boxes-houses', 'boxes-classic', 'boxes-designer', 'boxes-arabia', 'boxes-niche', 'boxes-maisons', 'showroom', 'unbox', 'maison', 'maison-niche', 'game']
 THREE_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
 
 
