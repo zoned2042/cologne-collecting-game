@@ -10908,6 +10908,22 @@ const Maison = (() => {
     ['leather', 'Leather', 'leather', 'base', 4, 4], ['musk', 'White Musk', 'musk', 'base', 1.5, 3], ['oakmoss', 'Oakmoss', 'aromatic', 'base', 3, 3],
     ['benzoin', 'Benzoin', 'amber', 'base', 2, 3], ['incense', 'Frankincense', 'amber', 'base', 4, 4], ['cacao', 'Cacao', 'gourmand', 'base', 3, 4],
     ['labdanum', 'Labdanum', 'amber', 'base', 3.5, 4], ['birch', 'Birch Tar', 'leather', 'base', 3, 4], ['ambergris', 'Ambergris', 'aquatic', 'base', 12, 4],
+    // top, added
+    ['ginger', 'Ginger', 'spicy', 'top', 1.5, 3], ['lime', 'Lime', 'citrus', 'top', 0.8, 2], ['yuzu', 'Yuzu', 'citrus', 'top', 2, 2], ['bitterorange', 'Bitter Orange', 'citrus', 'top', 1, 2],
+    ['blackpepper', 'Black Pepper', 'spicy', 'top', 1.5, 3], ['elemi', 'Elemi', 'spicy', 'top', 2.5, 2], ['pear', 'Pear', 'sweet', 'top', 1.5, 2], ['peach', 'Peach', 'sweet', 'top', 1.8, 3],
+    ['raspberry', 'Raspberry', 'sweet', 'top', 1.8, 3], ['cherry', 'Black Cherry', 'sweet', 'top', 2.5, 4], ['plum', 'Plum', 'sweet', 'top', 2, 3], ['aldehydes', 'Aldehydes', 'fresh', 'top', 1.5, 3],
+    ['ozonic', 'Rain Accord', 'aquatic', 'top', 1.5, 2], ['basil', 'Basil', 'aromatic', 'top', 1.2, 2], ['rum', 'Rum', 'gourmand', 'top', 3, 4], ['cognac', 'Cognac', 'gourmand', 'top', 4, 4],
+    // heart, added
+    ['blacktea', 'Black Tea', 'aromatic', 'heart', 3, 3], ['greentea', 'Green Tea', 'fresh', 'heart', 2.5, 2], ['matcha', 'Matcha', 'fresh', 'heart', 3, 2], ['whitetea', 'White Tea', 'fresh', 'heart', 3, 2],
+    ['mate', 'Maté', 'aromatic', 'heart', 2, 2], ['clove', 'Clove', 'spicy', 'heart', 1.5, 4], ['staranise', 'Star Anise', 'spicy', 'heart', 1.8, 3], ['cumin', 'Cumin', 'spicy', 'heart', 1.5, 4],
+    ['violet', 'Violet', 'floral', 'heart', 3, 2], ['magnolia', 'Magnolia', 'floral', 'heart', 4, 3], ['muguet', 'Lily of the Valley', 'floral', 'heart', 4, 2], ['ylang', 'Ylang-Ylang', 'floral', 'heart', 4, 4],
+    ['osmanthus', 'Osmanthus', 'floral', 'heart', 7, 3], ['peony', 'Peony', 'floral', 'heart', 3, 2], ['mimosa', 'Mimosa', 'floral', 'heart', 4, 3], ['lotus', 'Lotus', 'floral', 'heart', 3, 2],
+    ['caramel', 'Caramel', 'gourmand', 'heart', 1.8, 4], ['almond', 'Bitter Almond', 'gourmand', 'heart', 2, 4], ['pistachio', 'Pistachio', 'gourmand', 'heart', 3, 3], ['coconut', 'Coconut', 'sweet', 'heart', 1.8, 3],
+    ['hay', 'Hay', 'aromatic', 'heart', 2, 3], ['cypress', 'Cypress', 'woody', 'heart', 1.5, 2],
+    // base, added
+    ['guaiac', 'Guaiac Wood', 'woody', 'base', 3, 3], ['cashmeran', 'Cashmere Wood', 'woody', 'base', 2.5, 3], ['cypriol', 'Cypriol', 'woody', 'base', 4, 4], ['suede', 'Suede', 'leather', 'base', 3.5, 3],
+    ['myrrh', 'Myrrh', 'amber', 'base', 4, 4], ['styrax', 'Styrax', 'amber', 'base', 3, 4], ['praline', 'Praline', 'gourmand', 'base', 2.5, 4], ['seaweed', 'Seaweed', 'aquatic', 'base', 2.5, 3],
+    ['cedarmoss', 'Cedar Moss', 'woody', 'base', 2.5, 3], ['vanillabourbon', 'Bourbon Vanilla', 'gourmand', 'base', 4, 5],
   ].map(([id, name, family, layer, cost, pot]) => ({ id, name, family, layer, cost, pot }));
   const NOTE = Object.fromEntries(NOTES.map((n) => [n.id, n]));
 
@@ -10923,10 +10939,22 @@ const Maison = (() => {
     [['lemon', 'mint'], 4, 'Mojito'], [['apple', 'cinnamon'], 5, 'Apple pie'], [['fig', 'cedar'], 6, 'Fig tree'], [['vetiver', 'grapefruit'], 6, 'Green vetiver'],
     [['cedar', 'vetiver'], 4, 'Dry woods'], [['sandalwood', 'musk'], 6, 'Skin scent'], [['sandalwood', 'rose'], 5, 'Rose woods'], [['blackcurrant', 'rose'], 6, 'Fruity rose'],
     [['tuberose', 'jasmine'], 6, 'White floral'], [['leather', 'birch'], 6, 'Russian leather'], [['ambergris', 'seasalt'], 8, 'Ambergris shore'], [['mandarin', 'neroli'], 5, 'Orange grove'],
+    [['blacktea', 'bergamot'], 10, 'Earl Grey'], [['blacktea', 'birch'], 10, 'Lapsang smoke'], [['blacktea', 'honey'], 6, 'Honeyed tea'], [['greentea', 'jasmine'], 8, 'Jasmine tea'],
+    [['matcha', 'vanilla'], 6, 'Matcha latte'], [['whitetea', 'musk'], 7, 'Clean tea'], [['mate', 'cedar'], 5, 'Green maté'], [['ginger', 'neroli'], 9, 'Sparkling neroli'],
+    [['ginger', 'bergamot'], 7, 'Ginger zest'], [['ginger', 'blacktea'], 6, 'Spiced chai'], [['ginger', 'vetiver'], 5, 'Rooted ginger'], [['neroli', 'orangeblossom'], 6, 'Bigarade'],
+    [['neroli', 'greentea'], 6, 'Morning cologne'], [['lime', 'basil'], 6, 'Garden citrus'], [['yuzu', 'ozonic'], 6, 'Rain on citrus'], [['bitterorange', 'neroli'], 6, 'Eau de Cologne'],
+    [['cherry', 'almond'], 12, 'Cherry liqueur'], [['plum', 'oud'], 8, 'Plum oud'], [['plum', 'rose'], 6, 'Dark rose'], [['peach', 'osmanthus'], 8, 'Apricot blossom'],
+    [['raspberry', 'saffron'], 7, 'Saffron berry'], [['rum', 'vanilla'], 9, 'Spiced rum'], [['cognac', 'tobacco'], 10, 'Cigar lounge'], [['cognac', 'cinnamon'], 6, 'Warm brandy'],
+    [['coconut', 'vanilla'], 7, 'Beach vanilla'], [['caramel', 'praline'], 6, 'Salted caramel'], [['pistachio', 'praline'], 6, 'Pistachio cream'], [['clove', 'rose'], 6, 'Spiced rose'],
+    [['cumin', 'leather'], 6, 'Animalic leather'], [['violet', 'leather'], 7, 'Violet suede'], [['iris', 'suede'], 8, 'Powdered suede'], [['myrrh', 'incense'], 8, 'Church incense'],
+    [['styrax', 'leather'], 6, 'Smoked leather'], [['guaiac', 'oud'], 6, 'Dark woods'], [['cashmeran', 'musk'], 6, 'Cashmere skin'], [['seaweed', 'seasalt'], 7, 'Rock pools'],
+    [['aldehydes', 'rose'], 7, 'Aldehydic floral'], [['ylang', 'coconut'], 6, 'Tropical floral'], [['magnolia', 'lemon'], 5, 'Citrus magnolia'], [['hay', 'tobacco'], 7, 'Sun-dried leaf'],
+    [['blackpepper', 'vetiver'], 6, 'Peppered vetiver'], [['elemi', 'incense'], 5, 'Resinous citrus'], [['pear', 'ginger'], 6, 'Pear and ginger'], [['cypress', 'incense'], 5, 'Cypress smoke'],
+    [['vanillabourbon', 'tobacco'], 10, 'Bourbon tobacco'], [['cypriol', 'oud'], 6, 'Earth oud'],
   ];
   const CLASHES = [
     [['marine', 'oud'], 12], [['marine', 'leather'], 8], [['mint', 'oud'], 8], [['seasalt', 'cacao'], 10], [['coffee', 'marine'], 10], [['lemon', 'leather'], 5],
-    [['birch', 'jasmine'], 6], [['pineapple', 'oud'], 6], [['iris', 'marine'], 4], [['mint', 'tuberose'], 6], [['cacao', 'vetiver'], 4], [['seasalt', 'tobacco'], 6],
+    [['birch', 'jasmine'], 6], [['pineapple', 'oud'], 6], [['iris', 'marine'], 4], [['mint', 'tuberose'], 6], [['cacao', 'vetiver'], 4], [['seasalt', 'tobacco'], 6], [['cumin', 'seaweed'], 8], [['matcha', 'leather'], 5], [['coconut', 'oud'], 6], [['ozonic', 'praline'], 6], [['cherry', 'seaweed'], 8],
   ];
 
   const CONC = {
