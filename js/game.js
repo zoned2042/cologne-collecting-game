@@ -1006,7 +1006,7 @@
     </article>`;
     let body = '';
     if (a.step === 0) {
-      body = `<div class="lab-grid"><div class="notes-cols">${['top', 'heart', 'base'].map((layer) => `<article class="panel"><p class="eyebrow">${layer} notes</p><div class="notes">${Maison.NOTES.filter((n) => n.layer === layer).map((n) => `<button class="note ${d.sel[layer].includes(n.id) ? 'on' : ''}" data-action="note" data-l="${layer}" data-id="${n.id}" style="--c:${FAMILIES[n.family].color}"><span>${esc(n.name)}</span><small>$${n.cost}</small></button>`).join('')}</div></article>`).join('')}
+      body = `<div class="lab-grid"><div class="notes-cols">${aiPanel()}${['top', 'heart', 'base'].map((layer) => `<article class="panel"><p class="eyebrow">${layer} notes</p><div class="notes">${Maison.NOTES.filter((n) => n.layer === layer).map((n) => `<button class="note ${d.sel[layer].includes(n.id) ? 'on' : ''}" data-action="note" data-l="${layer}" data-id="${n.id}" style="--c:${FAMILIES[n.family].color}"><span>${esc(n.name)}</span><small>$${n.cost}</small></button>`).join('')}</div></article>`).join('')}
         <label class="field"><span>Concentration</span><select data-field="conc">${opt(Maison.CONC, d.conc)}</select></label></div>${summary}</div>`;
     } else if (a.step === 1 || a.step === 2) {
       const ds = d.design, bx = d.box;
@@ -1120,6 +1120,10 @@
   function aiPanel() {
     if (!aiSample) return '';
     const a = ui.atelier, box = a.step === 2;
+    if (a.step === 0) return `<div class="ai-box ai-perfumer"><p class="eyebrow">AI perfumer</p>
+      <label class="field"><span>Describe the scent you want</span><textarea id="ai-prompt" rows="3" maxlength="400" placeholder="e.g. a fresh black tea and ginger cologne with neroli, for spring mornings">${esc(a.aiText)}</textarea></label>
+      <div class="row-actions">${a.ai.busy ? '<button class="btn" data-action="ai-stop">Stop</button>' : '<button class="btn btn-primary" data-action="ai-design">Compose it</button><button class="btn" data-action="ai-all">Create everything</button><button class="btn" data-action="ai-surprise">Surprise me</button>'}</div>
+      <p class="hint" aria-live="polite">${a.ai.busy ? (a.ai.all ? 'Composing the formula and designing the bottle and box…' : 'Composing…') : esc(a.ai.msg || `Claude picks up to ${maxNotes()} notes from your palette, aiming for accords that work and avoiding clashes, plus the concentration. Create everything also names it and designs the bottle and box.`)}</p></div>`;
     return `<div class="ai-box"><p class="eyebrow">AI designer</p>
       <label class="field"><span>${box ? 'Describe the box you want' : 'Describe the bottle you want'}</span><textarea id="ai-prompt" rows="3" maxlength="400" placeholder="${box ? 'e.g. a black book box with gold art deco fans and a wax seal' : 'e.g. a smoky black faceted bottle with a rose-gold flame cap and a tassel'}">${esc(a.aiText)}</textarea></label>
       <div class="row-actions">${a.ai.busy ? '<button class="btn" data-action="ai-stop">Stop</button>' : `<button class="btn btn-primary" data-action="ai-design">Design it</button><button class="btn" data-action="ai-surprise">Surprise me</button>`}</div>
@@ -1139,7 +1143,50 @@ Current bottle: ${JSON.stringify(d.design)}. Current box: ${JSON.stringify(d.box
 The player asks: "${request}"
 
 Choose ONLY from these option keys (use the key, not the label):
-bottle "shape": ${optList(Maison.SHAPES)}
+${designOptions()}
+
+Follow the player's request closely; where it says nothing, make tasteful choices that suit the notes and house colours, with good contrast between ink and the colour behind it.
+Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a fragrance name, at most 3 words)'} and "note" (one short sentence describing your design). Example: {"design":{"shape":"gem","glass":"smoked","color":"#202024","juice":"#c9822e","cap":"flame","capFin":"rosegold","label":"plate","ink":"#e8c48a","decor":"none","extra":"tassel"},"box":{"style":"book","paper":"#151515","ink":"#d8b56a","pattern":"deco","emblem":"seal","foil":true},"note":"Smoky glass under a rose-gold flame, boxed in black and gold deco."}`;
+  }
+  // The perfumer's brief: every note by layer, the accords to aim for and the clashes to avoid.
+  function aiFormulaPrompt(request, all) {
+    const d = ui.atelier.draft, m = M(), max = maxNotes();
+    const layer = (l) => Maison.NOTES.filter((x) => x.layer === l).map((x) => `${x.id} (${x.name}, ${x.family})`).join('; ');
+    const acc = Maison.ACCORDS.map(([ids, pts, name]) => `${name}: ${ids.join(' + ')} (+${pts})`).join('; ');
+    const cl = Maison.CLASHES.map(([ids]) => ids.join(' + ')).join('; ');
+    const design = all ? `
+Also design the bottle ("design") and its retail box ("box"), choosing ONLY from these option keys:
+${designOptions()}
+Make the colours suit the scent (juice colour from its notes) and keep good contrast between ink and what is behind it.` : '';
+    return `You are the master perfumer of ${m.name}, a perfume house in ${m.city} in a fragrance-collecting game. Compose a fragrance formula.
+
+The player asks: "${request}"
+Current formula: ${JSON.stringify(d.sel)}, ${d.conc}. Today's trending family is ${FAMILIES[trendFam()].label}.
+
+Rules: use note ids ONLY from these lists, each in its own layer. Use between 4 and ${max} notes in total (the lab holds ${max}), with at least one top, one heart and one base note.
+top: ${layer('top')}
+heart: ${layer('heart')}
+base: ${layer('base')}
+Pairs that form accords and raise harmony (aim for two or more that fit the request): ${acc}
+Pairs that clash and lower harmony (never use both): ${cl}
+"conc" is one of: edt (Eau de Toilette, lighter), edp (Eau de Parfum), extrait (Extrait, richest and longest).${design}
+
+Reply with only a JSON object: {"notes":{"top":[ids],"heart":[ids],"base":[ids]},"conc":"edp","name":"a fragrance name, at most 3 words",${all ? '"design":{...},"box":{...},' : ''}"note":"one short sentence describing the scent"}`;
+  }
+  // Takes the perfumer's notes, routing any note to its real layer and keeping within the lab's limit.
+  function applyFormula(d, out) {
+    const f = out && out.notes; if (!f || typeof f !== 'object') return 0;
+    const max = maxNotes(), sel = { top: [], heart: [], base: [] }, seen = new Set(), queue = { top: [], heart: [], base: [] };
+    for (const l of ['top', 'heart', 'base']) for (const id of Array.isArray(f[l]) ? f[l] : []) { const n = typeof id === 'string' && Maison.NOTE[id]; if (n && !seen.has(id)) { seen.add(id); queue[n.layer].push(id); } }
+    let total = 0;
+    for (let i = 0; i < 12 && total < max; i++) for (const l of ['top', 'heart', 'base']) if (queue[l][i] && total < max) { sel[l].push(queue[l][i]); total++; }
+    if (!total) return 0;
+    d.sel = sel; if (typeof out.conc === 'string' && Maison.CONC[out.conc]) d.conc = out.conc; d.price = 0;
+    if (!d.name && typeof out.name === 'string' && out.name.trim()) d.name = out.name.trim().slice(0, 30);
+    return total;
+  }
+  function designOptions() {
+    return `bottle "shape": ${optList(Maison.SHAPES)}
 bottle "glass": ${optList(Maison.GLASS)}
 bottle "cap": ${optList(Maison.CAPS)}
 bottle "capFin": ${optList(Maison.FINISH)}
@@ -1151,10 +1198,7 @@ bottle "color" (glass or lacquer colour), "juice" (liquid colour), "ink" (label 
 box "style": ${optList(Maison.BOX_STYLES)}
 box "pattern": ${optList(Maison.PATTERNS)}
 box "emblem": ${optList(Maison.EMBLEMS)}
-box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
-
-Follow the player's request closely; where it says nothing, make tasteful choices that suit the notes and house colours, with good contrast between ink and the colour behind it.
-Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a fragrance name, at most 3 words)'} and "note" (one short sentence describing your design). Example: {"design":{"shape":"gem","glass":"smoked","color":"#202024","juice":"#c9822e","cap":"flame","capFin":"rosegold","label":"plate","ink":"#e8c48a","decor":"none","extra":"tassel"},"box":{"style":"book","paper":"#151515","ink":"#d8b56a","pattern":"deco","emblem":"seal","foil":true},"note":"Smoky glass under a rose-gold flame, boxed in black and gold deco."}`;
+box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false`;
   }
   function applyAi(d, out, scope) {
     let n = 0;
@@ -1184,18 +1228,19 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     session_expired: 'Your Claude session expired. Sign in again to use the AI designer.',
     prompt_too_large: 'That description is too long.',
   };
-  async function aiDesign(surprise) {
+  async function aiDesign(surprise, all) {
     const a = ui.atelier, d = a.draft; if (!aiSample || a.ai.busy || !d) return;
-    const scope = a.step === 2 ? 'box' : 'both';
-    const request = surprise ? 'Surprise me: something striking and original that tells the story of these notes.' : (a.aiText || '').trim();
+    const formula = a.step === 0, scope = formula ? 'formula' : a.step === 2 ? 'box' : 'both';
+    const request = surprise ? (formula ? 'Surprise me: an original, harmonious fragrance built around at least two accords.' : 'Surprise me: something striking and original that tells the story of these notes.') : (a.aiText || '').trim();
     if (!request) { a.ai.msg = 'Describe what you want first, or press Surprise me.'; renderAtelier(); return; }
-    aiCtl = new AbortController(); a.ai = { busy: true, msg: '' }; SFX.play('click'); renderAtelier();
+    aiCtl = new AbortController(); a.ai = { busy: true, msg: '', all: !!all }; SFX.play('click'); renderAtelier();
     try {
-      const out = await aiSample.json(aiPrompt(request, scope), { modelTier: 'quick', signal: aiCtl.signal, cache: false });
-      const n = applyAi(d, out, scope);
+      const out = await aiSample.json(formula ? aiFormulaPrompt(request, !!all) : aiPrompt(request, scope), { modelTier: 'quick', signal: aiCtl.signal, cache: false });
+      const n = formula ? applyFormula(d, out) + (all ? applyAi(d, out, 'both') : 0) : applyAi(d, out, scope);
       const note = out && typeof out.note === 'string' ? out.note.slice(0, 200) : '';
-      a.ai = { busy: false, msg: n ? (note || 'Done. Tweak anything you like.') : 'That design matches what you already have. Try asking for something different.' };
-      if (n) { SFX.play('shimmer'); if (a.step === 1 && scope === 'both') toast('<b>Bottle and box designed</b><span>Press Next to see the matching box.</span>', 'good'); }
+      if (formula && n) { const an = draftAnalysis(); a.ai = { busy: false, msg: `${note ? note + ' ' : ''}Harmony ${an.harmony}${an.accords.length ? ', accords: ' + an.accords.map((x) => x.name).join(', ') : ''}.` }; }
+      else a.ai = { busy: false, msg: n ? (note || 'Done. Tweak anything you like.') : formula ? 'Claude didn’t return a usable formula. Try again or describe it differently.' : 'That design matches what you already have. Try asking for something different.' };
+      if (n) { SFX.play('shimmer'); if (formula && all) toast(`<b>${esc(d.name || 'Your fragrance')} is ready</b><span>Formula, bottle and box are done. Check each step, then launch.</span>`, 'good'); else if (a.step === 1 && scope === 'both') toast('<b>Bottle and box designed</b><span>Press Next to see the matching box.</span>', 'good'); }
     } catch (e) {
       const code = e && e.code;
       if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) { aiSample = null; a.ai = { busy: false, msg: '' }; toast('<b>AI designer unavailable</b><span>Claude isn’t enabled for this page, so design by hand below.</span>'); }
@@ -1208,7 +1253,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
   /* ---------- YOUR HOUSE WEBSITE: a storefront in a browser window, plus its dashboard ---------- */
   const SITE_COST = 25000, HOSTING = 40;
   const SEO_COST = [8000, 25000, 70000, 200000, 600000];
-  const TEMPLATES = { luxe: 'Luxe (house colours, dark)', atelier: 'Atelier (cream, editorial)', modern: 'Modern (white, bold grid)' };
+  const TEMPLATES = { luxe: 'Luxe (house colours, dark)', atelier: 'Atelier (cream, editorial)', modern: 'Modern (white, bold grid)', grand: 'Grand maison (white and serif, campaign scenes, like Parfums de Marly)', noir: 'Noir privé (black, minimal, smoke, like Initio)' };
   const FIRST = ['Emma', 'Liam', 'Sofia', 'Noah', 'Aisha', 'Mateo', 'Yuki', 'Omar', 'Chloé', 'Lucas', 'Amara', 'Leo', 'Mei', 'Hugo', 'Zara', 'Ethan', 'Nadia', 'Kai', 'Lina', 'Marco', 'Fatima', 'Jonas', 'Isla', 'Ravi'];
   const CITIES_W = ['Lyon', 'London', 'New York', 'Dubai', 'Milan', 'Toronto', 'Sydney', 'Berlin', 'Riyadh', 'Seoul', 'Madrid', 'Austin', 'Lagos', 'Mumbai', 'Stockholm', 'Mexico City', 'Doha', 'Paris', 'Tokyo', 'Cape Town'];
   const INBOX_T = [
@@ -1226,6 +1271,8 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
   function siteTheme() {
     const m = M(), w = W(), dark = lum(m.lbg) < lum(m.lfg) ? m.lbg : m.lfg, light = dark === m.lbg ? m.lfg : m.lbg;
     if (w.template === 'luxe') return { bg: m.lbg, fg: m.lfg, accent: m.lfg, card: 'color-mix(in srgb, ' + m.lfg + ' 6%, ' + m.lbg + ')', font: 'serif' };
+    if (w.template === 'grand') return { bg: '#ffffff', fg: '#141414', accent: '#141414', card: '#f4f1ec', font: 'serif' };
+    if (w.template === 'noir') return { bg: '#070707', fg: '#ededed', accent: '#ededed', card: '#141414', font: 'sans' };
     if (w.template === 'atelier') return { bg: '#f6f1e9', fg: '#1d1712', accent: lum(dark) < 0.5 ? dark : '#1d1712', card: '#efe7da', font: 'serif' };
     return { bg: '#ffffff', fg: '#111111', accent: lum(dark) < 0.6 ? dark : '#111111', card: '#f3f3f3', font: 'sans' };
   }
@@ -1360,7 +1407,16 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
   }
 
   // Browser state: history stack for back/forward, the bag and the checkout form.
-  const site = { hist: [{ p: 'home' }], hi: 0, bag: [], code: null, codeMsg: '', q: '', fam: '', sort: 'featured', shot: 'bottle', size: '100', qty: 1, err: {}, form: {}, msg: '', lastOrder: null, scrollTop: 0, mode: 'visit', newsletter: '', slide: 0, coverTop: null, revShow: 6, revStar: 0, revSort: 'recent' };
+  const site = { hist: [{ p: 'home' }], hi: 0, bag: [], code: null, codeMsg: '', q: '', fam: '', sort: 'featured', shot: 'bottle', size: '100', qty: 1, err: {}, form: {}, msg: '', lastOrder: null, scrollTop: 0, mode: 'visit', newsletter: '', slide: 0, coverTop: null, revShow: 6, revStar: 0, revSort: 'recent', ann: 0, annPaused: false, annClosed: false, cur: 'USD', searchOpen: false };
+  // Region picker on the Grand maison look: prices are shown converted, orders are still taken in dollars.
+  const REGIONS = { USD: ['United States [EN]', '$', 1], GBP: ['United Kingdom [EN]', '£', 0.79], EUR: ['France [FR]', '€', 0.92], AED: ['United Arab Emirates [EN]', 'AED ', 3.67] };
+  const wm = (v) => { const [, sym, rate] = REGIONS[site.cur] || REGIONS.USD; return sym + Math.round(v * rate).toLocaleString('en-US'); };
+  const ICON = {
+    search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>',
+    user: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+    bag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 13H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  };
   const cur = () => site.hist[site.hi];
   function go(p, extra = {}) { site.hist = site.hist.slice(0, site.hi + 1); site.hist.push(Object.assign({ p }, extra)); site.hi = site.hist.length - 1; site.shot = 'bottle'; site.qty = 1; site.err = {}; site.revShow = 6; site.revStar = 0; site.revSort = 'recent'; site.scrollTop = 0; site.jump = true; site.flash = ''; site.msg = ''; site.newsMsg = ''; SFX.play('click'); renderAtelier(); }
   function sitePath(pg) {
@@ -1375,7 +1431,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     const out = c.stock <= 0;
     return `<article class="w-card"><button class="w-card-img" data-action="w-go" data-p="product" data-id="${c.id}">${img(c)}</button>
       <div class="w-card-body"><p class="w-kicker">${esc(FAMILIES[c.family].label)} · ${esc(Maison.CONC[c.conc].label)}</p><h3><button data-action="w-go" data-p="product" data-id="${c.id}">${esc(c.name)}</button></h3>
-      <p class="w-price">${money(c.price)} ${avgStars(c) ? stars5(avgStars(c)) + ` <small class="w-muted">(${reviewCount(c)})</small>` : ''}</p>
+      <p class="w-price">${wm(c.price)} ${avgStars(c) ? stars5(avgStars(c)) + ` <small class="w-muted">(${reviewCount(c)})</small>` : ''}</p>
       ${out ? '<p class="w-muted">Sold out</p>' : `<button class="w-btn w-btn-line" data-action="w-add" data-id="${c.id}">Add to bag</button>`}</div></article>`;
   }
 
@@ -1407,10 +1463,10 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
         <div class="w-gallery"><div class="w-main-img">${img(c, site.shot)}</div><div class="w-thumbs">${['bottle', 'box'].map((mo) => `<button class="${site.shot === mo ? 'on' : ''}" data-action="w-shot" data-m="${mo}">${img(c, mo)}</button>`).join('')}</div></div>
         <div class="w-buy"><p class="w-kicker">${esc(m.name)} · ${esc(Maison.CONC[c.conc].label)}</p><h1>${esc(c.name)}</h1>
           <p class="w-rating">${avg ? stars5(avg) + ` <button class="w-link" data-action="w-jump" data-t="w-reviews">${nrev} ${nrev === 1 ? 'review' : 'reviews'}</button>` : 'No reviews yet'}</p>
-          <p class="w-big-price">${money(sizePrice(c, site.size))}</p>
-          <div class="w-opts"><span class="w-label">Size</span>${[['50', '50 ml', p50], ['100', '100 ml', c.price]].map(([k, l, pr]) => `<button class="${site.size === k ? 'on' : ''}" data-action="w-size" data-s="${k}">${l}<small>${money(pr)}</small></button>`).join('')}</div>
+          <p class="w-big-price">${wm(sizePrice(c, site.size))}</p>
+          <div class="w-opts"><span class="w-label">Size</span>${[['50', '50 ml', p50], ['100', '100 ml', c.price]].map(([k, l, pr]) => `<button class="${site.size === k ? 'on' : ''}" data-action="w-size" data-s="${k}">${l}<small>${wm(pr)}</small></button>`).join('')}</div>
           <div class="w-row"><div class="w-qty"><button data-action="w-qty" data-d="-1" aria-label="Fewer">−</button><span>${site.qty}</span><button data-action="w-qty" data-d="1" aria-label="More">+</button></div>
-            ${c.stock > 0 ? `<button class="w-btn w-grow" data-action="w-add" data-id="${c.id}" data-q="${site.qty}">Add to bag · ${money(sizePrice(c, site.size) * site.qty)}</button>` : `<button class="w-btn w-grow" data-action="w-notify">Notify me when it’s back</button>`}</div>
+            ${c.stock > 0 ? `<button class="w-btn w-grow" data-action="w-add" data-id="${c.id}" data-q="${site.qty}">Add to bag · ${wm(sizePrice(c, site.size) * site.qty)}</button>` : `<button class="w-btn w-grow" data-action="w-notify">Notify me when it’s back</button>`}</div>
           <p class="w-stock">${c.stock <= 0 ? 'Sold out' : c.stock < 50 ? `Only ${c.stock} left` : 'In stock · ships in 1–2 days'}</p>
           <details open><summary>Notes</summary><dl class="w-pyramid"><div><dt>Top</dt><dd>${c.notes.top.map((x) => n[x].name).join(', ') || '—'}</dd></div><div><dt>Heart</dt><dd>${c.notes.heart.map((x) => n[x].name).join(', ') || '—'}</dd></div><div><dt>Base</dt><dd>${c.notes.base.map((x) => n[x].name).join(', ') || '—'}</dd></div></dl></details>
           <details><summary>The perfumer’s note</summary><p>${c.accords.length ? `Built on ${c.accords.join(', ').toLowerCase()}. ` : ''}A ${FAMILIES[c.family].label.toLowerCase()} fragrance that lasts around ${lng} hours on skin.</p></details>
@@ -1421,9 +1477,9 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     }
     if (pg.p === 'cart') {
       const t = bagTotals();
-      return `<section class="w-sec w-cart"><h1 class="w-title">Your bag</h1>${site.bag.length ? `<div class="w-cart-grid"><ul class="w-lines">${site.bag.map((x, i) => { const c = M().creations.find((k) => k.id === x.id); return `<li>${c ? img(c, 'bottle', 'w-line-img') : ''}<div><b>${esc(x.name)}</b><p class="w-muted">${x.size} ml · ${money(x.price)}</p><div class="w-qty"><button data-action="w-line" data-i="${i}" data-d="-1" aria-label="Fewer">−</button><span>${x.q}</span><button data-action="w-line" data-i="${i}" data-d="1" aria-label="More">+</button></div></div><div class="w-line-end"><b>${money(x.q * x.price)}</b><button class="w-link" data-action="w-remove" data-i="${i}">Remove</button></div></li>`; }).join('')}</ul>
+      return `<section class="w-sec w-cart"><h1 class="w-title">Your bag</h1>${site.bag.length ? `<div class="w-cart-grid"><ul class="w-lines">${site.bag.map((x, i) => { const c = M().creations.find((k) => k.id === x.id); return `<li>${c ? img(c, 'bottle', 'w-line-img') : ''}<div><b>${esc(x.name)}</b><p class="w-muted">${x.size} ml · ${wm(x.price)}</p><div class="w-qty"><button data-action="w-line" data-i="${i}" data-d="-1" aria-label="Fewer">−</button><span>${x.q}</span><button data-action="w-line" data-i="${i}" data-d="1" aria-label="More">+</button></div></div><div class="w-line-end"><b>${wm(x.q * x.price)}</b><button class="w-link" data-action="w-remove" data-i="${i}">Remove</button></div></li>`; }).join('')}</ul>
         <aside class="w-summary"><form data-form="w-code" class="w-code"><label class="w-label" for="w-code">Discount code</label><div class="w-row"><input id="w-code" autocomplete="off" value="${esc(site.code ? site.code.code : '')}" placeholder="Enter code"><button class="w-btn w-btn-line">Apply</button></div>${site.codeMsg ? `<p class="w-small ${site.code ? '' : 'w-bad'}">${esc(site.codeMsg)}</p>` : ''}</form>
-          <dl class="w-totals"><div><dt>Subtotal</dt><dd>${money(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount (${esc(site.code.code)})</dt><dd>−${money(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? money(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${money(t.total)}</dd></div></dl>
+          <dl class="w-totals"><div><dt>Subtotal</dt><dd>${wm(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount (${esc(site.code.code)})</dt><dd>−${wm(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? wm(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${wm(t.total)}</dd></div></dl>
           <button class="w-btn w-wide" data-action="w-go" data-p="checkout">Checkout</button></aside></div>` : '<p class="w-muted">Your bag is empty.</p><button class="w-btn" data-action="w-go" data-p="shop">Continue shopping</button>'}</section>`;
     }
     if (pg.p === 'checkout') {
@@ -1435,8 +1491,8 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
         <h3>Contact</h3>${fld('name', 'Full name', 'autocomplete="name"')}${fld('email', 'Email', 'type="email" autocomplete="email"')}
         <h3>Shipping address</h3>${fld('address', 'Address', 'autocomplete="street-address"')}<div class="w-two">${fld('city', 'City', 'autocomplete="address-level2"')}${fld('zip', 'Postcode', 'autocomplete="postal-code"')}</div>
         <h3>Payment</h3>${fld('card', 'Card number', 'inputmode="numeric" autocomplete="cc-number" placeholder="1234 1234 1234 1234"')}<div class="w-two">${fld('exp', 'Expiry (MM/YY)', 'inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY"')}${fld('cvc', 'CVC', 'inputmode="numeric" autocomplete="cc-csc" placeholder="123"')}</div>
-        <button class="w-btn w-wide">Place order · ${money(t.total)}</button></form>
-        <aside class="w-summary"><h3>Order summary</h3><ul class="w-mini">${site.bag.map((x) => `<li><span>${x.q} × ${esc(x.name)} <small>${x.size} ml</small></span><b>${money(x.q * x.price)}</b></li>`).join('')}</ul><dl class="w-totals"><div><dt>Subtotal</dt><dd>${money(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount</dt><dd>−${money(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? money(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${money(t.total)}</dd></div></dl></aside></div></section>`;
+        <button class="w-btn w-wide">Place order · ${wm(t.total)}</button></form>
+        <aside class="w-summary"><h3>Order summary</h3><ul class="w-mini">${site.bag.map((x) => `<li><span>${x.q} × ${esc(x.name)} <small>${x.size} ml</small></span><b>${wm(x.q * x.price)}</b></li>`).join('')}</ul><dl class="w-totals"><div><dt>Subtotal</dt><dd>${wm(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount</dt><dd>−${wm(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? wm(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${wm(t.total)}</dd></div></dl></aside></div></section>`;
     }
     if (pg.p === 'done') { const o = site.lastOrder; return `<section class="w-sec w-done"><p class="w-kicker">Order confirmed</p><h1 class="w-title">Thank you${o ? ', ' + esc(o.who.split(' ')[0]) : ''}</h1><p>Your order <b>#${o ? o.n : ''}</b> is confirmed. A receipt is on its way to ${esc(site.form.email || 'your inbox')}.</p><p class="w-test">This was a test order. It is listed in your dashboard and no stock was used.</p><button class="w-btn" data-action="w-go" data-p="shop">Keep shopping</button></section>`; }
     if (pg.p === 'hot') return cs.length ? hotPage() : '<section class="w-sec"><h1 class="w-title">What’s hot</h1><p class="w-muted">Nothing on sale yet.</p></section>';
@@ -1456,6 +1512,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     if (site.coverTop !== order[0].id) { site.coverTop = order[0].id; site.slide = 0; }
     const k = site.slide % order.length, N = Maison.NOTE;
     const slides = order.map((c, i) => {
+      if (w.template === 'grand' || w.template === 'noir') return campaignSlide(c, i, k, order.length, w);
       // Body text needs strong contrast; the box ink stays for the name and buttons when it reads well enough.
       const paper = c.box.paper, ink = c.box.ink, gap = Math.abs(lum(paper) - lum(ink)), base = lum(paper) > 0.5 ? '#141414' : '#f6f2ea';
       const fg = gap > 0.5 ? ink : base, acc = gap > 0.3 ? ink : fg;
@@ -1475,12 +1532,54 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
       ${many ? `<button class="w-cover-nav prev" data-action="w-slide" data-d="-1" aria-label="Previous release">‹</button><button class="w-cover-nav next" data-action="w-slide" data-d="1" aria-label="Next release">›</button>
       <div class="w-dots">${order.map((c, i) => `<button class="${i === k ? 'on' : ''}" data-action="w-slide" data-i="${i}" aria-label="Show ${esc(c.name)}"></button>`).join('')}</div>` : ''}</section>`;
   }
+  /* Campaign covers for the Grand maison and Noir looks. Grand paints a scene for the fragrance's family
+     (starry night, desert dusk, seaside, garden or forest) tinted with its juice; Noir is black with smoke. */
+  const SCENE_OF = { fresh: 'sea', citrus: 'sea', aquatic: 'sea', oud: 'desert', amber: 'desert', spicy: 'desert', leather: 'desert', sweet: 'garden', gourmand: 'garden', floral: 'garden', woody: 'forest', aromatic: 'forest' };
+  const CAMPAIGN = { night: 'A night written in the stars', desert: 'A legend of the desert', sea: 'Where the tide begins', garden: 'A garden in full bloom', forest: 'Into the ancient forest' };
+  function scene(kind, c, i) {
+    const R = (k) => { const x = Math.sin((i * 97 + k) * 12.9898) * 43758.5453; return x - Math.floor(x); };
+    const id = 'sc' + i + kind, J = c.design.juice, I = c.box.ink;
+    const grad = (stops) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">${stops.map(([o, col]) => `<stop offset="${o}" stop-color="${col}"/>`).join('')}</linearGradient>`;
+    const stars = (n, h) => Array.from({ length: n }, (_, k) => `<circle cx="${(R(k) * 1600).toFixed(0)}" cy="${(R(k + 300) * h).toFixed(0)}" r="${(0.6 + R(k + 600) * 1.6).toFixed(1)}" fill="#fff" opacity="${(0.4 + R(k + 900) * 0.6).toFixed(2)}"/>`).join('');
+    const bumps = (y, amp, step, fill, seed) => { let d = `M0 760 L0 ${y}`; for (let x = 0; x < 1600; x += step) d += ` Q${x + step / 2} ${(y - amp * (0.5 + R(seed + x))).toFixed(0)} ${x + step} ${y}`; return `<path d="${d} L1600 760 Z" fill="${fill}"/>`; };
+    const pines = (y, h, step, fill, seed) => { let d = `M0 760 L0 ${y}`; for (let x = 0; x < 1600; x += step) { const t = h * (0.6 + R(seed + x) * 0.6); d += ` L${x + step / 2} ${(y - t).toFixed(0)} L${x + step} ${y}`; } return `<path d="${d} L1600 760 Z" fill="${fill}"/>`; };
+    const dune = (y, amp, fill, ph) => { let d = `M0 760 L0 ${y}`; for (let x = 0; x <= 1600; x += 40) d += ` L${x} ${(y + Math.sin(x / 260 + ph) * amp + Math.sin(x / 90 + ph * 2) * amp * 0.2).toFixed(0)}`; return `<path d="${d} L1600 760 Z" fill="${fill}"/>`; };
+    let body = '';
+    if (kind === 'night') body = `<defs>${grad([[0, '#060b1e'], [0.55, '#17264d'], [1, '#3a4f86']])}</defs><rect width="1600" height="760" fill="url(#${id})"/>${stars(120, 430)}<circle cx="1260" cy="140" r="36" fill="#f4f1e6" opacity="0.9"/><circle cx="1260" cy="140" r="80" fill="#f4f1e6" opacity="0.06"/>
+      <g transform="translate(760 200)"><ellipse rx="66" ry="80" fill="${J}"/><path d="M-66 0 Q0 30 66 0" stroke="${I}" stroke-width="7" fill="none"/><path d="M-60 -30 Q0 -6 60 -30" stroke="#ffffff" stroke-opacity=".5" stroke-width="4" fill="none"/><path d="M-30 70 L-14 110 M30 70 L14 110" stroke="#2a2a2a" stroke-width="2"/><rect x="-16" y="108" width="32" height="20" rx="3" fill="#6b4a2a"/></g>
+      ${bumps(500, 70, 44, '#8ea0c6', 1)}${bumps(560, 60, 36, '#c9d4ea', 2)}<rect y="610" width="1600" height="150" fill="#e8eef8"/>${bumps(640, 22, 70, '#f6f9ff', 3)}`;
+    if (kind === 'desert') body = `<defs>${grad([[0, '#1d0b16'], [0.45, '#7a2e2a'], [0.75, '#d9733e'], [1, '#f5b46a']])}</defs><rect width="1600" height="760" fill="url(#${id})"/>${stars(50, 220)}<circle cx="820" cy="440" r="96" fill="#ffd6a0" opacity="0.92"/>
+      ${dune(470, 30, '#c58450', 0.5)}${dune(540, 40, '#9b5530', 2.1)}${dune(630, 34, '#6a3120', 4)}`;
+    if (kind === 'sea') body = `<defs>${grad([[0, '#0c2340'], [0.4, '#3b6f9e'], [0.58, '#f1cfa4'], [0.581, '#1f6390'], [1, '#08243d']])}</defs><rect width="1600" height="760" fill="url(#${id})"/>${stars(30, 160)}<circle cx="860" cy="420" r="70" fill="#ffe2b8" opacity="0.95"/>
+      ${Array.from({ length: 14 }, (_, k) => `<rect x="${860 - 90 + R(k) * 40 - k * 6}" y="${452 + k * 18}" width="${150 - k * 6 + R(k + 5) * 60}" height="3" fill="#ffe2b8" opacity="${(0.7 - k * 0.04).toFixed(2)}"/>`).join('')}
+      ${Array.from({ length: 22 }, (_, k) => `<path d="M${(R(k + 40) * 1500).toFixed(0)} ${470 + k * 13} q20 -6 40 0" stroke="#bfe0f2" stroke-opacity=".35" fill="none"/>`).join('')}${bumps(700, 30, 120, '#0a1d30', 4)}`;
+    if (kind === 'garden') body = `<defs>${grad([[0, '#22152a'], [0.5, '#8a4f6c'], [1, '#f0bfae']])}</defs><rect width="1600" height="760" fill="url(#${id})"/>${stars(40, 200)}
+      <path d="M560 760 L560 420 A120 120 0 0 1 800 420 L800 760" fill="none" stroke="#1d3326" stroke-width="22"/>${bumps(560, 50, 90, '#2b4a36', 5)}<rect y="600" width="1600" height="160" fill="#1d3326"/>
+      ${Array.from({ length: 70 }, (_, k) => `<circle cx="${(R(k + 70) * 1600).toFixed(0)}" cy="${(560 + R(k + 140) * 160).toFixed(0)}" r="${(3 + R(k + 210) * 5).toFixed(1)}" fill="${k % 3 ? J : '#f6e6ef'}" opacity=".9"/>`).join('')}
+      ${[220, 380, 1300, 1460].map((x) => `<circle cx="${x}" cy="540" r="54" fill="#22402e"/><rect x="${x - 6}" y="580" width="12" height="40" fill="#3a2a1a"/>`).join('')}`;
+    if (kind === 'forest') body = `<defs>${grad([[0, '#0b1612'], [0.5, '#2d5243'], [1, '#a9c9b4']])}</defs><rect width="1600" height="760" fill="url(#${id})"/>${stars(30, 180)}
+      ${pines(470, 150, 50, '#5d826f', 6)}<rect y="440" width="1600" height="120" fill="#e8f2ec" opacity=".14"/>${pines(560, 190, 64, '#2f4c3e', 7)}${pines(680, 240, 90, '#14241d', 8)}`;
+    return `<svg class="w-scene" viewBox="0 0 1600 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${body}<rect width="1600" height="760" fill="${J}" opacity=".1"/><defs><linearGradient id="${id}s" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".45"/><stop offset=".55" stop-color="#000" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="760" fill="url(#${id}s)"/></svg>`;
+  }
+  function campaignSlide(c, i, k, total, w) {
+    const on = i === k, attrs = `data-fg="#ffffff" aria-hidden="${on ? 'false' : 'true'}" ${on ? '' : 'inert'} role="group" aria-roledescription="slide" aria-label="${i + 1} of ${total}: ${esc(c.name)}"`;
+    const head = c.id === w.featured && w.headline ? w.headline : null, age = S.day - c.launched;
+    if (w.template === 'noir') {
+      const kicker = age <= 0 ? 'Out today' : age <= 7 ? 'The new creation' : FAMILIES[c.family].label + ' · ' + Maison.CONC[c.conc].label;
+      return `<div class="w-slide w-noir-slide ${on ? 'on' : ''}" ${attrs} style="--c-juice:${c.design.juice}"><div class="w-smoke" aria-hidden="true"><i></i><i></i><i></i></div>${img(c, 'bottle', 'w-noir-bottle')}
+        <div class="w-noir-copy"><p class="w-kicker">${kicker}</p><h1>${esc(head || c.name)}</h1><p>${esc(w.tagline && c.id === w.featured ? w.tagline : (c.accords[0] ? c.accords.slice(0, 2).join(' · ') : FAMILIES[c.family].label))}</p><button class="w-noir-cta" data-action="w-go" data-p="product" data-id="${c.id}">Discover</button></div></div>`;
+    }
+    const kind = SCENE_OF[c.family] || 'night';
+    return `<div class="w-slide w-scene-slide ${on ? 'on' : ''}" ${attrs}>${scene(kind, c, i)}
+      <div class="w-scene-copy"><h1>${esc(head || CAMPAIGN[kind])}</h1><button class="w-scene-cta" data-action="w-go" data-p="product" data-id="${c.id}">Embark on the journey</button><p class="w-scene-sub">${esc(c.name)} · ${esc(Maison.CONC[c.conc].label)}${age <= 7 ? ' · new' : ''}</p></div>
+      ${img(c, 'bottle', 'w-scene-bottle')}</div>`;
+  }
   function hotCard(x, i) {
     const c = x.c, h = x.h, tr = h.trend == null ? '' : h.trend >= 0.05 ? `<span class="w-up">▲ ${Math.round(h.trend * 100)}%</span>` : h.trend <= -0.05 ? `<span class="w-down">▼ ${Math.round(-h.trend * 100)}%</span>` : '';
     return `<article class="w-card w-hot"><span class="w-rank">${i + 1}</span><button class="w-card-img" data-action="w-go" data-p="product" data-id="${c.id}">${img(c)}</button>
       <div class="w-card-body">${x.badges.length ? `<p class="w-badges">${x.badges.slice(0, 2).map((b) => `<span>${esc(b)}</span>`).join('')}</p>` : ''}<h3><button data-action="w-go" data-p="product" data-id="${c.id}">${esc(c.name)}</button></h3>
       <p class="w-muted w-small">${h.wk.toLocaleString('en-US')} sold this week ${tr}</p>
-      <p class="w-price">${money(c.price)} ${h.avg ? stars5(h.avg) + ` <small class="w-muted">(${reviewCount(c)})</small>` : ''}</p></div></article>`;
+      <p class="w-price">${wm(c.price)} ${h.avg ? stars5(h.avg) + ` <small class="w-muted">(${reviewCount(c)})</small>` : ''}</p></div></article>`;
   }
   function ticker(w) {
     const o = w.orders.filter((x) => !x.test).slice(0, 5); if (!o.length) return '';
@@ -1525,6 +1624,31 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     return { sub, disc, ship, total: sub - disc + ship };
   }
 
+  // Announcement messages for the Grand maison bar: rotate, step through, pause or close.
+  function annMessages(w, m, announce) {
+    const cs = liveCreations().slice().sort((a, b) => b.launched - a.launched), c = cs[0];
+    return [w.announce || 'Discover the world of ' + m.name, c ? `New: ${c.name}, our ${Maison.CONC[c.conc].label.toLowerCase()}` : '', announce, `Join the ${m.name.split(/\s+/).pop()} circle for private sales and first access`].filter(Boolean);
+  }
+  function siteTop(w, m, pg, n, announce) {
+    const search = site.searchOpen ? `<form data-form="w-search" class="w-search w-search-row" role="search"><input id="w-q" type="search" placeholder="Search fragrances, notes or families" aria-label="Search the shop" value="${esc(site.q)}"><button class="w-link" type="button" data-action="w-search-toggle">Close</button></form>` : '';
+    const bag = `<button class="w-icon w-bag-ic" data-action="w-go" data-p="cart" aria-label="Bag, ${n} items">${ICON.bag}${n ? `<span>${n}</span>` : ''}</button>`;
+    if (w.template === 'noir') {
+      const nav = [['shop', 'Fragrances'], ['hot', 'What’s hot'], ['journal', 'Journal'], ['story', 'The house']];
+      return `<p class="w-announce w-ann-noir">${esc(announce)}</p>
+        <header class="w-header w-header-noir"><nav class="w-nav w-nav-noir">${nav.map(([k, l]) => `<button class="${pg.p === k ? 'on' : ''}" data-action="w-go" data-p="${k}">${l}</button>`).join('')}</nav>
+          <button class="w-logo w-logo-noir" data-action="w-go" data-p="home"><span>${esc(m.name.toUpperCase())}</span><small>Parfums · ${esc(m.city)}</small></button>
+          <div class="w-hr"><button class="w-icon" data-action="w-search-toggle" aria-label="Search">${ICON.search}</button><button class="w-icon" data-action="w-go" data-p="contact" aria-label="Contact">${ICON.user}</button>${bag}</div>${search}</header>`;
+    }
+    const msgs = annMessages(w, m, announce), k = site.ann % msgs.length;
+    const nav = [['new', 'New in'], ['shop', 'Fragrances'], ['hot', 'What’s hot'], ['journal', 'Journal'], ['story', 'La maison'], ['contact', 'Contact']];
+    return `${site.annClosed ? '' : `<div class="w-ann-bar" role="region" aria-label="Announcements"><span class="w-ann-count">${msgs.map((_, i) => `<button class="${i === k ? 'on' : ''}" data-action="w-ann" data-i="${i}" aria-label="Message ${i + 1}">${String(i + 1).padStart(2, '0')}</button>`).join('')}</span>
+        <span class="w-ann-msg"><button data-action="w-ann" data-d="-1" aria-label="Previous message">‹</button><span id="w-ann-text" aria-live="polite">${esc(msgs[k])}</span><button data-action="w-ann" data-d="1" aria-label="Next message">›</button></span>
+        <span class="w-ann-ctl"><button data-action="w-ann-pause" aria-label="${site.annPaused ? 'Play' : 'Pause'} messages">${site.annPaused ? '▶' : '❚❚'}</button><button data-action="w-ann-close" aria-label="Close announcements">✕</button></span></div>`}
+      <header class="w-header w-header-grand"><div class="w-hl"><label class="w-region"><span class="sr-only">Region</span><select id="w-region">${Object.entries(REGIONS).map(([k2, [l]]) => `<option value="${k2}" ${site.cur === k2 ? 'selected' : ''}>${l}</option>`).join('')}</select></label><button class="w-search-btn" data-action="w-search-toggle">${ICON.search}<span>Search</span></button></div>
+        <button class="w-logo w-logo-grand" data-action="w-go" data-p="home"><span>${esc(m.name.toUpperCase())}</span><small>${esc(m.city.toUpperCase())}</small></button>
+        <div class="w-hr"><button class="w-join" data-action="w-join">Join the ${esc(m.name.split(/\s+/).pop())} circle</button><span class="w-sep" aria-hidden="true"></span><button class="w-icon" data-action="w-go" data-p="contact" aria-label="Account and contact">${ICON.user}</button><button class="w-icon" data-action="w-go" data-p="story" aria-label="Our boutiques">${ICON.pin}</button>${bag}</div>
+        <nav class="w-nav w-nav-grand">${nav.map(([k2, l]) => `<button class="${(k2 === 'new' ? pg.p === 'shop' && site.sort === 'new' : k2 === 'shop' ? pg.p === 'shop' && site.sort !== 'new' : pg.p === k2) ? 'on' : ''}" ${k2 === 'new' ? 'data-action="w-new"' : `data-action="w-go" data-p="${k2}"`}>${l}</button>`).join('')}</nav>${search}</header>`;
+  }
   function renderWebsite() {
     const w = W(), m = M();
     if (!w) {
@@ -1541,16 +1665,17 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     const th = siteTheme(), pg = cur(), n = bagCount();
     const nav = [['home', 'Home'], ['shop', 'Shop'], ['hot', 'What’s hot'], ['journal', 'Journal'], ['story', 'Our story'], ['contact', 'Contact']];
     const announce = w.announce || (w.freeShip ? 'Free shipping on every order' : 'Free shipping on orders over $150');
+    const top = w.template === 'grand' || w.template === 'noir' ? siteTop(w, m, pg, n, announce) : null;
     return sw + `<div class="browser">
       <div class="b-chrome"><span class="b-dots" aria-hidden="true"><i></i><i></i><i></i></span>
         <button class="b-nav" data-action="w-back" ${site.hi > 0 ? '' : 'disabled'} aria-label="Back">‹</button><button class="b-nav" data-action="w-fwd" ${site.hi < site.hist.length - 1 ? '' : 'disabled'} aria-label="Forward">›</button><button class="b-nav" data-action="w-reload" aria-label="Reload">↻</button>
         <div class="b-url"><span class="b-lock" aria-hidden="true">🔒</span><span>https://www.${esc(w.domain)}.com</span><span class="b-path">${esc(sitePath(pg))}</span></div></div>
       <div class="site-view" id="site-view" style="--s-bg:${th.bg};--s-fg:${th.fg};--s-accent:${th.accent};--s-card:${th.card}" data-font="${th.font}" data-tpl="${w.template}">
-        <p class="w-announce">${esc(announce)}</p>
+        ${top || `<p class="w-announce">${esc(announce)}</p>
         <header class="w-header"><button class="w-logo" data-action="w-go" data-p="home">${esc(m.name.toUpperCase())}</button>
           <nav class="w-nav">${nav.map(([k, l]) => `<button class="${pg.p === k ? 'on' : ''}" data-action="w-go" data-p="${k}">${l}</button>`).join('')}</nav>
           <form data-form="w-search" class="w-search" role="search"><input id="w-q" type="search" placeholder="Search" aria-label="Search the shop" value="${esc(site.q)}"></form>
-          <button class="w-bag" data-action="w-go" data-p="cart" aria-label="Bag, ${n} items">Bag <span>${n}</span></button></header>
+          <button class="w-bag" data-action="w-go" data-p="cart" aria-label="Bag, ${n} items">Bag <span>${n}</span></button></header>`}
         <main class="w-main">${site.flash ? `<p class="w-flash" role="status">${esc(site.flash)} <button class="w-link" data-action="w-go" data-p="cart">View bag</button></p>` : ''}${sitePage()}</main>
         <footer class="w-footer"><div><p class="w-logo-f">${esc(m.name.toUpperCase())}</p><p class="w-muted">${esc(m.city)} · since day ${m.day}</p></div>
           <div><p class="w-label">Shop</p><button class="w-link" data-action="w-go" data-p="shop">All fragrances</button><button class="w-link" data-action="w-go" data-p="journal">Journal</button></div>
@@ -1607,7 +1732,16 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     const cv = $('.w-cover'); if (cv) cv.style.setProperty('--cover-fg', sl[site.slide].dataset.fg);
   }
   // Rotates every 6.5 s, pausing while pointed at or keyboard-focused.
+  let annT = null;
+  function showAnn(i) {
+    const w = W(), m = M(), txt = $('#w-ann-text'); if (!w || !txt) return;
+    const msgs = annMessages(w, m, w.announce || (w.freeShip ? 'Free shipping on every order' : 'Free shipping on orders over $150'));
+    site.ann = (i + msgs.length) % msgs.length; txt.textContent = msgs[site.ann];
+    $$('.w-ann-count button').forEach((b, k) => b.classList.toggle('on', k === site.ann));
+  }
   function heroTimer() {
+    clearInterval(annT); annT = null;
+    if ($('#w-ann-text') && !site.annPaused) annT = setInterval(() => { const b = $('.w-ann-bar'); if (!b || !b.isConnected) { clearInterval(annT); annT = null; return; } if (!b.matches(':hover')) showAnn(site.ann + 1); }, 5000);
     clearInterval(heroT); heroT = null;
     const cv = $('.w-cover'); if (!cv) return;
     cv.style.setProperty('--cover-fg', ($('.w-slide.on') || {}).dataset ? $('.w-slide.on').dataset.fg : '');
@@ -1764,6 +1898,12 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     'w-shot': (el) => { site.shot = el.dataset.m; renderAtelier(); },
     'w-size': (el) => { site.size = el.dataset.s; renderAtelier(); },
     'w-slide': (el) => { showSlide(el.dataset.i != null ? Number(el.dataset.i) : site.slide + Number(el.dataset.d)); heroTimer(); },
+    'w-ann': (el) => { showAnn(el.dataset.i != null ? Number(el.dataset.i) : site.ann + Number(el.dataset.d)); heroTimer(); },
+    'w-ann-pause': () => { site.annPaused = !site.annPaused; renderAtelier(); },
+    'w-ann-close': () => { site.annClosed = true; renderAtelier(); },
+    'w-search-toggle': () => { site.searchOpen = !site.searchOpen; renderAtelier(); if (site.searchOpen) { const q = $('#w-q'); if (q) q.focus(); } },
+    'w-new': () => { site.sort = 'new'; site.fam = ''; go('shop'); },
+    'w-join': () => { go('home'); requestAnimationFrame(() => { const sv = $('#site-view'), nw = $('.w-news'); if (sv && nw) { sv.scrollTo({ top: nw.offsetTop - 80, behavior: 'smooth' }); const inp = $('#w-news'); if (inp) inp.focus({ preventScroll: true }); } }); },
     'w-rmore': () => { site.revShow += 8; renderAtelier(); },
     'w-rstar': (el) => { const s = Number(el.dataset.s); site.revStar = site.revStar === s ? 0 : s; site.revShow = 6; renderAtelier(); },
     'w-helpful': (el) => { const r = ((W().reviews[el.dataset.c]) || []).find((x) => String(x.id) === el.dataset.r); if (!r) return; r.voted = !r.voted; r.helpful = (r.helpful || 0) + (r.voted ? 1 : -1); save(); renderAtelier(); },
@@ -1800,6 +1940,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     'ws-ai': (el) => siteAi(el.dataset.k),
     'ai-design': () => aiDesign(false),
     'ai-surprise': () => aiDesign(true),
+    'ai-all': () => aiDesign(false, true),
     'ai-stop': () => { if (aiCtl) aiCtl.abort(); },
     mpreset: (el) => {
       const p = Maison.PRESETS[el.dataset.id]; if (!p) return;
@@ -1883,6 +2024,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     if (t.id === 'w-exp') { const v = t.value.replace(/\D/g, '').slice(0, 4); t.value = v.length > 2 ? v.slice(0, 2) + '/' + v.slice(2) : v; return; }
     if (t.id === 'w-cvc') { t.value = t.value.replace(/\D/g, '').slice(0, 4); return; }
     if (t.id === 'w-sort') { site.sort = t.value; renderAtelier(); return; }
+    if (t.id === 'w-region') { site.cur = t.value; renderAtelier(); return; }
     if (t.id === 'w-rsort') { site.revSort = t.value; site.revShow = 6; renderAtelier(); return; }
     if (t.id === 'ws-domain') { site.domain = t.value; return; }
     if (t.id === 'ws-template') { site.template = t.value; return; }
