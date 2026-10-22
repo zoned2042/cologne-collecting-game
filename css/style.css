@@ -658,8 +658,69 @@ body.unboxing { overflow: hidden; }
 .code-form select { background: var(--resin); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .studio-ctrls textarea { background: var(--resin); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font: inherit; color: inherit; resize: vertical; }
 
+/* Website cover: a slide per release in its own colours */
+.w-cover { position: relative; margin: 0 calc(-1 * clamp(16px, 4vw, 40px)); overflow: hidden; border-bottom: 1px solid var(--s-line); }
+.w-slides { display: grid; }
+.w-slide { grid-area: 1 / 1; padding: 40px clamp(20px, 6vw, 72px) 60px; border-bottom: 0; color: var(--s-fg); opacity: 0; visibility: hidden; transition: opacity 0.8s ease, visibility 0.8s;
+  background: radial-gradient(circle at 74% 56%, color-mix(in srgb, var(--c-juice) 55%, transparent) 0, transparent 46%), linear-gradient(125deg, var(--c-paper) 0%, color-mix(in srgb, var(--c-paper) 72%, var(--c-glass)) 100%); }
+.w-slide.on { opacity: 1; visibility: visible; }
+.w-slide h1 { color: var(--s-accent); }
+.w-slide .w-hero-art .w-img { transition: transform 1.2s ease; transform: translateY(10px); }
+.w-slide.on .w-hero-art .w-img { transform: none; }
+.w-accords { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 22px; }
+.w-accords span { border: 1px solid var(--s-line); border-radius: 999px; padding: 4px 12px; font-size: 0.76rem; }
+.w-cover-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border-radius: 50%; display: grid !important; place-items: center; font-size: 1.6rem !important; line-height: 1;
+  color: var(--cover-fg, var(--s-fg)) !important; background: color-mix(in srgb, var(--cover-fg, var(--s-fg)) 12%, transparent) !important; text-align: center !important; }
+.w-cover-nav:hover { background: color-mix(in srgb, var(--cover-fg, var(--s-fg)) 24%, transparent) !important; }
+.w-cover-nav.prev { left: 10px; } .w-cover-nav.next { right: 10px; }
+.w-dots { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; }
+.w-dots button { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--cover-fg, var(--s-fg)); }
+.w-dots button.on { background: var(--cover-fg, var(--s-fg)) !important; width: 24px; border-radius: 5px; }
+/* What's hot */
+.w-hot { position: relative; }
+.w-rank { font-family: var(--f-display); font-size: 2.4rem; line-height: 1; color: var(--s-accent); }
+.w-hot > .w-rank { position: absolute; top: 6px; left: 10px; z-index: 1; }
+.w-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.w-badges span { background: var(--s-fg); color: var(--s-bg); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 2px; }
+.w-up { color: #3e9a5c; font-size: 0.78rem; } .w-down { color: #c8433a; font-size: 0.78rem; }
+.w-ticker { list-style: none; padding: 14px 0 0; margin: 24px 0 0; border-top: 1px solid var(--s-line); display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 0.82rem; }
+.w-chart { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+.w-chart li { display: grid; grid-template-columns: 48px 72px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--s-line); }
+.w-chart-img { width: 72px; height: 90px; background: var(--s-card) !important; display: grid !important; place-items: center; }
+.w-chart-img .w-img { width: 84%; height: 92%; }
+.w-chart-name { font-family: var(--f-display); font-size: 1.3rem; }
+.w-chart li > div:not(.w-chart-end) { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.w-chart-end { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.w-chart-end b { font-size: 1.3rem; }
+.w-notes-hot span { font-size: 0.9rem; padding: 6px 14px; }
+/* Reviews */
+.w-rev-grid { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); gap: 36px; align-items: start; }
+.w-rev-sum { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 12px; }
+.w-rev-avg { font-family: var(--f-display); font-size: 3.4rem; line-height: 1; }
+.w-hist { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; }
+.w-hist button { display: grid !important; grid-template-columns: 34px 1fr 34px; gap: 8px; align-items: center; width: 100%; font-size: 0.8rem; padding: 3px 4px !important; border-radius: 2px; }
+.w-hist button:hover, .w-hist button.on { background: var(--s-card) !important; }
+.w-hist i { height: 7px; background: var(--s-line); border-radius: 4px; overflow: hidden; }
+.w-hist b { display: block; height: 100%; background: var(--s-accent); }
+.w-hist span:last-child { text-align: right; color: var(--s-muted); }
+.w-rev-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.w-rev-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.w-rev-meta { font-size: 0.78rem; color: var(--s-muted); }
+.w-badge { border: 1px solid var(--s-line); padding: 1px 6px; border-radius: 2px; font-size: 0.7rem; }
+.w-helpful { align-self: flex-start; font-size: 0.76rem !important; border: 1px solid var(--s-line) !important; padding: 3px 10px !important; border-radius: 999px; margin-top: 2px; }
+.w-helpful.on { background: var(--s-fg) !important; color: var(--s-bg) !important; }
+.w-rev-grid .w-btn-line { margin-top: 18px; }
+
 @media (max-width: 760px) {
   .w-hero, .w-product, .w-cart-grid { grid-template-columns: 1fr; }
+  .w-slide { padding: 28px 18px 54px; }
+  .w-cover-nav { display: none !important; }
+  .w-rev-grid { grid-template-columns: 1fr; gap: 20px; }
+  .w-rev-sum { position: static; }
+  .w-chart li { grid-template-columns: 30px 56px minmax(0, 1fr); }
+  .w-chart-img { width: 56px; height: 70px; }
+  .w-chart-end { grid-column: 3; align-items: flex-start; text-align: left; flex-direction: row; gap: 8px; align-items: baseline; }
+  .w-rank { font-size: 1.8rem; }
   .w-hero-art { height: 300px; }
   .w-header { flex-wrap: wrap; gap: 10px; }
   .w-logo { font-size: 1rem !important; letter-spacing: 0.14em; flex: 1 1 100%; }

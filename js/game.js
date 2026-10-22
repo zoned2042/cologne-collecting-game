@@ -894,7 +894,7 @@
     const m = M(); if (!m) return;
     m.ledger.push({ day: S.day - 1, units: m.todayUnits || 0, revenue: m.todayRev || 0 }); m.ledger = m.ledger.slice(-14);
     m.todayUnits = 0; m.todayRev = 0;
-    for (const c of m.creations) { c.yesterday = c.today || 0; c.today = 0; }
+    for (const c of m.creations) { c.hist = (c.hist || []).concat(c.today || 0).slice(-14); c.yesterday = c.today || 0; c.today = 0; }
     webNewDay();
   }
   function ensureComms() {
@@ -974,6 +974,7 @@
     el.innerHTML = head + body;
     if (a.view === 'lab' && (a.step === 1 || a.step === 2 || a.step === 3)) showDraft();
     if (a.view === 'site') { const nv = $('#site-view'); if (nv) nv.scrollTop = site.scrollTop; fillSnaps(); }
+    heroTimer();
   }
 
   function renderRange() {
@@ -1267,13 +1268,9 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
       const code = active.length && Math.random() < 0.35 ? pick(active) : null; if (code) code.uses++;
       const ord = newOrder([{ id: c.id, name: c.name, q, price: c.price, size: '100 ml' }], { code });
       const cost = w.freeShip ? 6 : 0;
-      c.stock -= q; c.sold += q; c.revenue += ord.total; units += q; revenue += ord.total - cost;
+      c.stock -= q; c.sold += q; c.today = (c.today || 0) + q; c.revenue += ord.total; units += q; revenue += ord.total - cost;
       w.today.o++; w.today.r += ord.total - cost;
-      if (Math.random() < 0.08) {
-        const st = Math.max(1, Math.min(5, Math.round((c.harmony - 20) / 15 + (Math.random() - 0.4))));
-        (w.reviews[c.id] = w.reviews[c.id] || []).unshift({ who: ord.who, stars: st, text: pick(REVIEW[st]).replace('{acc}', (c.accords[0] || 'blend').toLowerCase()).replace('{fam}', FAMILIES[c.family].label.toLowerCase()).replace('{note}', Maison.NOTE[c.notes.heart[0] || c.notes.top[0] || c.notes.base[0]].name.toLowerCase()), verified: true });
-        w.reviews[c.id] = w.reviews[c.id].slice(0, 12);
-      }
+      if (Math.random() < 0.08) addReview(c, Math.random, { who: ord.who, city: ord.city, size: ord.items[0].size });
       if (Math.random() < 0.3) w.subs++;
     }
     if (units) { const m = M(); S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue; }
@@ -1291,15 +1288,84 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
       w.inbox.unshift({ id: S.day + '-' + i, day: S.day, from: pick(FIRST, r) + ' · ' + pick(CITIES_W, r), subject: t.s.replace('{c}', c.name).replace('{h}', M().name), body: t.b.replace('{c}', c.name).replace('{h}', M().name), kind: t.kind, done: false });
     }
     w.inbox = w.inbox.slice(0, 20);
+    // Reviews pile up every day: more for what sold yesterday, a burst after a launch.
+    const rr = rng(S.seed + ':reviews:' + S.day);
+    for (const c of cs) {
+      const lambda = Math.min(8, 0.35 + (c.yesterday || 0) * 0.05 + (S.day - c.launched <= 3 ? 1.2 : 0));
+      let n2 = Math.floor(lambda); if (rr() < lambda - n2) n2++;
+      for (let i = 0; i < n2; i++) addReview(c, rr, { day: S.day - 1 });
+    }
+  }
+
+  /* ---------- customer reviews ---------- */
+  const RV = {
+    title: { 5: ['Masterpiece', 'Instant favourite', 'Compliment magnet', 'Worth every penny', 'My new signature', 'Blind buy, no regrets', 'Stunning', 'Obsessed'], 4: ['Really lovely', 'Great everyday scent', 'Very well made', 'Almost perfect', 'Impressive', 'A keeper', 'Pleasantly surprised'], 3: ['Nice but safe', 'Good, not great', 'Pleasant enough', 'Mixed feelings', 'Fine for the price'], 2: ['Not for me', 'Disappointing', 'Falls flat', 'Expected more'], 1: ['Scrubber', 'Big miss', 'Sent it back', 'Avoid'] },
+    open: { 5: ['I have tried hundreds of fragrances and {name} is something special.', 'Blind bought {name} after the reviews and wow.', 'This is the one I reach for every morning now.', 'Smelled it once in a friend’s car and had to order it.'], 4: ['Really enjoying {name}.', 'A very well made {fam} fragrance.', '{name} surprised me, in a good way.', 'Bought the 50 ml to test and I’m upgrading.'], 3: ['{name} is nice, but I expected more.', 'It’s a pleasant {fam}, nothing groundbreaking.', 'Some days I love it, some days it’s just okay.'], 2: ['I wanted to love {name}.', 'Not sure what happened here.', 'The notes list sounded perfect, the result isn’t.'], 1: ['Honestly one of the worst blind buys I’ve made.', 'I couldn’t wear this past lunch.'] },
+    pos: ['The {note} comes through beautifully after an hour.', 'That {acc} accord is the star here.', 'Lasts about {hours} hours on my skin, longer on clothes.', 'Perfect for {season}.', 'Wore it to {occ} and got three compliments.', 'The opening of {top} is bright and juicy.', 'Dries down to a soft {base} I could smell all night.', 'Smells far more expensive than it is.', 'The bottle looks incredible on my shelf.', 'The box alone feels like a gift.', 'My partner keeps stealing it.', 'Projection is strong for the first two hours, then a lovely skin scent.'],
+    mid: ['The {note} is nice but fades quickly.', 'Lasts around {hours} hours, which is okay.', 'Smells good, but I already own similar {fam} scents.', 'The opening is better than the drydown.', 'Projection is softer than I hoped.', 'Works for {occ}, not much else.'],
+    neg: ['The {note} turns sour on my skin.', 'Gone in under {low} hours.', 'Too much {acc}, it gets loud and muddled.', 'Smells cheaper than the price suggests.', 'Gave me a headache by lunch.', 'The bottle is lovely, the juice is not.'],
+    close: { 5: ['Already ordered a backup.', 'Ten out of ten.', '{house} is one to watch.', 'Buying the 100 ml next.'], 4: ['Would buy again.', 'Recommended, especially for {season}.', 'A solid addition to any collection.'], 3: ['Try a sample first.', 'Wait for a sale.', 'Okay, but not a must-have.'], 2: ['Not repurchasing.', 'Maybe it works on someone else.'], 1: ['Save your money.', 'Hard pass.'] },
+    occ: ['the office', 'a wedding', 'date night', 'a dinner party', 'a night out', 'a long flight', 'Sunday brunch', 'a job interview'],
+  };
+  const SEASON = { fresh: 'hot summer days', citrus: 'summer mornings', aquatic: 'the beach', aromatic: 'spring', woody: 'autumn', spicy: 'cold evenings', sweet: 'date nights', gourmand: 'winter', amber: 'winter nights', oud: 'evenings out', leather: 'autumn', floral: 'spring' };
+  function addReview(c, r, o = {}) {
+    const w = W(); if (!w) return;
+    const fair = fairPrice(c), noise = (r() + r() + r() - 1.5) * 1.15;
+    const st = Math.max(1, Math.min(5, Math.round((c.harmony - 20) / 15 - (c.price > fair * 1.6 ? 0.8 : 0) + noise)));
+    const pk = (a) => a[Math.floor(r() * a.length) % a.length];
+    // Only a seed is saved; the words are written from it when shown, so hundreds of reviews stay small.
+    const rev = { id: (w.rseq = (w.rseq || 0) + 1), who: o.who || pk(FIRST) + ' ' + String.fromCharCode(65 + Math.floor(r() * 26)) + '.', city: o.city || pk(CITIES_W), day: o.day != null ? o.day : S.day, stars: st, seed: Math.floor(r() * 1e9), size: o.size || (r() < 0.7 ? '100 ml' : '50 ml'), helpful: Math.floor(r() * r() * (st === 5 || st === 1 ? 40 : 18)) };
+    (w.reviews[c.id] = w.reviews[c.id] || []).unshift(rev);
+    if (w.reviews[c.id].length > 500) w.reviews[c.id].length = 500;
+  }
+  const revCache = {};
+  function revText(c, rev) {
+    if (rev.text || rev.seed == null) return { title: rev.title || '', text: rev.text || '' };
+    const key = c.id + ':' + rev.id; if (revCache[key]) return revCache[key];
+    const r = rng('rv' + rev.seed), st = rev.stars, pk = (a) => a[Math.floor(r() * a.length) % a.length];
+    const N = (id) => (id && Maison.NOTE[id] ? Maison.NOTE[id].name : 'heart');
+    const hours = Math.round(c.longevity || 6);
+    const fill = (t) => t.replace('{name}', c.name).replace('{house}', M().name).replace('{fam}', FAMILIES[c.family].label.toLowerCase()).replace('{acc}', (c.accords[0] || 'main').toLowerCase())
+      .replace('{note}', N(c.notes.heart[0] || c.notes.top[0])).replace('{top}', N(c.notes.top[0] || c.notes.heart[0])).replace('{base}', N(c.notes.base[0] || c.notes.heart[0]).toLowerCase())
+      .replace('{hours}', hours).replace('{low}', Math.max(1, Math.round(hours / 3))).replace('{season}', SEASON[c.family] || 'any season').replace('{occ}', pk(RV.occ));
+    const pool = st >= 4 ? RV.pos : st === 3 ? RV.mid : RV.neg;
+    const a = pk(pool); let b = pk(pool); if (b === a) b = pool[(pool.indexOf(a) + 1) % pool.length];
+    const title = pk(RV.title[st]), text = [pk(RV.open[st]), a, st >= 4 || r() < 0.5 ? b : '', pk(RV.close[st])].filter(Boolean).map(fill).join(' ');
+    return (revCache[key] = { title, text });
+  }
+  const siteReviews = (c) => c.reviews.map((r, i) => Object.assign({ critic: true, day: c.launched, cid: i }, r)).concat((W() && W().reviews[c.id]) || []);
+  const reviewCount = (c) => c.reviews.length + ((W() && W().reviews[c.id]) || []).length;
+
+  /* ---------- what's hot: sales over the last week, momentum and badges ---------- */
+  function hotStats(c) {
+    const h = c.hist || [], wk = h.slice(-6).reduce((a, x) => a + x, 0) + (c.today || 0), prev = h.slice(-13, -6).reduce((a, x) => a + x, 0);
+    const fresh = S.day - c.launched <= 3, avg = avgStars(c);
+    return { wk, prev, fresh, avg, trend: prev ? (wk - prev) / prev : null, score: wk * (c.family === trendFam() ? 1.08 : 1) + (fresh ? Math.max(30, wk * 0.15) : 0) + avg * 3 };
+  }
+  function hotList() {
+    const cs = liveCreations(), st = cs.map((c) => ({ c, h: hotStats(c) })).sort((a, b) => b.h.score - a.h.score);
+    const best = st.filter((x) => x.h.wk > 0).sort((a, b) => b.h.wk - a.h.wk)[0];
+    const loved = st.filter((x) => reviewCount(x.c) >= 5 && x.h.avg >= 4).sort((a, b) => b.h.avg - a.h.avg)[0];
+    for (const x of st) {
+      x.badges = [];
+      if (best && x === best) x.badges.push('Best seller');
+      if (x.h.fresh) x.badges.push('Just dropped');
+      if (x.h.trend != null && x.h.trend >= 0.25 && x.h.wk >= 5) x.badges.push('Rising');
+      if (x.c.family === trendFam()) x.badges.push('Trending ' + FAMILIES[x.c.family].label.toLowerCase());
+      if (loved && x === loved) x.badges.push('Most loved');
+      if (x.c.stock <= 0) x.badges.unshift('Sold out');
+      else if (x.c.stock < 50) x.badges.push('Almost gone');
+    }
+    return st;
   }
 
   // Browser state: history stack for back/forward, the bag and the checkout form.
-  const site = { hist: [{ p: 'home' }], hi: 0, bag: [], code: null, codeMsg: '', q: '', fam: '', sort: 'featured', shot: 'bottle', size: '100', qty: 1, err: {}, form: {}, msg: '', lastOrder: null, scrollTop: 0, mode: 'visit', newsletter: '' };
+  const site = { hist: [{ p: 'home' }], hi: 0, bag: [], code: null, codeMsg: '', q: '', fam: '', sort: 'featured', shot: 'bottle', size: '100', qty: 1, err: {}, form: {}, msg: '', lastOrder: null, scrollTop: 0, mode: 'visit', newsletter: '', slide: 0, coverTop: null, revShow: 6, revStar: 0, revSort: 'recent' };
   const cur = () => site.hist[site.hi];
-  function go(p, extra = {}) { site.hist = site.hist.slice(0, site.hi + 1); site.hist.push(Object.assign({ p }, extra)); site.hi = site.hist.length - 1; site.shot = 'bottle'; site.qty = 1; site.err = {}; site.scrollTop = 0; site.jump = true; site.flash = ''; site.msg = ''; site.newsMsg = ''; SFX.play('click'); renderAtelier(); }
+  function go(p, extra = {}) { site.hist = site.hist.slice(0, site.hi + 1); site.hist.push(Object.assign({ p }, extra)); site.hi = site.hist.length - 1; site.shot = 'bottle'; site.qty = 1; site.err = {}; site.revShow = 6; site.revStar = 0; site.revSort = 'recent'; site.scrollTop = 0; site.jump = true; site.flash = ''; site.msg = ''; site.newsMsg = ''; SFX.play('click'); renderAtelier(); }
   function sitePath(pg) {
     const c = pg.id && M().creations.find((x) => x.id === pg.id), post = pg.post != null && W().posts[pg.post];
-    return { home: '/', shop: '/shop' + (site.fam ? '?family=' + site.fam : ''), product: '/products/' + (c ? slug(c.name) : ''), journal: '/journal', post: '/journal/' + (post ? slug(post.title) : ''), story: '/our-story', contact: '/contact', cart: '/cart', checkout: '/checkout', done: '/checkout/thank-you', search: '/search?q=' + encodeURIComponent(site.q) }[pg.p] || '/';
+    return { home: '/', shop: '/shop' + (site.fam ? '?family=' + site.fam : ''), product: '/products/' + (c ? slug(c.name) : ''), journal: '/journal', post: '/journal/' + (post ? slug(post.title) : ''), story: '/our-story', contact: '/contact', hot: '/whats-hot', cart: '/cart', checkout: '/checkout', done: '/checkout/thank-you', search: '/search?q=' + encodeURIComponent(site.q) }[pg.p] || '/';
   }
   const bagCount = () => site.bag.reduce((a, x) => a + x.q, 0);
   const sizePrice = (c, size) => (size === '50' ? Math.round(c.price * 0.68) : c.price);
@@ -1309,18 +1375,14 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     const out = c.stock <= 0;
     return `<article class="w-card"><button class="w-card-img" data-action="w-go" data-p="product" data-id="${c.id}">${img(c)}</button>
       <div class="w-card-body"><p class="w-kicker">${esc(FAMILIES[c.family].label)} · ${esc(Maison.CONC[c.conc].label)}</p><h3><button data-action="w-go" data-p="product" data-id="${c.id}">${esc(c.name)}</button></h3>
-      <p class="w-price">${money(c.price)} ${avgStars(c) ? stars5(avgStars(c)) : ''}</p>
+      <p class="w-price">${money(c.price)} ${avgStars(c) ? stars5(avgStars(c)) + ` <small class="w-muted">(${reviewCount(c)})</small>` : ''}</p>
       ${out ? '<p class="w-muted">Sold out</p>' : `<button class="w-btn w-btn-line" data-action="w-add" data-id="${c.id}">Add to bag</button>`}</div></article>`;
   }
 
   function sitePage() {
     const m = M(), w = W(), pg = cur(), cs = liveCreations();
-    const feat = cs.find((c) => c.id === w.featured) || cs[0];
-    const head = w.headline || (feat ? feat.name : m.name), tag = w.tagline || `Fragrances composed in ${m.city}.`;
-    if (pg.p === 'home') return `
-      <section class="w-hero"><div class="w-hero-copy"><p class="w-kicker">${feat ? 'New · ' + esc(Maison.CONC[feat.conc].label) : esc(m.city)}</p><h1>${esc(head)}</h1><p class="w-lede">${esc(tag)}</p>
-        <div class="w-row">${feat ? `<button class="w-btn" data-action="w-go" data-p="product" data-id="${feat.id}">Discover ${esc(feat.name)}</button>` : ''}<button class="w-btn w-btn-line" data-action="w-go" data-p="shop">Shop all</button></div></div>
-        ${feat ? `<div class="w-hero-art">${img(feat, 'box', 'w-hero-box')}${img(feat, 'bottle', 'w-hero-bottle')}</div>` : ''}</section>
+    if (pg.p === 'home') return `${cover(cs, w, m)}
+      ${cs.length ? `<section class="w-sec"><div class="w-sec-head"><h2>What’s hot</h2><button class="w-link" data-action="w-go" data-p="hot">See the chart</button></div><div class="w-grid">${hotList().slice(0, 4).map((x, i) => hotCard(x, i)).join('')}</div>${ticker(w)}</section>` : ''}
       <section class="w-sec"><div class="w-sec-head"><h2>The collection</h2><button class="w-link" data-action="w-go" data-p="shop">View all</button></div><div class="w-grid">${cs.slice(0, 4).map(productCard).join('') || '<p class="w-muted">New fragrances coming soon.</p>'}</div></section>
       <section class="w-band"><div><p class="w-kicker">Our story</p><h2>${esc(m.name)}</h2><p>${esc((w.story || `${m.name} was founded in ${m.city} on day ${m.day} by a collector who knew what was missing from their shelf.`).slice(0, 260))}</p><button class="w-link" data-action="w-go" data-p="story">Read more</button></div></section>
       ${w.posts.length ? `<section class="w-sec"><div class="w-sec-head"><h2>From the journal</h2><button class="w-link" data-action="w-go" data-p="journal">All stories</button></div><div class="w-posts">${w.posts.slice(-3).reverse().map((p, i) => postCard(p, w.posts.indexOf(p))).join('')}</div></section>` : ''}
@@ -1329,21 +1391,22 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
       let list = cs.slice();
       if (pg.p === 'search') { const q = site.q.toLowerCase(); list = list.filter((c) => (c.name + ' ' + FAMILIES[c.family].label + ' ' + c.notes.top.concat(c.notes.heart, c.notes.base).map((n) => Maison.NOTE[n].name).join(' ')).toLowerCase().includes(q)); }
       if (site.fam) list = list.filter((c) => c.family === site.fam);
-      if (site.sort === 'low') list.sort((a, b) => a.price - b.price); else if (site.sort === 'high') list.sort((a, b) => b.price - a.price); else if (site.sort === 'rated') list.sort((a, b) => avgStars(b) - avgStars(a)); else if (site.sort === 'new') list.sort((a, b) => b.launched - a.launched);
+      if (site.sort === 'hot') { const sc = Object.fromEntries(hotList().map((x) => [x.c.id, x.h.score])); list.sort((a, b) => sc[b.id] - sc[a.id]); }
+      else if (site.sort === 'low') list.sort((a, b) => a.price - b.price); else if (site.sort === 'high') list.sort((a, b) => b.price - a.price); else if (site.sort === 'rated') list.sort((a, b) => avgStars(b) - avgStars(a)); else if (site.sort === 'new') list.sort((a, b) => b.launched - a.launched);
       const fams = [...new Set(cs.map((c) => c.family))];
       return `<section class="w-sec"><h1 class="w-title">${pg.p === 'search' ? `Results for “${esc(site.q)}”` : 'Shop all fragrances'}</h1>
         <div class="w-filters"><div class="w-chips"><button class="${site.fam ? '' : 'on'}" data-action="w-fam" data-f="">All</button>${fams.map((f) => `<button class="${site.fam === f ? 'on' : ''}" data-action="w-fam" data-f="${f}">${FAMILIES[f].label}</button>`).join('')}</div>
-        <label class="w-select">Sort <select id="w-sort">${[['featured', 'Featured'], ['new', 'Newest'], ['low', 'Price: low to high'], ['high', 'Price: high to low'], ['rated', 'Top rated']].map(([k, l]) => `<option value="${k}" ${site.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+        <label class="w-select">Sort <select id="w-sort">${[['featured', 'Featured'], ['hot', 'Trending'], ['new', 'Newest'], ['low', 'Price: low to high'], ['high', 'Price: high to low'], ['rated', 'Top rated']].map(([k, l]) => `<option value="${k}" ${site.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
         <p class="w-muted">${list.length} ${list.length === 1 ? 'fragrance' : 'fragrances'}</p><div class="w-grid">${list.map(productCard).join('') || '<p class="w-muted">Nothing matches. Try another note or family.</p>'}</div></section>`;
     }
     if (pg.p === 'product') {
       const c = cs.find((x) => x.id === pg.id); if (!c) return '<section class="w-sec"><h1 class="w-title">Not found</h1><p class="w-muted">This fragrance is no longer available.</p></section>';
-      const revs = c.reviews.map((r) => Object.assign({ critic: true }, r)).concat(w.reviews[c.id] || []), avg = avgStars(c), n = Maison.NOTE;
+      const nrev = reviewCount(c), avg = avgStars(c), n = Maison.NOTE;
       const p50 = sizePrice(c, '50'), lng = c.longevity || Maison.longevity({ basePot: c.notes.base.reduce((a, id) => a + n[id].pot, 0) }, c.conc);
       return `<section class="w-sec w-product">
         <div class="w-gallery"><div class="w-main-img">${img(c, site.shot)}</div><div class="w-thumbs">${['bottle', 'box'].map((mo) => `<button class="${site.shot === mo ? 'on' : ''}" data-action="w-shot" data-m="${mo}">${img(c, mo)}</button>`).join('')}</div></div>
         <div class="w-buy"><p class="w-kicker">${esc(m.name)} · ${esc(Maison.CONC[c.conc].label)}</p><h1>${esc(c.name)}</h1>
-          <p class="w-rating">${avg ? stars5(avg) + ` <button class="w-link" data-action="w-jump" data-t="w-reviews">${revs.length} ${revs.length === 1 ? 'review' : 'reviews'}</button>` : 'No reviews yet'}</p>
+          <p class="w-rating">${avg ? stars5(avg) + ` <button class="w-link" data-action="w-jump" data-t="w-reviews">${nrev} ${nrev === 1 ? 'review' : 'reviews'}</button>` : 'No reviews yet'}</p>
           <p class="w-big-price">${money(sizePrice(c, site.size))}</p>
           <div class="w-opts"><span class="w-label">Size</span>${[['50', '50 ml', p50], ['100', '100 ml', c.price]].map(([k, l, pr]) => `<button class="${site.size === k ? 'on' : ''}" data-action="w-size" data-s="${k}">${l}<small>${money(pr)}</small></button>`).join('')}</div>
           <div class="w-row"><div class="w-qty"><button data-action="w-qty" data-d="-1" aria-label="Fewer">−</button><span>${site.qty}</span><button data-action="w-qty" data-d="1" aria-label="More">+</button></div>
@@ -1353,8 +1416,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
           <details><summary>The perfumer’s note</summary><p>${c.accords.length ? `Built on ${c.accords.join(', ').toLowerCase()}. ` : ''}A ${FAMILIES[c.family].label.toLowerCase()} fragrance that lasts around ${lng} hours on skin.</p></details>
           <details><summary>Shipping &amp; returns</summary><p>${w.freeShip ? 'Free shipping on every order.' : 'Free shipping over $150, otherwise $12.'} Returns accepted within 30 days on unopened bottles.</p></details>
         </div></section>
-        <section class="w-sec" id="w-reviews"><div class="w-sec-head"><h2>Reviews</h2>${avg ? `<p>${stars5(avg)} ${avg.toFixed(1)} out of 5</p>` : ''}</div>
-          <ul class="w-reviews">${revs.map((r) => `<li><p>${stars5(r.stars)} <b>${esc(r.who)}</b> <span class="w-muted">${r.critic ? 'Critic' : 'Verified buyer'}</span></p><p>${esc(r.text)}</p></li>`).join('') || '<li class="w-muted">Be the first to review it.</li>'}</ul></section>
+        ${reviewsBlock(c)}
         ${cs.length > 1 ? `<section class="w-sec"><h2>You may also like</h2><div class="w-grid">${cs.filter((x) => x.id !== c.id).slice(0, 4).map(productCard).join('')}</div></section>` : ''}`;
     }
     if (pg.p === 'cart') {
@@ -1377,6 +1439,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
         <aside class="w-summary"><h3>Order summary</h3><ul class="w-mini">${site.bag.map((x) => `<li><span>${x.q} × ${esc(x.name)} <small>${x.size} ml</small></span><b>${money(x.q * x.price)}</b></li>`).join('')}</ul><dl class="w-totals"><div><dt>Subtotal</dt><dd>${money(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount</dt><dd>−${money(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? money(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${money(t.total)}</dd></div></dl></aside></div></section>`;
     }
     if (pg.p === 'done') { const o = site.lastOrder; return `<section class="w-sec w-done"><p class="w-kicker">Order confirmed</p><h1 class="w-title">Thank you${o ? ', ' + esc(o.who.split(' ')[0]) : ''}</h1><p>Your order <b>#${o ? o.n : ''}</b> is confirmed. A receipt is on its way to ${esc(site.form.email || 'your inbox')}.</p><p class="w-test">This was a test order. It is listed in your dashboard and no stock was used.</p><button class="w-btn" data-action="w-go" data-p="shop">Keep shopping</button></section>`; }
+    if (pg.p === 'hot') return cs.length ? hotPage() : '<section class="w-sec"><h1 class="w-title">What’s hot</h1><p class="w-muted">Nothing on sale yet.</p></section>';
     if (pg.p === 'journal') return `<section class="w-sec"><h1 class="w-title">Journal</h1>${w.posts.length ? `<div class="w-posts">${w.posts.slice().reverse().map((p) => postCard(p, w.posts.indexOf(p))).join('')}</div>` : '<p class="w-muted">No stories yet. Write the first one in your dashboard.</p>'}</section>`;
     if (pg.p === 'post') { const p = w.posts[pg.post]; return p ? `<article class="w-sec w-article"><p class="w-kicker">Journal · Day ${p.day}</p><h1 class="w-title">${esc(p.title)}</h1>${p.body.split(/\n+/).map((t) => `<p>${esc(t)}</p>`).join('')}<button class="w-link" data-action="w-go" data-p="journal">← All stories</button></article>` : ''; }
     if (pg.p === 'story') return `<article class="w-sec w-article"><p class="w-kicker">Since day ${m.day} · ${esc(m.city)}</p><h1 class="w-title">Our story</h1>${(w.story || `${m.name} was founded in ${m.city} by a collector who had smelled everything and still found something missing.\nEvery fragrance is composed in our own lab, bottled in glass we design ourselves and boxed by hand.`).split(/\n+/).map((t) => `<p>${esc(t)}</p>`).join('')}
@@ -1384,6 +1447,75 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     if (pg.p === 'contact') return `<section class="w-sec w-article"><h1 class="w-title">Contact us</h1><p>Questions about an order, a fragrance or a collaboration? We reply within a day.</p>${site.msg ? `<p class="w-ok">${esc(site.msg)}</p>` : ''}
       <form data-form="w-contact" class="w-form" novalidate><label class="w-field ${site.err.cname ? 'err' : ''}"><span>Name</span><input id="w-cname">${site.err.cname ? `<small>${esc(site.err.cname)}</small>` : ''}</label><label class="w-field ${site.err.cmail ? 'err' : ''}"><span>Email</span><input id="w-cmail" type="email">${site.err.cmail ? `<small>${esc(site.err.cmail)}</small>` : ''}</label><label class="w-field ${site.err.cmsg ? 'err' : ''}"><span>Message</span><textarea id="w-cmsg" rows="4"></textarea>${site.err.cmsg ? `<small>${esc(site.err.cmsg)}</small>` : ''}</label><button class="w-btn">Send message</button></form></section>`;
     return '';
+  }
+  // The cover: one slide per release, newest first, each in its own bottle and box colours.
+  function cover(cs, w, m) {
+    if (!cs.length) return `<section class="w-hero"><div class="w-hero-copy"><p class="w-kicker">${esc(m.city)}</p><h1>${esc(w.headline || m.name)}</h1><p class="w-lede">${esc(w.tagline || `Fragrances composed in ${m.city}.`)}</p></div></section>`;
+    const order = cs.slice().sort((a, b) => b.launched - a.launched || cs.indexOf(b) - cs.indexOf(a));
+    const f = cs.find((c) => c.id === w.featured); if (f && order[0] !== f) { order.splice(order.indexOf(f), 1); order.splice(1, 0, f); }
+    if (site.coverTop !== order[0].id) { site.coverTop = order[0].id; site.slide = 0; }
+    const k = site.slide % order.length, N = Maison.NOTE;
+    const slides = order.map((c, i) => {
+      // Body text needs strong contrast; the box ink stays for the name and buttons when it reads well enough.
+      const paper = c.box.paper, ink = c.box.ink, gap = Math.abs(lum(paper) - lum(ink)), base = lum(paper) > 0.5 ? '#141414' : '#f6f2ea';
+      const fg = gap > 0.5 ? ink : base, acc = gap > 0.3 ? ink : fg;
+      const age = S.day - c.launched, kicker = age <= 0 ? 'Out today' : age <= 7 ? `New release · day ${c.launched}` : `${FAMILIES[c.family].label} · ${Maison.CONC[c.conc].label}`;
+      const notes = [c.notes.top[0], c.notes.heart[0], c.notes.base[0]].filter(Boolean).map((x) => N[x].name);
+      const lede = c.id === w.featured && w.tagline ? w.tagline : `${Maison.CONC[c.conc].label} · a ${FAMILIES[c.family].label.toLowerCase()} fragrance of ${notes.join(', ').replace(/, ([^,]*)$/, ' and $1').toLowerCase()}.`;
+      return `<div class="w-hero w-slide ${i === k ? 'on' : ''}" data-fg="${fg}" aria-hidden="${i === k ? 'false' : 'true'}" ${i === k ? '' : 'inert'} role="group" aria-roledescription="slide" aria-label="${i + 1} of ${order.length}: ${esc(c.name)}"
+        style="--c-paper:${paper};--c-glass:${c.design.color};--c-juice:${c.design.juice};--s-bg:${paper};--s-fg:${fg};--s-accent:${acc};--s-muted:color-mix(in srgb, ${fg} 72%, ${paper});--s-line:color-mix(in srgb, ${fg} 25%, ${paper})">
+        <div class="w-hero-copy"><p class="w-kicker">${kicker}</p><h1>${esc(c.id === w.featured && w.headline ? w.headline : c.name)}</h1><p class="w-lede">${esc(lede)}</p>
+          ${c.accords.length ? `<p class="w-accords">${c.accords.slice(0, 3).map((a) => `<span>${esc(a)}</span>`).join('')}</p>` : ''}
+          <div class="w-row"><button class="w-btn" data-action="w-go" data-p="product" data-id="${c.id}">Discover ${esc(c.name)}</button><button class="w-btn w-btn-line" data-action="w-go" data-p="shop">Shop all</button></div></div>
+        <div class="w-hero-art">${img(c, 'box', 'w-hero-box')}${img(c, 'bottle', 'w-hero-bottle')}</div></div>`;
+    }).join('');
+    const many = order.length > 1;
+    return `<section class="w-cover" aria-roledescription="carousel" aria-label="New releases">
+      <div class="w-slides">${slides}</div>
+      ${many ? `<button class="w-cover-nav prev" data-action="w-slide" data-d="-1" aria-label="Previous release">‹</button><button class="w-cover-nav next" data-action="w-slide" data-d="1" aria-label="Next release">›</button>
+      <div class="w-dots">${order.map((c, i) => `<button class="${i === k ? 'on' : ''}" data-action="w-slide" data-i="${i}" aria-label="Show ${esc(c.name)}"></button>`).join('')}</div>` : ''}</section>`;
+  }
+  function hotCard(x, i) {
+    const c = x.c, h = x.h, tr = h.trend == null ? '' : h.trend >= 0.05 ? `<span class="w-up">▲ ${Math.round(h.trend * 100)}%</span>` : h.trend <= -0.05 ? `<span class="w-down">▼ ${Math.round(-h.trend * 100)}%</span>` : '';
+    return `<article class="w-card w-hot"><span class="w-rank">${i + 1}</span><button class="w-card-img" data-action="w-go" data-p="product" data-id="${c.id}">${img(c)}</button>
+      <div class="w-card-body">${x.badges.length ? `<p class="w-badges">${x.badges.slice(0, 2).map((b) => `<span>${esc(b)}</span>`).join('')}</p>` : ''}<h3><button data-action="w-go" data-p="product" data-id="${c.id}">${esc(c.name)}</button></h3>
+      <p class="w-muted w-small">${h.wk.toLocaleString('en-US')} sold this week ${tr}</p>
+      <p class="w-price">${money(c.price)} ${h.avg ? stars5(h.avg) + ` <small class="w-muted">(${reviewCount(c)})</small>` : ''}</p></div></article>`;
+  }
+  function ticker(w) {
+    const o = w.orders.filter((x) => !x.test).slice(0, 5); if (!o.length) return '';
+    return `<ul class="w-ticker" aria-label="Recent orders">${o.map((x) => `<li><b>${esc(x.who)}</b> in ${esc(x.city)} bought ${esc(x.items[0].name)} <span class="w-muted">· ${x.day === S.day ? 'today' : x.day === S.day - 1 ? 'yesterday' : 'day ' + x.day}</span></li>`).join('')}</ul>`;
+  }
+  function hotPage() {
+    const list = hotList(), N = Maison.NOTE, w = W();
+    const noteW = {}; for (const x of list) for (const id of x.c.notes.top.concat(x.c.notes.heart, x.c.notes.base)) noteW[id] = (noteW[id] || 0) + x.h.wk + 1;
+    const topNotes = Object.entries(noteW).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const latest = list.flatMap((x) => ((w.reviews[x.c.id]) || []).slice(0, 6).map((r) => ({ r, c: x.c }))).sort((a, b) => (b.r.day || 0) - (a.r.day || 0) || (b.r.id || 0) - (a.r.id || 0)).slice(0, 6);
+    return `<section class="w-sec"><p class="w-kicker">Updated daily · trending family: ${FAMILIES[trendFam()].label}</p><h1 class="w-title">What’s hot</h1>
+      <ol class="w-chart">${list.map((x, i) => { const c = x.c, h = x.h, tr = h.trend == null ? '<span class="w-muted">new</span>' : h.trend >= 0.05 ? `<span class="w-up">▲ ${Math.round(h.trend * 100)}%</span>` : h.trend <= -0.05 ? `<span class="w-down">▼ ${Math.round(-h.trend * 100)}%</span>` : '<span class="w-muted">steady</span>';
+        return `<li><span class="w-rank">${i + 1}</span><button class="w-chart-img" data-action="w-go" data-p="product" data-id="${c.id}">${img(c)}</button><div><button class="w-chart-name" data-action="w-go" data-p="product" data-id="${c.id}">${esc(c.name)}</button><p class="w-badges">${x.badges.map((b) => `<span>${esc(b)}</span>`).join('')}</p><p class="w-muted w-small">${FAMILIES[c.family].label} · ${h.avg ? h.avg.toFixed(1) + '★ from ' + reviewCount(c) + (reviewCount(c) === 1 ? ' review' : ' reviews') : 'no reviews yet'}</p></div><div class="w-chart-end"><b>${h.wk.toLocaleString('en-US')}</b><small class="w-muted">sold this week</small>${tr}</div></li>`; }).join('')}</ol></section>
+      <section class="w-sec"><h2>Notes everyone’s wearing</h2><p class="w-accords w-notes-hot">${topNotes.map(([id]) => `<span>${esc(N[id].name)}</span>`).join('')}</p></section>
+      ${latest.length ? `<section class="w-sec"><h2>Just reviewed</h2><ul class="w-reviews">${latest.map(({ r, c }) => { const tx = revText(c, r); return `<li><div class="w-rev-top">${stars5(r.stars)} <b>${esc(tx.title)}</b></div><p>${esc(tx.text)}</p><p class="w-rev-meta">${esc(r.who)} on <button class="w-link" data-action="w-go" data-p="product" data-id="${c.id}">${esc(c.name)}</button>${r.day ? ' · day ' + r.day : ''}</p></li>`; }).join('')}</ul></section>` : ''}`;
+  }
+  function reviewsBlock(c) {
+    const all = siteReviews(c), n = all.length, avg = avgStars(c);
+    if (!n) return '<section class="w-sec" id="w-reviews"><h2>Reviews</h2><p class="w-muted">No reviews yet. They arrive as people buy and wear it.</p></section>';
+    const hist = [5, 4, 3, 2, 1].map((s) => all.filter((r) => r.stars === s).length), rec = Math.round((all.filter((r) => r.stars >= 4).length / n) * 100);
+    const list = (site.revStar ? all.filter((r) => r.stars === site.revStar) : all.slice()).sort({
+      recent: (a, b) => (b.day || 0) - (a.day || 0) || (b.id || 0) - (a.id || 0), helpful: (a, b) => (b.helpful || 0) - (a.helpful || 0),
+      high: (a, b) => b.stars - a.stars || (b.day || 0) - (a.day || 0), low: (a, b) => a.stars - b.stars || (b.day || 0) - (a.day || 0),
+    }[site.revSort] || (() => 0));
+    const shown = list.slice(0, site.revShow), recent = all.filter((r) => r.day != null && r.day >= S.day - 1 && !r.critic).length;
+    return `<section class="w-sec" id="w-reviews"><div class="w-sec-head"><h2>Reviews <span class="w-muted">(${n.toLocaleString('en-US')})</span></h2>${recent ? `<p class="w-muted w-small">${recent} new since yesterday</p>` : ''}</div>
+      <div class="w-rev-grid"><aside class="w-rev-sum"><p class="w-rev-avg">${avg.toFixed(1)}</p>${stars5(avg)}<p class="w-muted w-small">${n.toLocaleString('en-US')} ${n === 1 ? 'review' : 'reviews'} · ${rec}% recommend</p>
+        <ul class="w-hist">${hist.map((k, i) => { const s = 5 - i; return `<li><button class="${site.revStar === s ? 'on' : ''}" data-action="w-rstar" data-s="${s}" aria-label="Show ${s}-star reviews (${k})"><span>${s} ★</span><i><b style="width:${(k / n) * 100}%"></b></i><span>${k}</span></button></li>`; }).join('')}</ul>
+        ${site.revStar ? '<button class="w-link" data-action="w-rstar" data-s="0">Show all ratings</button>' : ''}</aside>
+        <div><div class="w-rev-bar"><p class="w-muted w-small">${site.revStar ? `${list.length} with ${site.revStar} ${site.revStar === 1 ? 'star' : 'stars'}` : `Showing ${shown.length} of ${n}`}</p>
+          <label class="w-select">Sort <select id="w-rsort">${[['recent', 'Most recent'], ['helpful', 'Most helpful'], ['high', 'Highest rated'], ['low', 'Lowest rated']].map(([k, l]) => `<option value="${k}" ${site.revSort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+          <ul class="w-reviews">${shown.map((r) => { const tx = revText(c, r); return `<li><div class="w-rev-top">${stars5(r.stars)} ${tx.title ? `<b>${esc(tx.title)}</b>` : ''}</div><p>${esc(tx.text)}</p>
+            <p class="w-rev-meta">${esc(r.who)}${r.city ? ' · ' + esc(r.city) : ''}${r.day != null ? ' · day ' + r.day : ''} · <span class="w-badge">${r.critic ? 'Critic' : 'Verified buyer'}</span>${r.size ? ' · ' + esc(r.size) : ''}</p>
+            ${r.id && !r.critic ? `<button class="w-helpful ${r.voted ? 'on' : ''}" data-action="w-helpful" data-c="${c.id}" data-r="${r.id}" ${r.voted ? 'aria-pressed="true"' : ''}>Helpful · ${r.helpful || 0}</button>` : ''}</li>`; }).join('') || '<li class="w-muted">No reviews with that rating yet.</li>'}</ul>
+          ${list.length > shown.length ? `<button class="w-btn w-btn-line" data-action="w-rmore">Show more reviews (${(list.length - shown.length).toLocaleString('en-US')} more)</button>` : ''}</div></div></section>`;
   }
   function postCard(p, i) { return `<article class="w-post"><p class="w-kicker">Day ${p.day}</p><h3><button data-action="w-go" data-p="post" data-post="${i}">${esc(p.title)}</button></h3><p class="w-muted">${esc(p.body.slice(0, 120))}${p.body.length > 120 ? '…' : ''}</p></article>`; }
   function newsletter() { return `<section class="w-news"><h2>Join the list</h2><p>New launches, journal stories and private sales, first.</p><form data-form="w-news" class="w-row"><input id="w-news" type="email" placeholder="Your email" aria-label="Email" value="${esc(site.newsletter)}"><button class="w-btn">Subscribe</button></form>${site.newsMsg ? `<p class="w-small">${esc(site.newsMsg)}</p>` : ''}</section>`; }
@@ -1407,7 +1539,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     const sw = `<div class="subnav site-switch"><button class="${site.mode === 'visit' ? 'on' : ''}" data-action="ws-mode" data-m="visit">Visit your site</button><button class="${site.mode === 'admin' ? 'on' : ''}" data-action="ws-mode" data-m="admin">Dashboard${w.inbox.some((x) => !x.done) ? ` <span class="pill">${w.inbox.filter((x) => !x.done).length}</span>` : ''}</button></div>`;
     if (site.mode === 'admin') return sw + renderSiteAdmin();
     const th = siteTheme(), pg = cur(), n = bagCount();
-    const nav = [['home', 'Home'], ['shop', 'Shop'], ['journal', 'Journal'], ['story', 'Our story'], ['contact', 'Contact']];
+    const nav = [['home', 'Home'], ['shop', 'Shop'], ['hot', 'What’s hot'], ['journal', 'Journal'], ['story', 'Our story'], ['contact', 'Contact']];
     const announce = w.announce || (w.freeShip ? 'Free shipping on every order' : 'Free shipping on orders over $150');
     return sw + `<div class="browser">
       <div class="b-chrome"><span class="b-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -1465,6 +1597,23 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
   }
 
   // Product photos are rendered one per frame after the page draws, then cached.
+  // Cover slides cross-fade without re-rendering the page (the product shots stay put).
+  let heroT = null;
+  function showSlide(i) {
+    const sl = $$('.w-slide'); if (!sl.length) return;
+    site.slide = (i + sl.length) % sl.length;
+    sl.forEach((s, k) => { const on = k === site.slide; s.classList.toggle('on', on); s.setAttribute('aria-hidden', on ? 'false' : 'true'); s.inert = !on; });
+    $$('.w-dots button').forEach((d, k) => d.classList.toggle('on', k === site.slide));
+    const cv = $('.w-cover'); if (cv) cv.style.setProperty('--cover-fg', sl[site.slide].dataset.fg);
+  }
+  // Rotates every 6.5 s, pausing while pointed at or keyboard-focused.
+  function heroTimer() {
+    clearInterval(heroT); heroT = null;
+    const cv = $('.w-cover'); if (!cv) return;
+    cv.style.setProperty('--cover-fg', ($('.w-slide.on') || {}).dataset ? $('.w-slide.on').dataset.fg : '');
+    if ($$('.w-slide').length < 2 || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    heroT = setInterval(() => { const c = $('.w-cover'); if (!c || !c.isConnected) { clearInterval(heroT); heroT = null; return; } if (c.matches(':hover') || c.querySelector(':focus-visible')) return; showSlide(site.slide + 1); }, 6500);
+  }
   function fillSnaps() {
     const el = $('#site-view') || $('.site-admin'); if (!el || typeof Maison === 'undefined') return;
     const todo = $$('img[data-snap]:not([src])', el);
@@ -1614,11 +1763,15 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     'w-fam': (el) => { site.fam = el.dataset.f; if (cur().p !== 'shop' && cur().p !== 'search') go('shop'); else renderAtelier(); },
     'w-shot': (el) => { site.shot = el.dataset.m; renderAtelier(); },
     'w-size': (el) => { site.size = el.dataset.s; renderAtelier(); },
+    'w-slide': (el) => { showSlide(el.dataset.i != null ? Number(el.dataset.i) : site.slide + Number(el.dataset.d)); heroTimer(); },
+    'w-rmore': () => { site.revShow += 8; renderAtelier(); },
+    'w-rstar': (el) => { const s = Number(el.dataset.s); site.revStar = site.revStar === s ? 0 : s; site.revShow = 6; renderAtelier(); },
+    'w-helpful': (el) => { const r = ((W().reviews[el.dataset.c]) || []).find((x) => String(x.id) === el.dataset.r); if (!r) return; r.voted = !r.voted; r.helpful = (r.helpful || 0) + (r.voted ? 1 : -1); save(); renderAtelier(); },
     'w-qty': (el) => { site.qty = Math.max(1, Math.min(10, site.qty + Number(el.dataset.d))); renderAtelier(); },
     'w-line': (el) => { const x = site.bag[Number(el.dataset.i)]; if (!x) return; x.q += Number(el.dataset.d); if (x.q <= 0) site.bag.splice(Number(el.dataset.i), 1); else x.q = Math.min(10, x.q); renderAtelier(); },
     'w-remove': (el) => { site.bag.splice(Number(el.dataset.i), 1); renderAtelier(); },
     'w-notify': () => { W().subs++; site.flash = 'We’ll email you the moment it’s back in stock.'; save(); renderAtelier(); },
-    'w-jump': (el) => { const sv = $('#site-view'), t = document.getElementById(el.dataset.t); if (sv && t) sv.scrollTo({ top: t.offsetTop - 12, behavior: 'smooth' }); },
+    'w-jump': (el) => { const sv = $('#site-view'), t = document.getElementById(el.dataset.t), hd = $('.w-header'); if (sv && t) sv.scrollTo({ top: t.offsetTop - (hd ? hd.offsetHeight : 0) - 12, behavior: 'smooth' }); },
     'ws-mode': (el) => { site.mode = el.dataset.m; SFX.play('tab'); renderAtelier(); },
     'ws-launch': () => {
       const m = M(); if (m.site) return;
@@ -1730,6 +1883,7 @@ Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a frag
     if (t.id === 'w-exp') { const v = t.value.replace(/\D/g, '').slice(0, 4); t.value = v.length > 2 ? v.slice(0, 2) + '/' + v.slice(2) : v; return; }
     if (t.id === 'w-cvc') { t.value = t.value.replace(/\D/g, '').slice(0, 4); return; }
     if (t.id === 'w-sort') { site.sort = t.value; renderAtelier(); return; }
+    if (t.id === 'w-rsort') { site.revSort = t.value; site.revShow = 6; renderAtelier(); return; }
     if (t.id === 'ws-domain') { site.domain = t.value; return; }
     if (t.id === 'ws-template') { site.template = t.value; return; }
     if (t.id === 'ws-ptitle') { site.ptitle = t.value; return; }
