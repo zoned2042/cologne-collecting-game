@@ -287,7 +287,7 @@
     sellConfirm: null,
     work: { phase: 'idle' },
     showroomDirty: true,
-    atelier: { view: 'range', step: 0, draft: null, found: { name: '', city: 'Paris', pal: 0 } },
+    atelier: { view: 'range', step: 0, draft: null, found: { name: '', city: 'Paris', pal: 0 }, aiText: '', ai: { busy: false, msg: '' } },
   };
   const TABS = ['work', 'boutique', 'vault', 'collection', 'atelier', 'showroom', 'career', 'trophies'];
 
@@ -1019,7 +1019,7 @@
            <label class="field"><span>Emblem</span><select data-field="emblem">${opt(Maison.EMBLEMS, bx.emblem || 'none')}</select></label>
            <label class="field"><span>Printing</span><select data-field="foil"><option value="matte" ${bx.foil ? '' : 'selected'}>Matte ink</option><option value="foil" ${bx.foil ? 'selected' : ''}>Foil stamped</option></select></label>
            <p class="hint">${Object.keys(Maison.BOX_STYLES).length} box styles and ${Object.keys(Maison.PATTERNS).length} patterns. Book boxes swing open like a cover; sleeves slide up off the tray.</p>`;
-      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${ctrls}</article>${summary}</div>`;
+      body = `<div class="studio"><div class="mp-wrap"><div class="mp-view" id="mp-view"></div><p class="hint">${a.step === 1 ? 'Your bottle' : 'Your box, closed'} · ${esc(d.name || 'name it on the next step')}</p></div><article class="panel studio-ctrls">${aiPanel()}${ctrls}</article>${summary}</div>`;
     } else {
       const c = draftCreation(); c.price = d.price || 0;
       const tmp = Object.assign({}, c); const u = unitCost(tmp); const fair = fairPrice(tmp); if (!d.price) d.price = fair;
@@ -1100,6 +1100,96 @@
   function renderMystery() {
     const el = $('#mystery'); if (!el) return;
     el.innerHTML = MYSTERY.map((b) => { const n = mysteryPool(b).length; return `<article class="panel mystery-box"><div class="mb-art" aria-hidden="true"><span>?</span></div><div><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.blurb)} ${n} possible bottles.</p></div><button class="btn btn-primary" data-action="mystery" data-id="${b.id}" ${S.cash < b.price || !n ? 'disabled' : ''}>Open · ${money(b.price)}</button></article>`; }).join('');
+  }
+
+  /* ---------- AI designer: describe a bottle or box and Claude fills in the designer ---------- */
+  // Available only where the page can ask Claude (the published artifact); hidden elsewhere.
+  let aiSample = null, aiCtl = null;
+  function aiPanel() {
+    if (!aiSample) return '';
+    const a = ui.atelier, box = a.step === 2;
+    return `<div class="ai-box"><p class="eyebrow">AI designer</p>
+      <label class="field"><span>${box ? 'Describe the box you want' : 'Describe the bottle you want'}</span><textarea id="ai-prompt" rows="3" maxlength="400" placeholder="${box ? 'e.g. a black book box with gold art deco fans and a wax seal' : 'e.g. a smoky black faceted bottle with a rose-gold flame cap and a tassel'}">${esc(a.aiText)}</textarea></label>
+      <div class="row-actions">${a.ai.busy ? '<button class="btn" data-action="ai-stop">Stop</button>' : `<button class="btn btn-primary" data-action="ai-design">Design it</button><button class="btn" data-action="ai-surprise">Surprise me</button>`}</div>
+      <p class="hint" aria-live="polite">${a.ai.busy ? 'Designing…' : esc(a.ai.msg || (box ? 'Claude picks the style, colours, pattern and emblem; you can tweak anything after.' : 'Claude designs the bottle and a matching box; you can tweak anything after.'))}</p></div>`;
+  }
+  const optList = (obj) => Object.entries(obj).map(([k, v]) => `${k} (${typeof v === 'string' ? v : v.label})`).join(', ');
+  function aiPrompt(request, scope) {
+    const d = ui.atelier.draft, m = M(), an = draftAnalysis();
+    const notes = an.ids.map((id) => Maison.NOTE[id].name).join(', ') || 'not chosen yet';
+    const want = scope === 'box' ? '"box"' : '"design" and a matching "box"';
+    return `You are the packaging designer for a perfume house in a fragrance-collecting game. Design ${scope === 'box' ? 'the retail box' : 'the bottle and its retail box'} for this fragrance.
+
+House: ${m.name} (${m.city}), house colours ${m.lbg} and ${m.lfg}.
+Fragrance: ${d.name || '(unnamed)'}, ${Maison.CONC[d.conc].label}, ${FAMILIES[an.family].label} family. Notes: ${notes}.
+Current bottle: ${JSON.stringify(d.design)}. Current box: ${JSON.stringify(d.box)}.
+
+The player asks: "${request}"
+
+Choose ONLY from these option keys (use the key, not the label):
+bottle "shape": ${optList(Maison.SHAPES)}
+bottle "glass": ${optList(Maison.GLASS)}
+bottle "cap": ${optList(Maison.CAPS)}
+bottle "capFin": ${optList(Maison.FINISH)}
+bottle "label": ${optList(Maison.LABELS)}
+bottle "decor": ${optList(Maison.DECOR)}
+bottle "extra": ${optList(Maison.EXTRAS)}
+bottle "color" (glass or lacquer colour), "juice" (liquid colour), "ink" (label print colour): hex like "#1a2b3c"
+box "style": ${optList(Maison.BOX_STYLES)}
+box "pattern": ${optList(Maison.PATTERNS)}
+box "emblem": ${optList(Maison.EMBLEMS)}
+box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
+
+Follow the player's request closely; where it says nothing, make tasteful choices that suit the notes and house colours, with good contrast between ink and the colour behind it.
+Reply with only a JSON object with keys ${want}${d.name ? '' : ', "name" (a fragrance name, at most 3 words)'} and "note" (one short sentence describing your design). Example: {"design":{"shape":"gem","glass":"smoked","color":"#202024","juice":"#c9822e","cap":"flame","capFin":"rosegold","label":"plate","ink":"#e8c48a","decor":"none","extra":"tassel"},"box":{"style":"book","paper":"#151515","ink":"#d8b56a","pattern":"deco","emblem":"seal","foil":true},"note":"Smoky glass under a rose-gold flame, boxed in black and gold deco."}`;
+  }
+  function applyAi(d, out, scope) {
+    let n = 0;
+    const key = (v, obj, cur) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(obj, v) ? (v !== cur && n++, v) : cur);
+    const hex = (v, cur) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? (v.toLowerCase() !== String(cur).toLowerCase() && n++, v.toLowerCase()) : cur);
+    const ds = out && out.design, bx = out && out.box;
+    if (scope !== 'box' && ds && typeof ds === 'object') {
+      const t = d.design;
+      t.shape = key(ds.shape, Maison.SHAPES, t.shape); t.glass = key(ds.glass, Maison.GLASS, t.glass); t.cap = key(ds.cap, Maison.CAPS, t.cap);
+      t.capFin = key(ds.capFin, Maison.FINISH, t.capFin); t.label = key(ds.label, Maison.LABELS, t.label); t.decor = key(ds.decor, Maison.DECOR, t.decor || 'none');
+      t.extra = key(ds.extra, Maison.EXTRAS, t.extra || 'none'); t.color = hex(ds.color, t.color); t.juice = hex(ds.juice, t.juice); t.ink = hex(ds.ink, t.ink);
+    }
+    if (bx && typeof bx === 'object') {
+      const t = d.box;
+      t.style = key(bx.style, Maison.BOX_STYLES, t.style); t.pattern = key(bx.pattern, Maison.PATTERNS, t.pattern); t.emblem = key(bx.emblem, Maison.EMBLEMS, t.emblem || 'none');
+      t.paper = hex(bx.paper, t.paper); t.ink = hex(bx.ink, t.ink);
+      if (typeof bx.foil === 'boolean') { if (bx.foil !== !!t.foil) n++; t.foil = bx.foil; }
+    }
+    if (!d.name && out && typeof out.name === 'string' && out.name.trim()) d.name = out.name.trim().slice(0, 30);
+    return n;
+  }
+  const AI_ERR = {
+    rate_limited: 'Too many requests for now. Try again in a moment.',
+    refused: 'Claude declined that request. Try describing the design differently.',
+    invalid_json: 'That answer didn’t come back as a design. Try again.',
+    empty_completion: 'No design came back. Try a shorter description.',
+    session_expired: 'Your Claude session expired. Sign in again to use the AI designer.',
+    prompt_too_large: 'That description is too long.',
+  };
+  async function aiDesign(surprise) {
+    const a = ui.atelier, d = a.draft; if (!aiSample || a.ai.busy || !d) return;
+    const scope = a.step === 2 ? 'box' : 'both';
+    const request = surprise ? 'Surprise me: something striking and original that tells the story of these notes.' : (a.aiText || '').trim();
+    if (!request) { a.ai.msg = 'Describe what you want first, or press Surprise me.'; renderAtelier(); return; }
+    aiCtl = new AbortController(); a.ai = { busy: true, msg: '' }; SFX.play('click'); renderAtelier();
+    try {
+      const out = await aiSample.json(aiPrompt(request, scope), { modelTier: 'quick', signal: aiCtl.signal, cache: false });
+      const n = applyAi(d, out, scope);
+      const note = out && typeof out.note === 'string' ? out.note.slice(0, 200) : '';
+      a.ai = { busy: false, msg: n ? (note || 'Done. Tweak anything you like.') : 'That design matches what you already have. Try asking for something different.' };
+      if (n) { SFX.play('shimmer'); if (a.step === 1 && scope === 'both') toast('<b>Bottle and box designed</b><span>Press Next to see the matching box.</span>', 'good'); }
+    } catch (e) {
+      const code = e && e.code;
+      if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) { aiSample = null; a.ai = { busy: false, msg: '' }; toast('<b>AI designer unavailable</b><span>Claude isn’t enabled for this page, so design by hand below.</span>'); }
+      else a.ai = { busy: false, msg: code === 'cancelled' ? 'Stopped.' : AI_ERR[code] || 'Something went wrong. Try again.' };
+    }
+    aiCtl = null;
+    if (ui.tab === 'atelier') renderAtelier();
   }
 
   /* ---------- routing ---------- */
@@ -1190,6 +1280,9 @@
       save(); renderHeader();
     },
     pal: (el) => { ui.atelier.found.pal = Number(el.dataset.i); renderAtelier(); },
+    'ai-design': () => aiDesign(false),
+    'ai-surprise': () => aiDesign(true),
+    'ai-stop': () => { if (aiCtl) aiCtl.abort(); },
     found: () => {
       const f = ui.atelier.found, name = ($('#mf-name').value || '').trim();
       if (!name) { toast('<b>Name your house</b><span>Every maison needs a name on the door.</span>', 'bad'); return; }
@@ -1261,6 +1354,7 @@
     if (t.id === 'mf-name') { ui.atelier.found.name = t.value; const p = $('.fp-name'); if (p) p.textContent = (t.value || 'Your house').toUpperCase(); return; }
     if (t.id === 'mf-city') { ui.atelier.found.city = t.value; return; }
     if (!d) return;
+    if (t.id === 'ai-prompt') { ui.atelier.aiText = t.value; return; }
     if (t.id === 'ml-name') { d.name = t.value; return; }
     if (t.id === 'ml-price') { d.price = Number(t.value) || 0; return; }
     const f = t.dataset.field; if (!f) return;
@@ -1294,6 +1388,10 @@
   }
 
   function start(hotData) {
+    // The AI designer lights up only where the page may ask Claude.
+    if (window.claude && typeof window.claude.use === 'function') {
+      window.claude.use('sample').then((fn) => { aiSample = fn || null; if (aiSample && ui.tab === 'atelier') renderAtelier(); }).catch(() => {});
+    }
     const saved = hotData && hotData.cash != null ? hotData : loadSaved();
     adopt(saved);
     ensureMarket();

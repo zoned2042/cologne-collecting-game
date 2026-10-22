@@ -472,3 +472,7 @@ body.unboxing { overflow: hidden; }
   .palettes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mp-view { max-width: 420px; }
 }
+
+/* AI designer */
+.ai-box { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); border-radius: 8px; background: color-mix(in srgb, var(--amber) 6%, transparent); margin-bottom: 4px; }
+.ai-box textarea { background: var(--resin); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; resize: vertical; min-height: 4.5em; font: inherit; color: inherit; }
