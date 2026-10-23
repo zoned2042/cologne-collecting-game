@@ -1264,7 +1264,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     { s: 'Wholesale enquiry', b: 'We own a concept store and would like to stock {h}. Could you send a price list?', kind: 'q' },
     { s: 'Compliment!', b: 'Just wanted to say {c} is the best thing I have smelled this year. Bravo.', kind: 'q' },
   ];
-  const SITE_DEFAULT = () => ({ domain: '', template: 'luxe', headline: '', tagline: '', story: '', announce: '', featured: null, launched: 0, seo: 0, freeShip: false, ads: [], posts: [], codes: [], orders: [], days: [], today: { v: 0, o: 0, r: 0 }, subs: 0, inbox: [], seq: 1001, reviews: {} });
+  const SITE_DEFAULT = () => ({ domain: '', template: 'luxe', headline: '', tagline: '', story: '', announce: '', featured: null, launched: 0, seo: 0, freeShip: false, ads: [], posts: [], codes: [], orders: [], days: [], today: { v: 0, o: 0, r: 0 }, subs: 0, inbox: [], seq: 1001, reviews: {}, payMode: 'live', myOrders: [] });
   const W = () => (S.maison && S.maison.site) || null;
   const slug = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
@@ -1295,7 +1295,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     const w = W(); const sub = items.reduce((a, x) => a + x.q * x.price, 0);
     const code = o.code || null, disc = code ? Math.round(sub * code.pct / 100) : 0;
     const ship = o.ship != null ? o.ship : 0;
-    const ord = { n: w.seq++, day: S.day, who: o.who || pick(FIRST) + ' ' + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + '.', city: o.city || pick(CITIES_W), items, sub, disc, ship, total: sub - disc + ship, code: code ? code.code : '', test: !!o.test };
+    const ord = { n: w.seq++, day: S.day, who: o.who || pick(FIRST) + ' ' + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + '.', city: o.city || pick(CITIES_W), items, sub, disc, ship, total: sub - disc + ship, code: code ? code.code : '', test: !!o.test, mine: !!o.mine };
     w.orders.unshift(ord); w.orders = w.orders.slice(0, 40);
     return ord;
   }
@@ -1325,6 +1325,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   }
   function webNewDay() {
     const w = W(); if (!w) return;
+    deliverMyOrders();
     w.days.push({ day: S.day - 1, v: Math.round(w.today.v), o: w.today.o, r: Math.round(w.today.r) }); w.days = w.days.slice(-14);
     w.today = { v: 0, o: 0, r: 0 };
     S.cash -= HOSTING;
@@ -1407,7 +1408,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   }
 
   // Browser state: history stack for back/forward, the bag and the checkout form.
-  const site = { hist: [{ p: 'home' }], hi: 0, bag: [], code: null, codeMsg: '', q: '', fam: '', sort: 'featured', shot: 'bottle', size: '100', qty: 1, err: {}, form: {}, msg: '', lastOrder: null, scrollTop: 0, mode: 'visit', newsletter: '', slide: 0, coverTop: null, revShow: 6, revStar: 0, revSort: 'recent', ann: 0, annPaused: false, annClosed: false, cur: 'USD', searchOpen: false };
+  const site = { hist: [{ p: 'home' }], hi: 0, bag: [], code: null, codeMsg: '', q: '', fam: '', sort: 'featured', shot: 'bottle', size: '100', qty: 1, err: {}, form: {}, msg: '', lastOrder: null, scrollTop: 0, mode: 'visit', newsletter: '', slide: 0, coverTop: null, revShow: 6, revStar: 0, revSort: 'recent', ann: 0, annPaused: false, annClosed: false, cur: 'USD', searchOpen: false, ship: 'standard', pay: 'card', paying: false };
   // Region picker on the Grand maison look: prices are shown converted, orders are still taken in dollars.
   const REGIONS = { USD: ['United States [EN]', '$', 1], GBP: ['United Kingdom [EN]', '£', 0.79], EUR: ['France [FR]', '€', 0.92], AED: ['United Arab Emirates [EN]', 'AED ', 3.67] };
   const wm = (v) => { const [, sym, rate] = REGIONS[site.cur] || REGIONS.USD; return sym + Math.round(v * rate).toLocaleString('en-US'); };
@@ -1421,7 +1422,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   function go(p, extra = {}) { site.hist = site.hist.slice(0, site.hi + 1); site.hist.push(Object.assign({ p }, extra)); site.hi = site.hist.length - 1; site.shot = 'bottle'; site.qty = 1; site.err = {}; site.revShow = 6; site.revStar = 0; site.revSort = 'recent'; site.scrollTop = 0; site.jump = true; site.flash = ''; site.msg = ''; site.newsMsg = ''; SFX.play('click'); renderAtelier(); }
   function sitePath(pg) {
     const c = pg.id && M().creations.find((x) => x.id === pg.id), post = pg.post != null && W().posts[pg.post];
-    return { home: '/', shop: '/shop' + (site.fam ? '?family=' + site.fam : ''), product: '/products/' + (c ? slug(c.name) : ''), journal: '/journal', post: '/journal/' + (post ? slug(post.title) : ''), story: '/our-story', contact: '/contact', hot: '/whats-hot', cart: '/cart', checkout: '/checkout', done: '/checkout/thank-you', search: '/search?q=' + encodeURIComponent(site.q) }[pg.p] || '/';
+    return { home: '/', shop: '/shop' + (site.fam ? '?family=' + site.fam : ''), product: '/products/' + (c ? slug(c.name) : ''), journal: '/journal', post: '/journal/' + (post ? slug(post.title) : ''), story: '/our-story', contact: '/contact', hot: '/whats-hot', orders: '/account/orders', receipt: '/account/orders/' + (pg.n || '') + '/receipt', cart: '/cart', checkout: '/checkout', done: '/checkout/thank-you', search: '/search?q=' + encodeURIComponent(site.q) }[pg.p] || '/';
   }
   const bagCount = () => site.bag.reduce((a, x) => a + x.q, 0);
   const sizePrice = (c, size) => (size === '50' ? Math.round(c.price * 0.68) : c.price);
@@ -1484,17 +1485,56 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     }
     if (pg.p === 'checkout') {
       if (!site.bag.length) return '<section class="w-sec"><h1 class="w-title">Checkout</h1><p class="w-muted">Your bag is empty.</p></section>';
-      const t = bagTotals(), f = site.form, e = site.err;
+      const t = bagTotals(), f = site.form, e = site.err, live = w.payMode !== 'test', brand = cardBrand(f.card || '');
       const fld = (id, label, attrs = '') => `<label class="w-field ${e[id] ? 'err' : ''}"><span>${label}</span><input id="w-${id}" value="${esc(f[id] || '')}" ${attrs}>${e[id] ? `<small>${esc(e[id])}</small>` : ''}</label>`;
-      return `<section class="w-sec w-checkout"><h1 class="w-title">Checkout</h1><div class="w-cart-grid"><form data-form="w-checkout" class="w-form" novalidate>
-        <p class="w-test">Test mode: no card is charged and nothing ships. The order appears in your dashboard marked TEST. Use card 4242 4242 4242 4242.</p>
+      const std = w.freeShip || t.sub - t.disc >= 150 ? 'Free' : wm(12);
+      return `<section class="w-sec w-checkout"><ol class="w-crumbs"><li class="done">Bag</li><li class="on">Details &amp; payment</li><li>Confirmation</li></ol><h1 class="w-title">Checkout</h1><div class="w-cart-grid"><form data-form="w-checkout" class="w-form" novalidate>
+        ${live ? '' : '<p class="w-test">Test mode is on in your dashboard: no money moves and nothing ships. Use card 4242 4242 4242 4242.</p>'}${e.stock ? `<p class="w-bad">${esc(e.stock)}</p>` : ''}
         <h3>Contact</h3>${fld('name', 'Full name', 'autocomplete="name"')}${fld('email', 'Email', 'type="email" autocomplete="email"')}
         <h3>Shipping address</h3>${fld('address', 'Address', 'autocomplete="street-address"')}<div class="w-two">${fld('city', 'City', 'autocomplete="address-level2"')}${fld('zip', 'Postcode', 'autocomplete="postal-code"')}</div>
-        <h3>Payment</h3>${fld('card', 'Card number', 'inputmode="numeric" autocomplete="cc-number" placeholder="1234 1234 1234 1234"')}<div class="w-two">${fld('exp', 'Expiry (MM/YY)', 'inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY"')}${fld('cvc', 'CVC', 'inputmode="numeric" autocomplete="cc-csc" placeholder="123"')}</div>
-        <button class="w-btn w-wide">Place order · ${wm(t.total)}</button></form>
-        <aside class="w-summary"><h3>Order summary</h3><ul class="w-mini">${site.bag.map((x) => `<li><span>${x.q} × ${esc(x.name)} <small>${x.size} ml</small></span><b>${wm(x.q * x.price)}</b></li>`).join('')}</ul><dl class="w-totals"><div><dt>Subtotal</dt><dd>${wm(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount</dt><dd>−${wm(t.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${t.ship ? wm(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${wm(t.total)}</dd></div></dl></aside></div></section>`;
+        <h3>Delivery</h3><div class="w-choices" role="radiogroup" aria-label="Delivery">
+          ${[['standard', 'Standard', std, `Arrives day ${S.day + 2}`], ['express', 'Express', wm(25), `Arrives day ${S.day + 1}`]].map(([k, l, pr, eta]) => `<label class="w-choice ${site.ship === k ? 'on' : ''}"><input type="radio" name="w-ship" value="${k}" ${site.ship === k ? 'checked' : ''}><span><b>${l}</b><small>${eta}</small></span><em>${pr}</em></label>`).join('')}</div>
+        <h3>Payment</h3><div class="w-paytabs" role="tablist" aria-label="Payment method"><button type="button" role="tab" class="${site.pay === 'card' ? 'on' : ''}" aria-selected="${site.pay === 'card'}" data-action="w-paytab" data-m="card">Card</button><button type="button" role="tab" class="${site.pay === 'wallet' ? 'on' : ''}" aria-selected="${site.pay === 'wallet'}" data-action="w-paytab" data-m="wallet">Sillage wallet</button></div>
+        ${site.pay === 'card' ? `<div class="w-cardbox"><label class="w-field ${e.card ? 'err' : ''}"><span>Card number</span><span class="w-cardrow"><input id="w-card" value="${esc(f.card || '')}" inputmode="numeric" autocomplete="cc-number" placeholder="1234 1234 1234 1234"><b id="w-brand" class="w-brand">${brand ? brand.name : ''}</b></span>${e.card ? `<small>${esc(e.card)}</small>` : ''}</label>
+          <div class="w-two">${fld('exp', 'Expiry (MM/YY)', 'inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY"')}${fld('cvc', 'Security code', 'inputmode="numeric" autocomplete="cc-csc" placeholder="CVC"')}</div>
+          <p class="w-small w-muted">${live ? `Charged to your in-game account (balance ${wm(S.cash)}). Any valid card number works; 4000 0000 0000 3220 asks your bank to confirm and 4000 0000 0000 0002 is declined.` : 'Test mode: the card is checked but not charged.'}</p></div>`
+        : `<div class="w-cardbox w-wallet"><p><b>Pay from your Sillage wallet</b></p><p class="w-muted">Balance ${wm(S.cash)}${live && S.cash < t.total ? ' · <span class="w-bad">not enough for this order</span>' : ' · approved instantly'}</p>${e.wallet ? `<p class="w-bad w-small">${esc(e.wallet)}</p>` : ''}</div>`}
+        <button class="w-btn w-wide w-paybtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>${live ? 'Pay' : 'Place test order'} · ${wm(t.total)}</button>
+        <p class="w-secure">Secure checkout · encrypted · ${esc(m.name)} never stores your card</p></form>
+        <aside class="w-summary"><h3>Order summary</h3><ul class="w-mini">${site.bag.map((x) => { const c = M().creations.find((k) => k.id === x.id); return `<li>${c ? img(c, 'bottle', 'w-mini-img') : ''}<span>${x.q} × ${esc(x.name)} <small>${x.size} ml</small></span><b>${wm(x.q * x.price)}</b></li>`; }).join('')}</ul><dl class="w-totals"><div><dt>Subtotal</dt><dd>${wm(t.sub)}</dd></div>${t.disc ? `<div><dt>Discount</dt><dd>−${wm(t.disc)}</dd></div>` : ''}<div><dt>Shipping (${site.ship})</dt><dd>${t.ship ? wm(t.ship) : 'Free'}</dd></div><div class="w-total"><dt>Total</dt><dd>${wm(t.total)}</dd></div></dl></aside></div></section>
+        <div class="w-pay" id="w-pay" hidden></div>`;
     }
-    if (pg.p === 'done') { const o = site.lastOrder; return `<section class="w-sec w-done"><p class="w-kicker">Order confirmed</p><h1 class="w-title">Thank you${o ? ', ' + esc(o.who.split(' ')[0]) : ''}</h1><p>Your order <b>#${o ? o.n : ''}</b> is confirmed. A receipt is on its way to ${esc(site.form.email || 'your inbox')}.</p><p class="w-test">This was a test order. It is listed in your dashboard and no stock was used.</p><button class="w-btn" data-action="w-go" data-p="shop">Keep shopping</button></section>`; }
+    if (pg.p === 'done') {
+      const o = (w.myOrders || []).find((x) => x.n === pg.n) || site.lastOrder;
+      if (!o) return '<section class="w-sec"><h1 class="w-title">Order not found</h1></section>';
+      return `<section class="w-sec w-done"><ol class="w-crumbs"><li class="done">Bag</li><li class="done">Details &amp; payment</li><li class="on">Confirmation</li></ol>
+        <div class="w-done-head"><svg class="w-tick" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-16"/></svg>
+          <div><p class="w-kicker">${o.test ? 'Test order placed' : 'Payment received · order confirmed'}</p><h1 class="w-title">Thank you, ${esc(o.who.split(' ')[0])}!</h1><p>Your order <b>#${o.n}</b> is confirmed. A confirmation is on its way to <b>${esc(o.email || 'your inbox')}</b>.</p></div></div>
+        ${o.test ? '<p class="w-test">This was a test order: no money moved, no stock was used and nothing will ship.</p>' : tracker(o)}
+        <div class="w-done-grid">
+          <div class="w-done-box"><p class="w-label">Shipping to</p><p>${esc(o.who)}<br>${esc(o.address || '')}<br>${esc(o.city)} ${esc(o.zip || '')}</p></div>
+          <div class="w-done-box"><p class="w-label">Delivery</p><p>${o.method === 'express' ? 'Express' : 'Standard'} · ${o.delivered ? 'delivered day ' + o.delivered : 'arrives day ' + o.eta}<br><span class="w-muted">Tracking ${esc(o.track || '—')}</span></p></div>
+          <div class="w-done-box"><p class="w-label">Payment</p><p>${esc(o.payLabel || 'Card')}<br><span class="w-muted">${o.test ? 'Not charged (test)' : 'Charged ' + wm(o.total)} · auth ${esc(o.auth || '—')}</span></p></div>
+        </div>
+        <ul class="w-mini w-done-items">${o.items.map((x) => { const c = M().creations.find((k) => k.id === x.id); return `<li>${c ? img(c, 'bottle', 'w-mini-img') : ''}<span>${x.q} × ${esc(x.name)} <small>${esc(x.size)}</small></span><b>${wm(x.q * x.price)}</b></li>`; }).join('')}</ul>
+        <dl class="w-totals w-done-totals"><div><dt>Subtotal</dt><dd>${wm(o.sub)}</dd></div>${o.disc ? `<div><dt>Discount${o.code ? ' (' + esc(o.code) + ')' : ''}</dt><dd>−${wm(o.disc)}</dd></div>` : ''}<div><dt>Shipping</dt><dd>${o.ship ? wm(o.ship) : 'Free'}</dd></div><div class="w-total"><dt>${o.test ? 'Total' : 'Total paid'}</dt><dd>${wm(o.total)}</dd></div></dl>
+        ${o.test ? '' : `<p class="w-small w-muted">It’s your own house, so ${esc(M().name)} booked this ${wm(o.total)} as a sale too. Your bottle arrives on day ${o.eta}, straight onto your shelf.</p>`}
+        <div class="w-row"><button class="w-btn" data-action="w-go" data-p="receipt" data-n="${o.n}">View receipt</button><button class="w-btn w-btn-line" data-action="w-go" data-p="orders">Your orders</button><button class="w-link" data-action="w-go" data-p="shop">Keep shopping</button></div></section>`;
+    }
+    if (pg.p === 'orders') {
+      const mine = (w.myOrders || []).slice().reverse(), items = (o) => o.items.reduce((a, x) => a + x.q, 0);
+      return `<section class="w-sec"><h1 class="w-title">Your orders</h1>${mine.length ? `<ul class="w-orders">${mine.map((o) => `<li><div class="w-orders-head"><div><b>Order #${o.n}</b><p class="w-muted w-small">Placed day ${o.day} · ${items(o)} ${items(o) === 1 ? 'item' : 'items'} · ${wm(o.total)}</p></div><span class="w-status s-${orderStatus(o).key}">${orderStatus(o).label}</span></div>
+        <p class="w-small">${o.items.map((x) => `${x.q} × ${esc(x.name)}`).join(', ')}</p>${o.test ? '' : tracker(o, true)}<div class="w-row"><button class="w-link" data-action="w-go" data-p="done" data-n="${o.n}">Order details</button><button class="w-link" data-action="w-go" data-p="receipt" data-n="${o.n}">Receipt</button></div></li>`).join('')}</ul>` : '<p class="w-muted">You haven’t ordered anything yet.</p><button class="w-btn" data-action="w-go" data-p="shop">Start shopping</button>'}</section>`;
+    }
+    if (pg.p === 'receipt') {
+      const o = (w.myOrders || []).find((x) => x.n === pg.n); if (!o) return '<section class="w-sec"><h1 class="w-title">Receipt not found</h1></section>';
+      return `<section class="w-sec"><article class="w-receipt" id="w-receipt"><header><div><p class="w-receipt-logo">${esc(m.name.toUpperCase())}</p><p class="w-muted w-small">${esc(m.city)} · www.${esc(w.domain)}.com</p></div><div class="w-receipt-meta"><p><b>${o.test ? 'TEST RECEIPT' : 'RECEIPT'}</b></p><p>Order #${o.n}</p><p>Day ${o.day}</p></div></header>
+        <div class="w-two"><div><p class="w-label">Billed to</p><p>${esc(o.who)}<br>${esc(o.email || '')}</p></div><div><p class="w-label">Ship to</p><p>${esc(o.address || '')}<br>${esc(o.city)} ${esc(o.zip || '')}</p></div></div>
+        <table class="w-receipt-table"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>${o.items.map((x) => `<tr><td>${esc(x.name)} <small>${esc(x.size)}</small></td><td>${x.q}</td><td>${wm(x.price)}</td><td>${wm(x.q * x.price)}</td></tr>`).join('')}</tbody></table>
+        <dl class="w-totals"><div><dt>Subtotal</dt><dd>${wm(o.sub)}</dd></div>${o.disc ? `<div><dt>Discount</dt><dd>−${wm(o.disc)}</dd></div>` : ''}<div><dt>Shipping (${o.method || 'standard'})</dt><dd>${o.ship ? wm(o.ship) : 'Free'}</dd></div><div><dt>Tax included</dt><dd>${wm(Math.round(o.total / 6))}</dd></div><div class="w-total"><dt>Total</dt><dd>${wm(o.total)}</dd></div></dl>
+        <p class="w-small w-muted">Paid with ${esc(o.payLabel || 'card')} · authorisation ${esc(o.auth || '—')} · ${o.test ? 'test mode, not charged' : 'payment captured'}</p></article>
+        <div class="w-row"><button class="w-btn" data-action="w-print">Print receipt</button><button class="w-btn w-btn-line" data-action="w-go" data-p="orders">Your orders</button></div></section>`;
+    }
     if (pg.p === 'hot') return cs.length ? hotPage() : '<section class="w-sec"><h1 class="w-title">What’s hot</h1><p class="w-muted">Nothing on sale yet.</p></section>';
     if (pg.p === 'journal') return `<section class="w-sec"><h1 class="w-title">Journal</h1>${w.posts.length ? `<div class="w-posts">${w.posts.slice().reverse().map((p) => postCard(p, w.posts.indexOf(p))).join('')}</div>` : '<p class="w-muted">No stories yet. Write the first one in your dashboard.</p>'}</section>`;
     if (pg.p === 'post') { const p = w.posts[pg.post]; return p ? `<article class="w-sec w-article"><p class="w-kicker">Journal · Day ${p.day}</p><h1 class="w-title">${esc(p.title)}</h1>${p.body.split(/\n+/).map((t) => `<p>${esc(t)}</p>`).join('')}<button class="w-link" data-action="w-go" data-p="journal">← All stories</button></article>` : ''; }
@@ -1618,9 +1658,29 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   }
   function postCard(p, i) { return `<article class="w-post"><p class="w-kicker">Day ${p.day}</p><h3><button data-action="w-go" data-p="post" data-post="${i}">${esc(p.title)}</button></h3><p class="w-muted">${esc(p.body.slice(0, 120))}${p.body.length > 120 ? '…' : ''}</p></article>`; }
   function newsletter() { return `<section class="w-news"><h2>Join the list</h2><p>New launches, journal stories and private sales, first.</p><form data-form="w-news" class="w-row"><input id="w-news" type="email" placeholder="Your email" aria-label="Email" value="${esc(site.newsletter)}"><button class="w-btn">Subscribe</button></form>${site.newsMsg ? `<p class="w-small">${esc(site.newsMsg)}</p>` : ''}</section>`; }
+  function cardBrand(num) {
+    const d = String(num).replace(/\D/g, '');
+    if (/^3[47]/.test(d)) return { name: 'AMEX', len: 15, cvc: 4 };
+    if (/^4/.test(d)) return { name: 'VISA', len: 16, cvc: 3 };
+    if (/^(5[1-5]|2[2-7])/.test(d)) return { name: 'MASTERCARD', len: 16, cvc: 3 };
+    if (/^6/.test(d)) return { name: 'DISCOVER', len: 16, cvc: 3 };
+    return null;
+  }
+  const luhn = (d) => { let sum = 0; for (let i = 0; i < d.length; i++) { let x = +d[d.length - 1 - i]; if (i % 2) { x *= 2; if (x > 9) x -= 9; } sum += x; } return d.length > 0 && sum % 10 === 0; };
+  // Where a website order is: packed the day it's placed, shipped, out for delivery, delivered on its due day.
+  function orderStatus(o) {
+    if (o.test) return { key: 'test', label: 'Test', step: 0 };
+    if (o.delivered || S.day >= o.eta) return { key: 'delivered', label: 'Delivered', step: 3 };
+    if (S.day > o.day || o.method === 'express') return { key: 'shipped', label: S.day >= o.eta - 1 && S.day > o.day ? 'Out for delivery' : 'Shipped', step: 2 };
+    return { key: 'packed', label: 'Being packed', step: 1 };
+  }
+  function tracker(o, small) {
+    const st = orderStatus(o).step, steps = [['Ordered', 'day ' + o.day], ['Packed', 'day ' + o.day], ['Shipped', 'day ' + (o.method === 'express' ? o.day : o.day + 1)], ['Delivered', (st >= 3 ? 'day ' : 'due day ') + o.eta]];
+    return `<ol class="w-track ${small ? 'small' : ''}" aria-label="Delivery progress: ${orderStatus(o).label}">${steps.map(([l, d], i) => `<li class="${i <= st ? 'done' : ''} ${i === st ? 'now' : ''}"><i aria-hidden="true"></i><b>${l}</b><small>${d}</small></li>`).join('')}</ol>`;
+  }
   function bagTotals() {
     const sub = site.bag.reduce((a, x) => a + x.q * x.price, 0), disc = site.code ? Math.round(sub * site.code.pct / 100) : 0;
-    const ship = W().freeShip || sub - disc >= 150 || !sub ? 0 : 12;
+    const ship = !sub ? 0 : site.ship === 'express' ? 25 : W().freeShip || sub - disc >= 150 ? 0 : 12;
     return { sub, disc, ship, total: sub - disc + ship };
   }
 
@@ -1637,7 +1697,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       return `<p class="w-announce w-ann-noir">${esc(announce)}</p>
         <header class="w-header w-header-noir"><nav class="w-nav w-nav-noir">${nav.map(([k, l]) => `<button class="${pg.p === k ? 'on' : ''}" data-action="w-go" data-p="${k}">${l}</button>`).join('')}</nav>
           <button class="w-logo w-logo-noir" data-action="w-go" data-p="home"><span>${esc(m.name.toUpperCase())}</span><small>Parfums · ${esc(m.city)}</small></button>
-          <div class="w-hr"><button class="w-icon" data-action="w-search-toggle" aria-label="Search">${ICON.search}</button><button class="w-icon" data-action="w-go" data-p="contact" aria-label="Contact">${ICON.user}</button>${bag}</div>${search}</header>`;
+          <div class="w-hr"><button class="w-icon" data-action="w-search-toggle" aria-label="Search">${ICON.search}</button><button class="w-icon" data-action="w-go" data-p="orders" aria-label="Your account and orders">${ICON.user}</button>${bag}</div>${search}</header>`;
     }
     const msgs = annMessages(w, m, announce), k = site.ann % msgs.length;
     const nav = [['new', 'New in'], ['shop', 'Fragrances'], ['hot', 'What’s hot'], ['journal', 'Journal'], ['story', 'La maison'], ['contact', 'Contact']];
@@ -1646,7 +1706,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
         <span class="w-ann-ctl"><button data-action="w-ann-pause" aria-label="${site.annPaused ? 'Play' : 'Pause'} messages">${site.annPaused ? '▶' : '❚❚'}</button><button data-action="w-ann-close" aria-label="Close announcements">✕</button></span></div>`}
       <header class="w-header w-header-grand"><div class="w-hl"><label class="w-region"><span class="sr-only">Region</span><select id="w-region">${Object.entries(REGIONS).map(([k2, [l]]) => `<option value="${k2}" ${site.cur === k2 ? 'selected' : ''}>${l}</option>`).join('')}</select></label><button class="w-search-btn" data-action="w-search-toggle">${ICON.search}<span>Search</span></button></div>
         <button class="w-logo w-logo-grand" data-action="w-go" data-p="home"><span>${esc(m.name.toUpperCase())}</span><small>${esc(m.city.toUpperCase())}</small></button>
-        <div class="w-hr"><button class="w-join" data-action="w-join">Join the ${esc(m.name.split(/\s+/).pop())} circle</button><span class="w-sep" aria-hidden="true"></span><button class="w-icon" data-action="w-go" data-p="contact" aria-label="Account and contact">${ICON.user}</button><button class="w-icon" data-action="w-go" data-p="story" aria-label="Our boutiques">${ICON.pin}</button>${bag}</div>
+        <div class="w-hr"><button class="w-join" data-action="w-join">Join the ${esc(m.name.split(/\s+/).pop())} circle</button><span class="w-sep" aria-hidden="true"></span><button class="w-icon" data-action="w-go" data-p="orders" aria-label="Your account and orders">${ICON.user}</button><button class="w-icon" data-action="w-go" data-p="story" aria-label="Our boutiques">${ICON.pin}</button>${bag}</div>
         <nav class="w-nav w-nav-grand">${nav.map(([k2, l]) => `<button class="${(k2 === 'new' ? pg.p === 'shop' && site.sort === 'new' : k2 === 'shop' ? pg.p === 'shop' && site.sort !== 'new' : pg.p === k2) ? 'on' : ''}" ${k2 === 'new' ? 'data-action="w-new"' : `data-action="w-go" data-p="${k2}"`}>${l}</button>`).join('')}</nav>${search}</header>`;
   }
   function renderWebsite() {
@@ -1679,7 +1739,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
         <main class="w-main">${site.flash ? `<p class="w-flash" role="status">${esc(site.flash)} <button class="w-link" data-action="w-go" data-p="cart">View bag</button></p>` : ''}${sitePage()}</main>
         <footer class="w-footer"><div><p class="w-logo-f">${esc(m.name.toUpperCase())}</p><p class="w-muted">${esc(m.city)} · since day ${m.day}</p></div>
           <div><p class="w-label">Shop</p><button class="w-link" data-action="w-go" data-p="shop">All fragrances</button><button class="w-link" data-action="w-go" data-p="journal">Journal</button></div>
-          <div><p class="w-label">Help</p><button class="w-link" data-action="w-go" data-p="contact">Contact</button><button class="w-link" data-action="w-go" data-p="story">Our story</button></div>
+          <div><p class="w-label">Help</p><button class="w-link" data-action="w-go" data-p="orders">Your orders</button><button class="w-link" data-action="w-go" data-p="contact">Contact</button><button class="w-link" data-action="w-go" data-p="story">Our story</button></div>
           <p class="w-muted w-copy">© ${m.name} · www.${esc(w.domain)}.com</p></footer>
       </div></div>`;
   }
@@ -1696,7 +1756,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
         <article class="panel"><p class="eyebrow">Online revenue · last ${days.length} days</p>
           <div class="rev-chart" role="img" aria-label="Online revenue per day">${days.map((d) => `<div class="rev-bar ${d.live ? 'live' : ''}" tabindex="0"><i style="height:${Math.max(2, (d.r / max) * 100)}%"></i><span class="rev-tip">Day ${d.day}${d.live ? ' (so far)' : ''}<br>${money(d.r)} · ${d.o} orders · ${d.v} visits</span><em>${d.day}</em></div>`).join('')}</div>
           <p class="hint">Hover a bar for the day’s numbers. Orders come in every shift while you play.</p></article>
-        <article class="panel"><p class="eyebrow">Recent orders</p><div class="orders"><table><thead><tr><th>#</th><th>Customer</th><th>Items</th><th>Code</th><th>Total</th><th>Status</th></tr></thead><tbody>${w.orders.slice(0, 12).map((o) => `<tr class="${o.test ? 'test' : ''}"><td>${o.n}</td><td>${esc(o.who)}<small>${esc(o.city)}</small></td><td>${o.items.map((x) => `${x.q}× ${esc(x.name)}`).join(', ')}</td><td>${esc(o.code || '—')}</td><td>${money(o.total)}</td><td>${o.test ? 'TEST' : S.day - o.day >= 3 ? 'Delivered' : S.day - o.day >= 1 ? 'Shipped' : 'Processing'}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">No orders yet. Work a shift and they’ll start coming in.</td></tr>'}</tbody></table></div></article>
+        <article class="panel"><p class="eyebrow">Recent orders</p><div class="orders"><table><thead><tr><th>#</th><th>Customer</th><th>Items</th><th>Code</th><th>Total</th><th>Status</th></tr></thead><tbody>${w.orders.slice(0, 12).map((o) => `<tr class="${o.test ? 'test' : ''}"><td>${o.n}</td><td>${esc(o.who)}<small>${esc(o.city)}</small></td><td>${o.items.map((x) => `${x.q}× ${esc(x.name)}`).join(', ')}</td><td>${esc(o.code || '—')}</td><td>${money(o.total)}</td><td>${o.test ? 'TEST' : o.mine ? orderStatus(o).label + ' · you' : S.day - o.day >= 3 ? 'Delivered' : S.day - o.day >= 1 ? 'Shipped' : 'Processing'}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">No orders yet. Work a shift and they’ll start coming in.</td></tr>'}</tbody></table></div></article>
         <article class="panel"><p class="eyebrow">Inbox</p><ul class="inbox">${w.inbox.map((x, i) => `<li class="${x.done ? 'done' : ''}"><p><b>${esc(x.subject)}</b> <small class="muted">${esc(x.from)} · day ${x.day}</small></p><p class="muted small">${esc(x.body)}</p>${x.done ? `<p class="small good">${esc(x.done)}</p>` : `<div class="row-actions">${x.kind === 'collab' ? `<button class="btn btn-small btn-primary" data-action="ws-mail" data-i="${i}" data-r="collab" ${S.cash < 2000 ? 'disabled' : ''}>Sponsor it · $2,000</button>` : ''}${x.kind === 'issue' ? `<button class="btn btn-small btn-primary" data-action="ws-mail" data-i="${i}" data-r="replace">Send a replacement · $${Math.round(cs[0] ? unitCost(cs[0]) : 40)}</button>` : ''}<button class="btn btn-small" data-action="ws-mail" data-i="${i}" data-r="reply">Reply</button><button class="btn btn-small btn-ghost" data-action="ws-mail" data-i="${i}" data-r="archive">Archive</button></div>`}</li>`).join('') || '<li class="muted">No messages. Customers write in as your site gets busier.</li>'}</ul></article>
         <article class="panel"><p class="eyebrow">Discount codes</p>
           <form data-form="ws-code" class="row-actions code-form"><input id="ws-code" maxlength="14" placeholder="CODE" aria-label="Code"><select id="ws-pct" aria-label="Discount">${[5, 10, 15, 20, 25, 30, 40, 50].map((p) => `<option value="${p}" ${p === 10 ? 'selected' : ''}>${p}% off</option>`).join('')}</select><button class="btn">Create</button></form>
@@ -1712,6 +1772,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
           <p class="hint">${site.aiMsg ? esc(site.aiMsg) : 'Each post lifts visitors 15% for five days.'} ${w.posts.length} published.</p></article>
         <article class="panel"><p class="eyebrow">Site settings</p><form data-form="ws-settings" class="studio-ctrls">
           <label class="field"><span>Look</span><select id="ws-tpl">${opt(TEMPLATES, w.template)}</select></label>
+          <label class="field"><span>Payments</span><select id="ws-pay"><option value="live" ${w.payMode !== 'test' ? 'selected' : ''}>Live: orders charge your account and ship</option><option value="test" ${w.payMode === 'test' ? 'selected' : ''}>Test mode: nothing is charged or shipped</option></select></label>
           <label class="field"><span>Homepage headline</span><input id="ws-head" maxlength="60" value="${esc(w.headline)}" placeholder="${esc((cs[0] && cs[0].name) || m.name)}"></label>
           <label class="field"><span>Tagline</span><input id="ws-tag" maxlength="120" value="${esc(w.tagline)}" placeholder="Fragrances composed in ${esc(m.city)}."></label>
           <label class="field"><span>Featured fragrance</span><select id="ws-feat">${cs.map((c) => `<option value="${c.id}" ${c.id === w.featured ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>
@@ -1776,23 +1837,100 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   }
   const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   function checkout() {
-    const f = site.form, e = {};
-    for (const k of ['name', 'email', 'address', 'city', 'zip', 'card', 'exp', 'cvc']) f[k] = (($('#w-' + k) || {}).value || '').trim();
+    if (site.paying) return;
+    const f = site.form, e = {}, w = W(), live = w.payMode !== 'test';
+    for (const k of ['name', 'email', 'address', 'city', 'zip', 'card', 'exp', 'cvc']) { const el = $('#w-' + k); if (el) f[k] = (el.value || '').trim(); }
     if (!f.name) e.name = 'Enter your name';
-    if (!EMAIL.test(f.email)) e.email = 'Enter a valid email';
+    if (!EMAIL.test(f.email || '')) e.email = 'Enter a valid email';
     if (!f.address) e.address = 'Enter your address';
     if (!f.city) e.city = 'Enter your city';
     if (!f.zip) e.zip = 'Enter your postcode';
-    if (f.card.replace(/\s/g, '').length !== 16) e.card = 'Card number must be 16 digits';
-    const mm = /^(\d{2})\/(\d{2})$/.exec(f.exp); if (!mm || +mm[1] < 1 || +mm[1] > 12) e.exp = 'Use MM/YY';
-    if (!/^\d{3,4}$/.test(f.cvc)) e.cvc = '3 or 4 digits';
+    const t = bagTotals(), d = (f.card || '').replace(/\D/g, ''), br = cardBrand(d);
+    if (site.pay === 'card') {
+      if (!br || d.length !== br.len) e.card = br ? `${br.name} cards have ${br.len} digits` : 'Enter a Visa, Mastercard, Amex or Discover number';
+      else if (!luhn(d)) e.card = 'That card number isn’t valid. Check for a typo';
+      const mm = /^(\d{2})\/(\d{2})$/.exec(f.exp || '');
+      if (!mm || +mm[1] < 1 || +mm[1] > 12) e.exp = 'Use MM/YY';
+      else if (2000 + +mm[2] < 2026 || (2000 + +mm[2] === 2026 && +mm[1] < 10)) e.exp = 'This card has expired';
+      const cvc = br ? br.cvc : 3;
+      if (!new RegExp(`^\\d{${cvc}}$`).test(f.cvc || '')) e.cvc = `${cvc} digits`;
+    } else if (live && S.cash < t.total) e.wallet = `Your wallet has ${wm(S.cash)}; this order is ${wm(t.total)}.`;
+    if (live) for (const x of site.bag) {
+      const c = M().creations.find((k) => k.id === x.id), want = site.bag.filter((y) => y.id === x.id).reduce((a, y) => a + y.q, 0);
+      if (!c || c.stock < want) { e.stock = `Only ${c ? Math.max(0, c.stock) : 0} of ${x.name} left. Adjust your bag.`; break; }
+    }
     site.err = e;
-    if (Object.keys(e).length) { SFX.play('error'); renderAtelier(); return; }
-    const t = bagTotals();
-    const ord = newOrder(site.bag.map((x) => ({ id: x.id, name: x.name, q: x.q, price: x.price, size: x.size + ' ml' })), { who: f.name, city: f.city, code: site.code, ship: t.ship, test: true });
+    if (Object.keys(e).length) { SFX.play('error'); renderAtelier(); const first = $('.w-field.err input, .w-checkout .w-bad'); if (first) first.scrollIntoView({ block: 'center' }); return; }
+    const pay = site.pay === 'card' ? { label: `${br.name} •••• ${d.slice(-4)}`, brand: br.name, decline: d === '4000000000000002', challenge: d === '4000000000003220', funds: live && S.cash < t.total } : { label: 'Sillage wallet', brand: 'Wallet' };
+    runPayment(t, pay, live);
+  }
+  // The payment sheet: a spinner through the bank's steps, a bank check for some cards, then approved or declined.
+  function runPayment(t, pay, live) {
+    const box = $('#w-pay'); if (!box) return;
+    const frame = $('.browser'); if (frame && box.parentElement !== frame) frame.appendChild(box); // covers the whole browser window, not just the scrolled page
+    site.paying = true; box.hidden = false; SFX.play('click');
+    const amount = wm(t.total), steps = live ? ['Contacting your bank…', `Authorising ${amount}…`, 'Securing the payment…'] : ['Placing a test order…'];
+    const spinner = (msg) => `<div class="w-pay-card" role="dialog" aria-modal="true" aria-label="Processing payment"><p class="w-pay-brand">${esc(pay.label)}</p><p class="w-pay-amt">${amount}</p><div class="w-spin" aria-hidden="true"></div><p class="w-pay-step" id="w-pay-step" aria-live="polite">${msg}</p><p class="w-small w-muted">Please don’t close this window.</p></div>`;
+    box.innerHTML = spinner(steps[0]);
+    let i = 0;
+    const fail = (msg) => {
+      box.innerHTML = `<div class="w-pay-card w-pay-fail" role="alertdialog" aria-modal="true" aria-label="Payment declined"><svg class="w-cross" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M18 18l16 16M34 18L18 34"/></svg><h3>Payment declined</h3><p>${esc(msg)}</p><button class="w-btn" data-action="w-pay-close">Try again</button></div>`;
+      site.paying = false; SFX.play('error');
+    };
+    const success = () => {
+      const ord = placeOrder(t, pay, live);
+      box.innerHTML = `<div class="w-pay-card w-pay-ok" role="dialog" aria-modal="true" aria-label="Payment approved"><svg class="w-tick" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-16"/></svg><h3>${live ? 'Payment approved' : 'Test order placed'}</h3><p class="w-muted">Order #${ord.n} · ${amount}</p></div>`;
+      SFX.play('coins');
+      setTimeout(() => { site.paying = false; go('done', { n: ord.n }); }, 1500);
+    };
+    const challenge = () => {
+      box.innerHTML = `<div class="w-pay-card" role="dialog" aria-modal="true" aria-label="Confirm with your bank"><p class="w-pay-brand">${esc(pay.brand)} secure check</p><h3>Confirm it’s you</h3><p class="w-muted">Your bank sent a request to your phone to approve ${amount} at ${esc(M().name)}.</p><div class="w-phone" aria-hidden="true"><span>Approve ${amount}?</span></div><div class="w-row w-pay-actions"><button class="w-btn" data-action="w-3ds" data-ok="1">Approve</button><button class="w-btn w-btn-line" data-action="w-3ds" data-ok="0">Cancel</button></div></div>`;
+      site.on3ds = (ok) => { if (!ok) return fail('You cancelled the payment. Nothing was charged.'); box.innerHTML = spinner('Approved by your bank. Finishing up…'); setTimeout(success, 1100); };
+      SFX.play('notify');
+    };
+    const next = () => {
+      if (!site.paying || !box.isConnected) { site.paying = false; return; }
+      if (++i < steps.length) { const el = $('#w-pay-step'); if (el) el.textContent = steps[i]; setTimeout(next, 900); return; }
+      if (live && pay.challenge) return challenge();
+      if (live && (pay.decline || pay.funds)) return fail(pay.funds ? `Insufficient funds. Your balance is ${wm(S.cash)}.` : 'Your bank declined this card. Try another card.');
+      success();
+    };
+    setTimeout(next, 900);
+  }
+  function placeOrder(t, pay, live) {
+    const f = site.form, w = W(), m = M();
+    const ord = newOrder(site.bag.map((x) => ({ id: x.id, name: x.name, q: x.q, price: x.price, size: x.size + ' ml' })), { who: f.name, city: f.city, code: site.code, ship: t.ship, test: !live, mine: true });
+    const auth = Math.random().toString(36).slice(2, 8).toUpperCase();
+    Object.assign(ord, { email: f.email, address: f.address, zip: f.zip, method: site.ship, eta: S.day + (site.ship === 'express' ? 1 : 2), payLabel: pay.label, auth, track: 'SL' + ord.n + auth.slice(0, 4) });
+    if (live) {
+      // You pay as the customer, and your house books the sale.
+      S.cash -= ord.total; S.stats.spent += ord.total;
+      let units = 0;
+      for (const x of ord.items) { const c = m.creations.find((k) => k.id === x.id); if (!c) continue; c.stock -= x.q; c.sold += x.q; c.today = (c.today || 0) + x.q; c.revenue += x.q * x.price; units += x.q; }
+      S.cash += ord.total; S.stats.earned += ord.total; m.stats.sold += units; m.stats.revenue += ord.total;
+      w.today.o++; w.today.r += ord.total;
+    }
     if (site.code) site.code.uses++;
+    w.myOrders = (w.myOrders || []).concat(ord).slice(-30);
     site.lastOrder = ord; site.bag = []; site.code = null; site.codeMsg = '';
-    SFX.play('coins'); save(); go('done');
+    save(); renderHeader();
+    return ord;
+  }
+  // Your own website orders arrive on their delivery day; new bottles go on your shelf.
+  function deliverMyOrders() {
+    const w = W(); if (!w || !w.myOrders) return;
+    for (const o of w.myOrders) {
+      if (o.test || o.delivered || S.day < o.eta) continue;
+      o.delivered = S.day; let first = null; const extra = [];
+      for (const x of o.items) {
+        if (!ITEM_BY_ID[x.id]) continue;
+        if (!S.owned[x.id]) { S.owned[x.id] = { day: S.day, paid: x.price, batch: batchCode(S.seed + x.id + S.day), from: 'website' }; first = first || ITEM_BY_ID[x.id]; }
+        else { S.owned[x.id].extra = (S.owned[x.id].extra || 0) + x.q; extra.push(x.name); }
+      }
+      ui.showroomDirty = true;
+      toast(`<b>Order #${o.n} delivered</b><span>${first ? esc(first.name) + ' is on your shelf.' : 'Extra bottles of ' + esc(extra.join(', ')) + ' added to your stash.'}</span>`, 'good');
+      if (first) setTimeout(() => unbox(first), 600);
+    }
   }
 
   /* ---------- routing ---------- */
@@ -1883,7 +2021,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       save(); renderHeader();
     },
     pal: (el) => { ui.atelier.found.pal = Number(el.dataset.i); renderAtelier(); },
-    'w-go': (el) => go(el.dataset.p, el.dataset.id ? { id: el.dataset.id } : el.dataset.post != null ? { post: Number(el.dataset.post) } : {}),
+    'w-go': (el) => go(el.dataset.p, el.dataset.id ? { id: el.dataset.id } : el.dataset.post != null ? { post: Number(el.dataset.post) } : el.dataset.n ? { n: Number(el.dataset.n) } : {}),
     'w-back': () => { if (site.hi > 0) { site.hi--; site.jump = true; site.scrollTop = 0; renderAtelier(); } },
     'w-fwd': () => { if (site.hi < site.hist.length - 1) { site.hi++; site.jump = true; site.scrollTop = 0; renderAtelier(); } },
     'w-reload': () => { const sv = $('#site-view'); if (sv) sv.style.opacity = '0.2'; setTimeout(() => { site.jump = true; site.scrollTop = 0; renderAtelier(); }, 220); },
@@ -1904,6 +2042,10 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     'w-search-toggle': () => { site.searchOpen = !site.searchOpen; renderAtelier(); if (site.searchOpen) { const q = $('#w-q'); if (q) q.focus(); } },
     'w-new': () => { site.sort = 'new'; site.fam = ''; go('shop'); },
     'w-join': () => { go('home'); requestAnimationFrame(() => { const sv = $('#site-view'), nw = $('.w-news'); if (sv && nw) { sv.scrollTo({ top: nw.offsetTop - 80, behavior: 'smooth' }); const inp = $('#w-news'); if (inp) inp.focus({ preventScroll: true }); } }); },
+    'w-paytab': (el) => { for (const k of ['name', 'email', 'address', 'city', 'zip', 'card', 'exp', 'cvc']) { const f = $('#w-' + k); if (f) site.form[k] = f.value; } site.pay = el.dataset.m; site.err = {}; renderAtelier(); },
+    'w-3ds': (el) => { if (site.on3ds) { const f = site.on3ds; site.on3ds = null; f(el.dataset.ok === '1'); } },
+    'w-pay-close': () => { const b = $('#w-pay'); if (b) { b.hidden = true; b.innerHTML = ''; } site.paying = false; },
+    'w-print': () => { document.body.classList.add('print-receipt'); try { window.print(); } catch (e) { /* printing can be blocked in a sandboxed page */ } setTimeout(() => document.body.classList.remove('print-receipt'), 500); },
     'w-rmore': () => { site.revShow += 8; renderAtelier(); },
     'w-rstar': (el) => { const s = Number(el.dataset.s); site.revStar = site.revStar === s ? 0 : s; site.revShow = 6; renderAtelier(); },
     'w-helpful': (el) => { const r = ((W().reviews[el.dataset.c]) || []).find((x) => String(x.id) === el.dataset.r); if (!r) return; r.voted = !r.voted; r.helpful = (r.helpful || 0) + (r.voted ? 1 : -1); save(); renderAtelier(); },
@@ -2020,7 +2162,10 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     if (t.id === 'mf-name') { ui.atelier.found.name = t.value; const p = $('.fp-name'); if (p) p.textContent = (t.value || 'Your house').toUpperCase(); return; }
     if (t.id === 'mf-city') { ui.atelier.found.city = t.value; return; }
     if (!d) return;
-    if (t.id === 'w-card') { const v = t.value.replace(/\D/g, '').slice(0, 16); t.value = v.replace(/(.{4})(?=.)/g, '$1 '); return; }
+    // Editing a field clears its error straight away.
+    if (t.id && t.id.startsWith('w-') && site.err && site.err[t.id.slice(2)]) { delete site.err[t.id.slice(2)]; const fl = t.closest('.w-field'); if (fl) { fl.classList.remove('err'); const sm = fl.querySelector('small'); if (sm) sm.remove(); } }
+    if (t.id === 'w-card') { const v = t.value.replace(/\D/g, '').slice(0, 16); t.value = v.replace(/(.{4})(?=.)/g, '$1 '); site.form.card = t.value; const br = cardBrand(v), b = $('#w-brand'); if (b) b.textContent = br ? br.name : ''; return; }
+    if (t.name === 'w-ship') { for (const k of ['name', 'email', 'address', 'city', 'zip', 'card', 'exp', 'cvc']) { const el = $('#w-' + k); if (el) site.form[k] = el.value; } site.ship = t.value; renderAtelier(); return; }
     if (t.id === 'w-exp') { const v = t.value.replace(/\D/g, '').slice(0, 4); t.value = v.length > 2 ? v.slice(0, 2) + '/' + v.slice(2) : v; return; }
     if (t.id === 'w-cvc') { t.value = t.value.replace(/\D/g, '').slice(0, 4); return; }
     if (t.id === 'w-sort') { site.sort = t.value; renderAtelier(); return; }
@@ -2068,7 +2213,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       site.ptitle = ''; site.pbody = ''; site.aiMsg = ''; SFX.play('unlock'); toast('<b>Post published</b><span>Visitors up 15% for five days.</span>', 'good'); save(); renderAtelier();
     },
     'ws-settings': () => {
-      const w = W(); w.template = $('#ws-tpl').value; w.headline = $('#ws-head').value.trim(); w.tagline = $('#ws-tag').value.trim(); w.featured = $('#ws-feat').value || w.featured; w.announce = $('#ws-ann').value.trim(); w.story = $('#ws-story').value.trim();
+      const w = W(); w.template = $('#ws-tpl').value; w.payMode = ($('#ws-pay') || {}).value || w.payMode; w.headline = $('#ws-head').value.trim(); w.tagline = $('#ws-tag').value.trim(); w.featured = $('#ws-feat').value || w.featured; w.announce = $('#ws-ann').value.trim(); w.story = $('#ws-story').value.trim();
       SFX.play('good'); toast('<b>Site updated</b><span>Changes are live on your website.</span>', 'good'); save(); renderAtelier();
     },
   };
