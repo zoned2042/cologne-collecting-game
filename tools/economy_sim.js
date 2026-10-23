@@ -6,6 +6,7 @@
  *
  *   node tools/economy_sim.js            # current rules
  *   node tools/economy_sim.js --old      # rules before the Refined update (no tax or upkeep)
+ *   node tools/economy_sim.js --no-allowance   # Refined rules without the Living Market boutique allowance
  *   node tools/economy_sim.js --days 200
  */
 const fs = require('fs');
@@ -15,6 +16,7 @@ const vm = require('vm');
 const root = path.join(__dirname, '..');
 const args = process.argv.slice(2);
 const OLD = args.includes('--old');
+const ALLOW = !OLD && !args.includes('--no-allowance');
 const DAYS = Number((args[args.indexOf('--days') + 1]) || 160) || 160;
 
 // Live tables from the game source.
@@ -23,7 +25,8 @@ vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(root, 'js/catalog.js'), 'utf8').replace(/^const /gm, 'var '), ctx);
 const game = fs.readFileSync(path.join(root, 'js/game.js'), 'utf8');
 const grab = (name) => { const m = new RegExp(`const ${name} = (\\[[\\s\\S]*?\\n  \\]);`).exec(game); return vm.runInContext('(' + m[1] + ')', ctx); };
-const JOBS = grab('JOBS'), COURSES = grab('COURSES');
+const JOBS = grab('JOBS'), COURSES = grab('COURSES'), RANKS = grab('RANKS');
+const ALLOWANCE = vm.runInContext(/const ALLOWANCE = (\[[^\]]*\]);/.exec(game)[1], ctx);
 const ECON = OLD ? null : vm.runInContext('(' + /const ECON = (\{[\s\S]*?\n  \});/.exec(game)[1] + ')', ctx);
 const shopCost = (n) => Math.round(50000 * Math.pow(2.6, n)), factoryCost = (n) => Math.round(20000 * Math.pow(3, n));
 const sumCosts = (fn, n) => Array.from({ length: n }, (_, i) => fn(i)).reduce((a, x) => a + x, 0);
@@ -37,6 +40,8 @@ const S = { day: 1, cash: 250, job: 'packer', xp: {}, courses: {}, owned: new Se
 const book = { wages: 0, tax: 0, house: 0, upkeep: 0, bottles: 0, courses: 0, houseInvest: 0, desk: 0 };
 const value = (c) => (c.limited ? c.base * (1 + 0.003 * (S.day - 1)) : c.disc ? c.base * 1.35 * (1 + 0.008 * (S.day - 1)) : c.base);
 const collValue = () => [...S.owned].reduce((a, id) => a + value(ctx.ITEM_BY_ID[id]), 0);
+const prestige = () => [...S.owned].reduce((a, id) => a + ctx.TIERS[ctx.ITEM_BY_ID[id].tier].pts, 0);
+const allowance = () => { const p = prestige(); let i = 0; while (i + 1 < RANKS.length && p >= RANKS[i + 1][0]) i++; return ALLOWANCE[i]; };
 const mark = (k) => { if (!S.milestones[k]) S.milestones[k] = S.day; };
 
 function reqOk(j) {
@@ -90,16 +95,17 @@ for (; S.day <= DAYS; S.day++) {
   // Upkeep.
   const u = Math.min(S.cash, upkeep()); S.cash -= u; book.upkeep += u;
   // Buy bottles: cheapest missing ones with up to 60% of cash; legendaries once cash is 3x their price.
+  // The boutique sells each player only a few bottles a day (more at higher ranks); vintage comes from auctions.
   const missing = CATALOG.filter((c) => !S.owned.has(c.id) && !c.limited).sort((a, b) => a.base - b.base);
-  let budget = S.cash * 0.6;
-  for (const c of missing) { const p = value(c); if (p > budget) break; budget -= p; S.cash -= p; book.bottles += p; S.owned.add(c.id); }
+  let budget = S.cash * 0.6, left = ALLOW ? allowance() : Infinity;
+  for (const c of missing) { const p = value(c); if (p > budget) break; if (!c.disc) { if (!left) continue; left--; } budget -= p; S.cash -= p; book.bottles += p; S.owned.add(c.id); }
   for (const c of CATALOG.filter((x) => x.limited && !S.owned.has(x.id)).sort((a, b) => a.base - b.base)) { const p = value(c); if (S.cash > p * 3) { S.cash -= p; book.bottles += p; S.owned.add(c.id); mark('legendary:' + c.name); } }
   for (const n of [10, 50, 150, 300, 538]) if (S.owned.size >= n) mark('owned ' + n);
   if (S.owned.size === CATALOG.length) mark('every bottle');
   if (S.day % 20 === 0 || S.day === DAYS) S.log.push({ day: S.day, job: S.job, cash: Math.round(S.cash), owned: S.owned.size, value: Math.round(collValue()), rep: S.house ? Math.round(S.house.rep) : '-', upkeepPerDay: Math.round(upkeep()) });
 }
 
-console.log(`Sillage economy model · ${OLD ? 'old rules (no tax or upkeep)' : 'current rules'} · ${DAYS} days\n`);
+console.log(`Sillage economy model · ${OLD ? 'old rules (no tax or upkeep)' : ALLOW ? 'current rules' : 'current rules without the boutique allowance'} · ${DAYS} days\n`);
 console.table(S.log);
 console.log('Milestones (day reached):');
 for (const [k, d] of Object.entries(S.milestones)) console.log(`  day ${String(d).padStart(3)}  ${k}`);

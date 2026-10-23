@@ -7,11 +7,14 @@
  * Needs Playwright (npm i -D playwright, or set PLAYWRIGHT_PATH to an install).
  */
 const path = require('path');
+const fs = require('fs');
+const vm = require('vm');
 let chromium;
 try { ({ chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright')); } catch (e) { ({ chromium } = require('/opt/node-tools/node_modules/playwright')); }
 
 const FILE = 'file://' + path.join(__dirname, '..', 'sillage.html');
 const KEY = 'sillage-save-v1';
+const cat = {}; vm.createContext(cat); vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'catalog.js'), 'utf8').replace(/^const /gm, 'var '), cat);
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? '  ok  ' : '  FAIL'} ${msg}`); if (!ok) failures++; };
 
@@ -97,6 +100,31 @@ const check = (ok, msg) => { console.log(`${ok ? '  ok  ' : '  FAIL'} ${msg}`); 
   p = await fresh(Object.assign({}, good, { cash: 'lots', day: -3, desk: 99, owned: { x: 5 } }));
   s = await state(p);
   check(typeof s.cash === 'number' && isFinite(s.cash) && s.day === 1 && s.desk === 8 && !s.owned.x, 'bad values are repaired on load');
+  await p.context().close();
+
+  console.log('Living market');
+  const shelf = cat.CATALOG.filter((c) => !c.disc && !c.limited && c.tier === 'designer').sort((a, b) => a.base - b.base);
+  const [hyped, theirs] = [shelf[5], shelf[6]];
+  const live = { rolled: 5, events: [{ id: 'evt', type: 'viral', item: hyped.id, mult: 1.5, start: 5, end: 8, text: 'Test hype' }], offers: [{ id: 'oft', rival: '@OudBaron', kind: 'sell', item: theirs.id, price: Math.round(theirs.base * 1.3), expires: 6 }], feed: [], wish: [], drops: [], buys: { day: 0, n: 0 }, rivals: {}, notes: {} };
+  p = await fresh({ cash: 20000, day: 5, seed: 'live', ambition: 'collector', owned: { [hyped.id]: { day: 2, paid: 50, batch: 'A1', from: 'test' } }, live, settings: { sfx: false, music: false, unbox: false } });
+  await p.click('.tabs [data-tab=collection]'); await p.waitForTimeout(300);
+  await p.click(`[data-action=sell][data-id="${hyped.id}"]`); await p.waitForTimeout(200);
+  const quoted = Number(((await p.textContent('#dlg .dlg-confirm')).match(/value of \$([\d,]+)/) || [])[1].replace(/,/g, ''));
+  check(quoted >= hyped.base * 1.35, `a viral event lifts the bottle's value (${quoted} against a base of ${hyped.base})`);
+  await p.click('#dlg [data-action=dlg-answer][data-v="0"]'); await p.waitForTimeout(200);
+  await p.click('.tabs [data-tab=boutique]'); await p.waitForTimeout(400);
+  const heart = await p.$('#shop-grid [data-action=wish]'); const wid = await heart.getAttribute('data-id'); await heart.click(); await p.waitForTimeout(200);
+  check((await state(p)).live.wish.includes(wid), 'the heart adds a bottle to the wishlist');
+  for (let i = 0; i < 5; i++) { const b = await p.$('#shop-grid [data-action=buy]:not([disabled])'); if (!b) break; await b.click(); await p.waitForTimeout(300); }
+  s = await state(p);
+  check(s.live.buys.n === 3 && !(await p.$('#shop-grid [data-action=buy]:not([disabled])')), `the boutique allowance stops buying after 3 bottles (${s.live.buys.n})`);
+  await p.click('.tabs [data-tab=vault]'); await p.waitForTimeout(400);
+  const cashBeforeOffer = s.cash;
+  await p.click('[data-action=offer-accept][data-id=oft]'); await p.waitForTimeout(300);
+  s = await state(p);
+  check(!!s.owned[theirs.id] && Math.round(cashBeforeOffer - s.cash) === live.offers[0].price && !s.live.offers.length, 'a rival’s private offer can be accepted');
+  check(s.live.feed.some((f) => /OudBaron/.test(f.text)), 'the newsfeed records the deal');
+  check(p.errors.length === 0, 'no page errors' + (p.errors.length ? ': ' + p.errors.join(' | ') : ''));
   await p.context().close();
 
   console.log('House stock, checkout and delivery');

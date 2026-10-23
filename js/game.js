@@ -125,6 +125,13 @@
     for (const k of ['xp', 'courses', 'ach', 'notified', 'stats', 'settings']) if (d[k] != null && !isObj(d[k])) { d[k] = {}; fixes.push(k); }
     for (const k of Object.keys(d.xp || {})) d.xp[k] = Math.floor(num(d.xp[k], 0, 0));
     if (d.ledger != null && !Array.isArray(d.ledger)) { d.ledger = []; fixes.push('ledger'); }
+    if (d.live != null) {
+      if (!isObj(d.live)) { d.live = null; fixes.push('market'); }
+      else for (const k of ['events', 'offers', 'feed', 'wish', 'drops']) if (!Array.isArray(d.live[k])) { d.live[k] = []; fixes.push('market ' + k); }
+      if (d.live && !isObj(d.live.rivals)) d.live.rivals = {};
+      if (d.live && !isObj(d.live.notes)) d.live.notes = {};
+      if (d.live && !isObj(d.live.buys)) d.live.buys = { day: 0, n: 0 };
+    }
     if (d.maison != null) {
       const m = d.maison;
       if (!isObj(m) || (m.creations != null && !Array.isArray(m.creations))) { d.maison = null; fixes.push('house'); }
@@ -225,13 +232,14 @@
   /* ---------- economy ---------- */
   const ownedCount = () => Object.keys(S.owned).length;
   const owns = (id) => !!S.owned[id];
-  function value(item) {
+  function value(item) { return baseValue(item) * marketMult(item); }
+  function baseValue(item) {
     if (item.limited) return item.base * (1 + 0.003 * (S.day - 1));
     if (item.disc) return item.base * 1.35 * (1 + 0.008 * (S.day - 1));
     return item.base * (0.9 + 0.2 * hash01(S.seed + item.id + ':' + S.day));
   }
   const dealFor = (id) => (S.market && S.market.deals.find((d) => d.id === id)) || null;
-  function shopPrice(item) { const d = dealFor(item.id); return Math.round(value(item) * (d ? 1 - d.off : 1)); }
+  function shopPrice(item) { const d = dealFor(item.id); return Math.round(value(item) * (d ? 1 - d.off : 1) * (eventOf('sale') ? 0.85 : 1)); }
   const vaultPrice = (item) => Math.round(value(item) * 1.25 * (S.ambition === 'collector' ? 0.95 : 1));
   const sellPrice = (item) => Math.round(value(item) * (item.disc || item.limited ? 0.95 : 0.7));
   function collectionValue() { let v = 0; for (const id in S.owned) v += value(ITEM_BY_ID[id]); return v; }
@@ -252,7 +260,7 @@
 
   function genMarket() {
     const r = rng(S.seed + ':market:' + S.day);
-    const shop = CATALOG.filter((c) => !c.disc && !c.limited);
+    const shop = CATALOG.filter((c) => !c.disc && !c.limited && !stockInfo(c).out);
     const deals = []; const seen = new Set();
     while (deals.length < 8) {
       const c = pick(shop, r); if (seen.has(c.id)) continue; seen.add(c.id);
@@ -455,6 +463,8 @@
     $('#btn-sfx').setAttribute('aria-pressed', S.settings.sfx);
     $('#btn-music').setAttribute('aria-pressed', S.settings.music);
     $('#btn-unbox').setAttribute('aria-pressed', S.settings.unbox);
+    const jt = $('.tabs [data-tab=journey]'), u = ui.tab === 'journey' ? 0 : unread();
+    if (jt) jt.innerHTML = `Journey${u ? ` <span class="pill" aria-label="${u} new">${u}</span>` : ''}`;
   }
 
   function nextGoal() {
@@ -636,7 +646,7 @@
     S.ledger = (S.ledger || []).concat([Object.assign({ day: S.day, net: Math.round(S.cash - f.start), costs: up }, f)]).slice(-14);
     S.flow = null; flow();
     backupNow();
-    S.day++; S.shift = 0; genMarket(); maisonNewDay(); checkProgress();
+    S.day++; S.shift = 0; genMarket(); maisonNewDay(); liveDaily(); checkProgress();
     const d = S.market.deals[0]; const it = ITEM_BY_ID[d.id], last = S.ledger[S.ledger.length - 1];
     toast(`<b>Day ${S.day}</b><span>Yesterday ${last.net >= 0 ? '+' : '−'}${money(Math.abs(last.net))}${due ? ` after ${money(paid)} of running costs` : ''}${paid < due ? ` (${money(due - paid)} unpaid)` : ''}. ${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} is ${Math.round(d.off * 100)}% off today.</span>`, paid < due ? 'bad' : '');
   }
@@ -660,18 +670,19 @@
       const p = shopPrice(it); const d = dealFor(it.id); const v = value(it);
       const trend = v > it.base * 1.03 ? '<span class="trend up" title="Above usual price">▲</span>' : v < it.base * 0.97 ? '<span class="trend down" title="Below usual price">▼</span>' : '';
       priceHtml = `<span class="price">${d ? `<s>${money(v)}</s> ` : ''}${money(p)} ${trend}</span>${d ? `<span class="deal">−${Math.round(d.off * 100)}% today</span>` : ''}`;
-      btn = own ? '<span class="owned-tag">In your collection</span>' : `<button class="btn btn-buy" data-action="buy" data-id="${it.id}"${lack(p)}>Buy</button>`;
+      const st = stockInfo(it);
+      btn = own ? '<span class="owned-tag">In your collection</span>' : st.out ? `<button class="btn btn-buy" disabled title="${st.why === 'viral' ? 'Sold out after going viral' : 'Sold out'}">Back day ${st.back}</button>` : !allowanceLeft() ? '<button class="btn btn-buy" disabled title="Your boutique allowance is used up today">Tomorrow</button>' : `<button class="btn btn-buy" data-action="buy" data-id="${it.id}"${lack(p)}>Buy</button>`;
     } else if (mode === 'vault') {
       const p = vaultPrice(it);
       priceHtml = `<span class="price">${money(p)}</span><span class="muted tiny">Grey-market ask</span>`;
       btn = own ? '<span class="owned-tag">In your collection</span>' : `<button class="btn btn-buy" data-action="vault-buy" data-id="${it.id}"${lack(p)}>Buy now</button>`;
     }
     return `<article class="card tier-${it.tier} ${own ? 'is-owned' : ''}">
-      <div class="card-art">${bottleSVG(it, 52)}</div>
+      <div class="card-art">${bottleSVG(it, 52)}${mode ? wishBtn(it) : ''}</div>
       <div class="card-body">
         <p class="house">${esc(h.name)}</p>
         <h3>${esc(it.name)}</h3>
-        <p class="tags"><span class="fam fam-${it.family}">${FAMILIES[it.family].label}</span><span class="tier">${TIERS[it.tier].label}</span>${it.disc ? '<span class="tier vint">Discontinued</span>' : ''}</p>
+        <p class="tags"><span class="fam fam-${it.family}">${FAMILIES[it.family].label}</span><span class="tier">${TIERS[it.tier].label}</span>${it.disc ? '<span class="tier vint">Discontinued</span>' : ''}${eventTags(it)}</p>
         <div class="card-foot">${priceHtml}${btn}</div>
       </div>
     </article>`;
@@ -680,6 +691,7 @@
   function renderBoutique() {
     ensureMarket();
     const deals = S.market.deals.map((d) => ITEM_BY_ID[d.id]);
+    renderMarketStrip();
     $('#deals').innerHTML = deals.map((it) => itemCard(it, 'shop')).join('');
     $('#deals-day').textContent = `Day ${S.day}`;
     renderMystery();
@@ -704,8 +716,13 @@
   function buy(id, price, from) {
     const it = ITEM_BY_ID[id];
     if (owns(id)) return;
+    const shop = from === 'boutique' || from === 'mystery box';
+    if (shop && from === 'boutique' && stockInfo(it).out) { SFX.play('error'); toast(`<b>Sold out</b><span>${esc(it.name)} is back on day ${stockInfo(it).back}. Add it to your wishlist to hear when it returns.</span>`, 'bad'); return; }
+    if (shop && !allowanceLeft()) { SFX.play('error'); toast(`<b>Today’s allowance is used</b><span>Boutiques sell ${RANKS[rankIndex()][1]} clients ${allowance()} bottles a day. It resets tomorrow; higher ranks get more. The Vault has no limit.</span>`, 'bad'); return; }
     if (S.cash < price) { SFX.play('error'); toast(`<b>Not enough cash</b><span>You need ${money(price - S.cash)} more for ${esc(it.name)}. Work a few shifts.</span>`, 'bad'); return; }
     S.cash -= price; S.stats.spent += price;
+    if (shop) { const l = L(); if (l.buys.day !== S.day) l.buys = { day: S.day, n: 0 }; l.buys.n++; }
+    L().wish = L().wish.filter((x) => x !== id);
     S.owned[id] = { day: S.day, paid: price, batch: batchCode(S.seed + id + S.day), from };
     ui.showroomDirty = true;
     SFX.play('buy');
@@ -746,6 +763,7 @@
         </div>
       </article>`;
     }).join('');
+    renderRivals();
     const list = CATALOG.filter((c) => c.disc || c.limited).sort((a, b) => a.base - b.base);
     $('#vault-grid').innerHTML = list.map((it) => itemCard(it, 'vault')).join('');
   }
@@ -753,7 +771,7 @@
   function openAuction(i) {
     const lot = S.market.lots[i]; if (!lot || lot.sold) return;
     const it = ITEM_BY_ID[lot.id]; const v = value(it);
-    const rivals = RIVALS.slice().sort(() => Math.random() - 0.5).slice(0, 3).map((name) => ({ name, max: v * (0.75 + Math.random() * 0.6) }));
+    const rivals = auctionRivals(it, v);
     auction = { i, it, price: Math.round(v * 0.6), leader: null, end: performance.now() + 9000, rivals, log: [], nextRival: performance.now() + 900 + Math.random() * 600, done: false };
     $('#modal').hidden = false;
     renderAuction(); tickAuction();
@@ -811,6 +829,7 @@
         a.result = a.leader ? `Sold to ${a.leader} for ${money(a.price)}.` : 'No bids. The lot was withdrawn.';
         SFX.play('gavel');
       }
+      auctionMemory(a);
       save(); renderHeader(); renderAuction(); if (ui.tab === 'vault') renderVault();
       return;
     }
@@ -872,7 +891,7 @@
           <p class="house">${esc(h.name)}</p>
           <h3>${esc(it.name)}</h3>
           <p class="tags"><span class="fam fam-${it.family}">${FAMILIES[it.family].label}</span><span class="tier">${TIERS[it.tier].label}</span></p>
-          <p class="batch">Batch ${o.batch} · Day ${o.day} · Paid ${money(o.paid)}</p>
+          <p class="batch">Batch ${o.batch} · Day ${o.day} · Paid ${money(o.paid)}${o.edition ? ` · <b class="edition">No. ${o.edition.no} of ${o.edition.of}</b>` : ''}${o.extra ? ` · +${o.extra} in your stash` : ''}</p>${eventTags(it) ? `<p class="tags">${eventTags(it)}</p>` : ''}
           <div class="card-foot">
             <span class="price">${money(value(it))}</span>
             <div class="mini-actions">
@@ -913,6 +932,287 @@
     $('#courses').innerHTML = COURSES.map((c) => `<li class="${S.courses[c.id] ? 'done' : ''}"><div><b>${esc(c.name)}</b><small>${esc(c.note)}</small></div>${S.courses[c.id] ? '<span class="owned-tag">Completed</span>' : `<button class="btn" data-action="course" data-id="${c.id}" ${S.cash < c.cost ? `disabled title="You need ${money(c.cost - S.cash)} more"` : ''}>Enroll · ${short(c.cost)}</button>${S.cash < c.cost ? `<small class="need">${money(c.cost - S.cash)} to go</small>` : ''}`}</li>`).join('');
   }
 
+
+
+  /* ================= THE LIVING MARKET =================
+   * Market events that move prices and demand, boutique stock and allowances, numbered drops,
+   * rival collectors who remember you, your house's customers, and a newsfeed written only
+   * from things that actually happened in your game. */
+  const L = () => (S.live = S.live || { events: [], rivals: {}, offers: [], feed: [], seen: 0, feedN: 0, wish: [], drops: [], challenge: null, buys: { day: 0, n: 0 }, notes: {}, retail: null, rolled: 0 });
+  function news(kind, text, tab) {
+    const l = L(); l.feedN = (l.feedN || 0) + 1;
+    l.feed.unshift({ n: l.feedN, day: S.day, kind, text, tab: tab || null });
+    if (l.feed.length > 80) l.feed.length = 80;
+  }
+  const unread = () => L().feed.filter((f) => f.n > (L().seen || 0)).length;
+  const itemName = (it) => `${HOUSE_BY_ID[it.house].name} ${it.name}`;
+  const once = (key) => { const n = L().notes; if (n[key]) return false; n[key] = S.day; return true; };
+
+  /* ---------- market events ---------- */
+  const activeEvents = () => L().events.filter((e) => e.start <= S.day && e.end >= S.day);
+  const eventOf = (type) => activeEvents().find((e) => e.type === type) || null;
+  // Price effect of events (and numbered editions) on one bottle. Older batches gain during a reformulation rumour.
+  function marketMult(it) {
+    let m = 1; const o = S.owned[it.id];
+    for (const e of activeEvents()) {
+      if ((e.type === 'viral' || e.type === 'vintage') && e.item === it.id) m *= e.mult;
+      else if (e.type === 'celebrity' && it.family === e.family) m *= 1.15;
+      else if (e.type === 'rumor' && it.house === e.house) m *= o && o.day < e.start ? 1.3 : 0.9;
+    }
+    if (o && o.edition) m *= 1.6 * (1 + 0.005 * Math.max(0, S.day - o.edition.day));
+    return m;
+  }
+  const SALES = ['Midseason sale', 'Collector’s weekend', 'Black Friday', 'Summer sale', 'Founders’ sale', 'Winter sale'];
+  function newEvent(r) {
+    const l = L(), m = S.maison, live = m ? m.creations.filter((c) => ITEM_BY_ID[c.id]) : [];
+    const types = [['viral', 3], ['rumor', 2], ['vintage', 2], ['celebrity', 2], ['sale', 1]].concat(live.length ? [['competitor', 2], ['shortage', 1]] : []);
+    const busy = (t) => l.events.some((e) => e.type === t && e.end >= S.day);
+    const open = types.filter(([t]) => !busy(t) || t === 'viral'); if (!open.length) return;
+    let x = r() * open.reduce((a, [, w]) => a + w, 0), type = open[0][0];
+    for (const [t, w] of open) { x -= w; if (x <= 0) { type = t; break; } }
+    const e = { id: 'ev' + S.day + type, type, start: S.day };
+    if (type === 'viral') {
+      const it = pick(CATALOG.filter((c) => !c.disc && !c.limited && (c.tier === 'designer' || c.tier === 'niche')), r);
+      Object.assign(e, { item: it.id, mult: Math.round((1.3 + r() * 0.4) * 100) / 100, end: S.day + 3 + Math.floor(r() * 4) });
+      e.text = `${itemName(it)} goes viral: prices up ${Math.round((e.mult - 1) * 100)}% and boutiques are sold out until day ${S.day + 2}.`;
+    } else if (type === 'rumor') {
+      const hs = HOUSES.filter((h) => CATALOG.filter((c) => c.house === h.id && !c.disc && !c.limited).length >= 6);
+      const h = pick(hs, r); Object.assign(e, { house: h.id, end: S.day + 7 + Math.floor(r() * 5) });
+      e.text = `Reformulation rumours hit ${h.name}: collectors want older batches. Bottles you bought before today are worth 30% more; new stock is 10% cheaper.`;
+    } else if (type === 'vintage') {
+      const it = pick(CATALOG.filter((c) => c.disc), r);
+      Object.assign(e, { item: it.id, mult: Math.round((1.4 + r() * 0.4) * 100) / 100, end: S.day + 5 + Math.floor(r() * 5) });
+      e.text = `${itemName(it)} is suddenly the most wanted discontinued bottle: vault prices up ${Math.round((e.mult - 1) * 100)}%.`;
+      if (S.market && S.market.wants) S.market.wants.unshift({ id: it.id, who: pick(BUYERS, r), mult: 1.6, done: false });
+    } else if (type === 'celebrity') {
+      const fam = pick(Object.keys(FAMILIES), r); Object.assign(e, { family: fam, end: S.day + 3 + Math.floor(r() * 3) });
+      e.text = `A celebrity is wearing ${FAMILIES[fam].label.toLowerCase()} scents everywhere: ${FAMILIES[fam].label.toLowerCase()} bottles are up 15%${m ? ` and demand for your ${FAMILIES[fam].label.toLowerCase()} fragrances is up 60%` : ''}.`;
+    } else if (type === 'sale') {
+      Object.assign(e, { end: S.day + 1, name: pick(SALES, r) }); e.text = `${e.name}: 15% off everything in the Boutique today and tomorrow.`;
+    } else if (type === 'competitor') {
+      const c = live.slice().sort((a, b) => (b.hist || []).slice(-7).reduce((s, v) => s + v, 0) - (a.hist || []).slice(-7).reduce((s, v) => s + v, 0))[0];
+      const rivalHouse = pick(HOUSES.filter((h) => CATALOG.some((x) => x.house === h.id && x.family === c.family)), r) || pick(HOUSES, r);
+      Object.assign(e, { cid: c.id, end: S.day + 4 + Math.floor(r() * 4) });
+      e.text = `${rivalHouse.name} launches a new ${FAMILIES[c.family].label.toLowerCase()} scent aimed at your ${c.name}: its sales fall 30% while the buzz lasts.`;
+    } else if (type === 'shortage') {
+      Object.assign(e, { end: S.day + 3 }); e.text = 'A glass shortage hits the industry: producing new batches costs 30% more for four days.';
+    }
+    l.events.push(e); news('market', e.text, type === 'competitor' || type === 'shortage' ? 'atelier' : type === 'vintage' ? 'vault' : 'boutique');
+  }
+
+  /* ---------- boutique stock, allowance, drops and wishlist ---------- */
+  const OUT_P = { value: 0.04, designer: 0.08, niche: 0.18, luxury: 0.3, haute: 0.4 };
+  // Each bottle restocks in its own cycle of 3 to 5 days; some cycles it sells out. A viral bottle sells out for two days.
+  function stockInfo(it, day = S.day) {
+    if (it.disc || it.limited || it.mine) return { out: false };
+    const v = L().events.find((e) => e.type === 'viral' && e.item === it.id && day >= e.start && day <= e.start + 1);
+    if (v) return { out: true, back: v.start + 2, why: 'viral' };
+    const len = 3 + Math.floor(hash01(it.id + ':len') * 3), ph = Math.floor(hash01(it.id + ':ph') * len), cyc = Math.floor((day + ph) / len);
+    if (hash01(S.seed + it.id + ':cyc' + cyc) < (OUT_P[it.tier] || 0.08)) return { out: true, back: (cyc + 1) * len - ph };
+    return { out: false };
+  }
+  const ALLOWANCE = [3, 4, 5, 6, 8, 10, 12, 15, 20];
+  const rankIndex = () => { const p = prestige(); let i = 0; while (i + 1 < RANKS.length && p >= RANKS[i + 1][0]) i++; return i; };
+  const allowance = () => ALLOWANCE[rankIndex()];
+  const boughtToday = () => (L().buys.day === S.day ? L().buys.n : 0);
+  const allowanceLeft = () => Math.max(0, allowance() - boughtToday());
+  const wished = (id) => L().wish.includes(id);
+  const activeDrop = () => L().drops.find((d) => d.start <= S.day && d.end >= S.day && !d.gone) || null;
+  function newDrop(r) {
+    const pool = CATALOG.filter((c) => !c.disc && !c.limited && (c.tier === 'designer' || c.tier === 'niche' || c.tier === 'luxury'));
+    const it = wishPick(pool, r), of = it.tier === 'designer' ? 1000 : it.tier === 'niche' ? 500 : 250;
+    const d = { id: it.id, of, no: 1 + Math.floor(r() * (of * 0.6)), price: Math.round(it.base * 1.5), start: S.day, end: S.day + 1 };
+    L().drops = L().drops.filter((x) => x.end >= S.day - 10).concat(d);
+    news('shop', `Limited drop: a numbered edition of ${itemName(it)}, ${of} made. In the Boutique until day ${d.end}.`, 'boutique');
+  }
+  // Wishlisted bottles turn up a little more often in drops and offers.
+  const wishPick = (pool, r) => { const w = pool.filter((c) => wished(c.id) && !owns(c.id)); return w.length && r() < 0.4 ? pick(w, r) : pick(pool, r); };
+  function wishAlerts() {
+    const l = L(), deals = S.market ? S.market.deals : [];
+    for (const id of l.wish) {
+      const it = ITEM_BY_ID[id]; if (!it || owns(id)) continue;
+      const d = deals.find((x) => x.id === id);
+      if (d) news('wish', `${itemName(it)} from your wishlist is ${Math.round(d.off * 100)}% off today.`, 'boutique');
+      if (stockInfo(it, S.day - 1).out && !stockInfo(it).out) news('wish', `${itemName(it)} from your wishlist is back in stock.`, 'boutique');
+      if (S.market && S.market.lots.some((x) => x.id === id)) news('wish', `${itemName(it)} from your wishlist is up for auction today.`, 'vault');
+    }
+  }
+
+  /* ---------- rival collectors ---------- */
+  const ME_HOUSES = ['afnan', 'rayhaan', 'lattafa', 'armaf', 'rasasi', 'spiritdubai'];
+  const RIVAL_INFO = {
+    '@OudBaron': { name: 'Faisal Al-Mansour', bio: 'Middle Eastern houses and anything with real oud.', likes: (it) => it.family === 'oud' || ME_HOUSES.includes(it.house), budget: 1.1, beat: 'Enjoy it while it lasts.', won: 'Patience always wins.', offer: 'I pay well for the right bottle.' },
+    '@VintageVera': { name: 'Vera Lindqvist', bio: 'Hunts discontinued designer bottles and original formulas.', likes: (it) => it.disc || ['dior', 'chanel', 'ysl', 'armani', 'guerlain', 'hermes', 'givenchy'].includes(it.house), budget: 1.2, beat: 'You have no idea what that bottle means.', won: 'Some things belong in the right hands.', offer: 'For the archive, darling.' },
+    '@NicheNinja': { name: 'Kenji Mori', bio: 'Rare niche releases only. Never designer.', likes: (it) => !it.disc && ['niche', 'luxury', 'haute'].includes(it.tier), budget: 1.15, beat: 'Noted.', won: 'Too slow.', offer: 'Name your price. Within reason.' },
+    '@AventusAndy': { name: 'Andy Price', bio: 'Owns every Creed batch since 2010 and wants yours.', likes: (it) => it.house === 'creed' || it.family === 'fresh' || it.family === 'citrus', budget: 1.0, beat: 'That was MY batch.', won: 'Another one for the wall.', offer: 'Is that a good batch? I’ll take it.' },
+    '@BatchCodeBetty': { name: 'Betty Okafor', bio: 'Reads batch codes like tea leaves; lives for pre-reformulation bottles.', likes: (it) => it.disc || activeEvents().some((e) => e.type === 'rumor' && e.house === it.house), budget: 1.05, beat: 'Check the batch before you gloat.', won: 'Older batch. Better juice.', offer: 'I’ll pay for the batch, not the bottle.' },
+    '@SillageSultan': { name: 'Omar Haddad', bio: 'A whale. Legendary and haute bottles, at any price.', likes: (it) => it.limited || it.tier === 'haute' || it.tier === 'luxury', budget: 1.35, beat: 'Remarkable. I will remember you.', won: 'Money is a language. I speak it fluently.', offer: 'Everything has a price.' },
+    '@DecantDave': { name: 'Dave Collins', bio: 'Buys cheap, splits everything into decants.', likes: (it) => it.tier === 'value' || it.tier === 'designer', budget: 0.85, beat: 'Fair play, mate.', won: 'Five-mil decants for everyone!', offer: 'Quick flip? Cash today.' },
+    '@ProjectionPaul': { name: 'Paul Reyes', bio: 'Beast mode only: sweet, amber and gourmand bombs.', likes: (it) => ['sweet', 'amber', 'gourmand', 'tobacco'].includes(it.family), budget: 1.0, beat: 'I’ll out-project you anyway.', won: 'Twelve sprays, minimum.', offer: 'That one’s a beast. I want it.' },
+  };
+  const R = (h) => { const l = L(); return (l.rivals[h] = l.rivals[h] || { grudge: 0, beat: 0, lost: 0, owned: [], met: false }); };
+  const rivalry = (g) => (g >= 6 ? 'Nemesis' : g >= 3 ? 'Bitter' : g >= 1 ? 'Competitive' : 'Friendly');
+  const rivalOwns = (h, id) => R(h).owned.some((x) => x.id === id);
+  function rivalAcquire(h, id, quiet) {
+    const st = R(h); if (rivalOwns(h, id)) return;
+    st.owned.push({ id, day: S.day }); if (st.owned.length > 200) st.owned.shift();
+    const it = ITEM_BY_ID[id];
+    if (!quiet && (wished(id) || it.disc || it.limited)) news('rival', `${h} adds ${itemName(it)} to their collection.${wished(id) ? ' It was on your wishlist.' : ''}`, 'vault');
+  }
+  // Who sits in an auction: collectors who love the lot, then the room. Grudges make them bid harder against you.
+  function auctionRivals(it, v) {
+    const likers = RIVALS.filter((h) => RIVAL_INFO[h].likes(it)).sort(() => Math.random() - 0.5).slice(0, 2);
+    const rest = RIVALS.filter((h) => !likers.includes(h)).sort(() => Math.random() - 0.5).slice(0, 3 - likers.length);
+    return likers.concat(rest).map((h) => { const inf = RIVAL_INFO[h], st = R(h); st.met = true; return { name: h, max: v * (0.75 + Math.random() * 0.6) * (inf.likes(it) ? 1.15 : 0.9) * inf.budget * (1 + 0.07 * Math.min(5, st.grudge)) }; });
+  }
+  function auctionMemory(a) {
+    const bidders = new Set(a.log.filter((x) => x.who !== 'You').map((x) => x.who)), youBid = a.log.some((x) => x.who === 'You');
+    if (a.leader === 'you') {
+      for (const h of bidders) { const st = R(h); st.grudge++; st.lost++; }
+      const loudest = [...bidders].sort((p, q) => R(q).grudge - R(p).grudge)[0];
+      if (loudest) news('rival', `${loudest} lost ${itemName(a.it)} to you at auction. “${RIVAL_INFO[loudest].beat}”`, 'vault');
+    } else if (a.leader && RIVAL_INFO[a.leader]) {
+      rivalAcquire(a.leader, a.it.id, true);
+      if (youBid) { R(a.leader).beat++; news('rival', `${a.leader} beat you to ${itemName(a.it)} for ${money(a.price)}. “${RIVAL_INFO[a.leader].won}”`, 'vault'); }
+    }
+  }
+  function rivalsDaily(r) {
+    const l = L(), ch = l.challenge && !l.challenge.done ? l.challenge : null;
+    for (const h of RIVALS) {
+      const inf = RIVAL_INFO[h], keen = ch && ch.rival === h ? 0.6 : 0.25;
+      if (r() < keen) { const pool = CATALOG.filter((c) => inf.likes(c) && !rivalOwns(h, c.id)); if (pool.length) rivalAcquire(h, wishPick(pool, r).id); }
+    }
+    // Private offers: a rival wants something on your shelf, or will part with something from theirs.
+    l.offers = l.offers.filter((o) => o.expires >= S.day);
+    if (l.offers.length < 3 && r() < 0.5) {
+      const h = pick(RIVALS, r), inf = RIVAL_INFO[h], st = R(h);
+      if (r() < 0.5) {
+        const mine = Object.keys(S.owned).map((id) => ITEM_BY_ID[id]).filter((it) => it && !it.mine && inf.likes(it) && !l.offers.some((o) => o.item === it.id));
+        if (mine.length) { const it = pick(mine, r), price = Math.round(value(it) * (1.2 + 0.05 * Math.min(4, st.grudge) + r() * 0.3)); l.offers.push({ id: 'of' + S.day + h, rival: h, kind: 'buy', item: it.id, price, expires: S.day + 2 }); st.met = true; news('rival', `${h} offers ${money(price)} for your ${itemName(it)}. “${inf.offer}”`, 'vault'); }
+      } else {
+        const theirs = st.owned.map((x) => ITEM_BY_ID[x.id]).filter((it) => it && !owns(it.id));
+        if (theirs.length && st.grudge < 6) { const it = wishPick(theirs, r), price = Math.round(value(it) * (1.15 + 0.08 * Math.min(5, st.grudge) + r() * 0.25)); l.offers.push({ id: 'of' + S.day + h, rival: h, kind: 'sell', item: it.id, price, expires: S.day + 2 }); st.met = true; news('rival', `${h} will sell you ${itemName(it)} for ${money(price)}.${wished(it.id) ? ' It’s on your wishlist.' : ''}`, 'vault'); }
+      }
+    }
+    challengeDaily(r);
+  }
+  // A race against one rival: add more bottles of their speciality than they do within a week.
+  function challengeDaily(r) {
+    const l = L(), c = l.challenge;
+    if (c && !c.done) {
+      c.theirs = R(c.rival).owned.filter((x) => x.day >= c.start && x.day <= c.end).length;
+      const mine = challengeMine(c);
+      if (mine >= c.target || c.theirs >= c.target || S.day > c.end) {
+        c.done = true; const won = mine >= c.target && (c.theirs < c.target || mine > c.theirs);
+        if (won) { S.cash += c.reward; R(c.rival).grudge++; news('rival', `You won the race against ${c.rival}: ${mine} new ${c.theme} bottles to their ${c.theirs}. Prize ${money(c.reward)}.`, 'vault'); toast(`<b>Race won</b><span>${money(c.reward)} from the collectors’ circle.</span>`, 'gold'); }
+        else news('rival', `${c.rival} won the race for ${c.theme} bottles, ${c.theirs} to your ${mine}. “${RIVAL_INFO[c.rival].won}”`, 'vault');
+      }
+      return;
+    }
+    if (ownedCount() < 5 || (c && S.day - c.end < 2) || r() > 0.35) return;
+    const h = pick(RIVALS, r), target = 3 + Math.floor(r() * 3);
+    const theme = { '@OudBaron': 'oud or Middle Eastern', '@VintageVera': 'discontinued or classic designer', '@NicheNinja': 'niche', '@AventusAndy': 'Creed or fresh', '@BatchCodeBetty': 'discontinued or rumoured', '@SillageSultan': 'luxury or legendary', '@DecantDave': 'value or designer', '@ProjectionPaul': 'sweet, amber or gourmand' }[h];
+    l.challenge = { rival: h, theme, target, start: S.day, end: S.day + 6, theirs: 0, reward: Math.round(2500 * target * (1 + rankIndex())), done: false };
+    news('rival', `${h} challenges you: who adds ${target} ${theme} bottles first, by day ${S.day + 6}? Prize ${money(l.challenge.reward)}.`, 'vault');
+  }
+  const challengeMine = (c) => Object.entries(S.owned).filter(([id, o]) => o.day >= c.start && ITEM_BY_ID[id] && !ITEM_BY_ID[id].mine && RIVAL_INFO[c.rival].likes(ITEM_BY_ID[id])).length;
+
+  /* ---------- your house's customers ---------- */
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  // Four kinds of buyer: bargain hunters weigh price, enthusiasts weigh quality, collectors want limited editions, the rest just buy.
+  function segments(c) {
+    const f = fairPrice(c) / Math.max(1, c.price);
+    const s = { budget: 0.35 * Math.min(3, Math.pow(f, 3)), enthusiast: 0.35 * Math.pow(c.harmony / 70, 3), collector: 0.15 * (c.limited ? 3 : 0.5), casual: 0.15 };
+    s.total = s.budget + s.enthusiast + s.collector + s.casual;
+    return s;
+  }
+  function satisfaction(c) {
+    const f = fairPrice(c) / Math.max(1, c.price), ca = critAvg(c) || 3;
+    return Math.round(clamp(30 + c.harmony * 0.45 + (Math.min(f, 1.6) - 1) * 40 + (ca - 3) * 8, 5, 98));
+  }
+  function customersDaily() {
+    const m = S.maison; if (!m) return;
+    const best = m.creations.slice().sort((a, b) => (b.yesterday || 0) - (a.yesterday || 0))[0];
+    for (const c of m.creations) {
+      c.sat = satisfaction(c);
+      const sold = c.yesterday || 0;
+      c.fans = Math.max(0, (c.fans || 0) * (c.sat < 50 ? 0.9 : 0.995) + sold * Math.pow(c.sat / 100, 2) * 0.15);
+      // Disappointed customers send bottles back.
+      if (c.sat < 55 && sold > 0) {
+        const n = Math.floor(sold * (55 - c.sat) / 300 + Math.random());
+        if (n > 0) { const back = n * c.price; S.cash -= back; c.revenue -= back; m.stats.revenue -= back; flow().house -= back; m.rep = Math.max(0, m.rep - n * 0.05); if (n >= 3 || once('refund' + c.id)) news('house', `${n} customer${n === 1 ? '' : 's'} returned ${c.name} for a refund (${money(back)}). Satisfaction is ${c.sat}: ${c.price > fairPrice(c) * 1.15 ? 'they feel it’s overpriced' : 'they expected more from it'}.`, 'atelier'); }
+      }
+      const h = c.hist || [], wk = h.slice(-7).reduce((a, x) => a + x, 0), prev = h.slice(-14, -7).reduce((a, x) => a + x, 0);
+      if (S.day - c.launched <= 14 && wk >= 40 && (prev === 0 || wk / prev >= 1.5) && once('fast' + c.id)) news('house', `${c.name} is the week’s fastest-growing ${FAMILIES[c.family].label.toLowerCase()} fragrance: ${wk} sold in seven days.`, 'atelier');
+      if (prev >= 60 && wk <= prev * 0.6 && c.stock > wk && once('fade' + c.id + ':' + Math.floor(S.day / 7))) news('house', `${c.name} is falling out of fashion: ${wk} sold this week against ${prev} the week before.`, 'atelier');
+      if (c === best && (c.fans || 0) >= 100 && once('fans' + c.id)) news('house', `${c.name} has a hundred loyal fans who buy it again and again.`, 'atelier');
+    }
+    // A retailer may offer to stock your whole range.
+    const l = L();
+    if (l.retail && l.retail.expires < S.day) l.retail = null;
+    const stocked = m.creations.filter((c) => c.stock > 0 && ITEM_BY_ID[c.id]);
+    if (!l.retail && m.rep >= 35 && stocked.length >= 2 && Math.random() < 0.12) {
+      const who = pick(['Harrods', 'Galeries Lafayette', 'Bergdorf Goodman', 'Saks Fifth Avenue', 'Selfridges', 'Dubai Duty Free', 'Shinsegae', 'Le Bon Marché']);
+      const items = stocked.map((c) => ({ id: c.id, q: Math.min(c.stock, 50 + Math.floor(Math.random() * 150)) }));
+      const total = items.reduce((a, x) => a + x.q * Math.round(m.creations.find((c) => c.id === x.id).price * 0.55), 0);
+      l.retail = { who, items, total, expires: S.day + 2 };
+      news('house', `${who} offers to stock your entire range: ${items.reduce((a, x) => a + x.q, 0)} bottles at wholesale for ${money(total)}. Decide by day ${S.day + 2}.`, 'atelier');
+    }
+  }
+
+  /* ---------- the day's market roll ---------- */
+  function liveDaily() {
+    const l = L(); if (l.rolled === S.day) return; l.rolled = S.day;
+    for (const e of l.events) if (e.end === S.day - 1) news('market', { viral: 'The hype has passed: prices are back to normal.', rumor: 'The reformulation rumour has been put to rest.', vintage: 'The vintage frenzy has cooled.', celebrity: 'The celebrity moment is over.', sale: 'The sale has ended.', competitor: 'The rival launch has lost its buzz; your sales recover.', shortage: 'The glass shortage is over.' }[e.type], null);
+    l.events = l.events.filter((e) => e.end >= S.day - 1);
+    const r = rng(S.seed + ':live:' + S.day);
+    if (activeEvents().length < 4 && r() < 0.6) newEvent(r);
+    if (!activeDrop() && r() < 0.3) newDrop(r);
+    rivalsDaily(r);
+    customersDaily();
+    wishAlerts();
+  }
+
+  /* ---------- Living Market screens ---------- */
+  const EV_LABEL = { viral: 'Viral', rumor: 'Reformulation rumour', vintage: 'Vintage frenzy', celebrity: 'Celebrity moment', sale: 'Sale', competitor: 'Rival launch', shortage: 'Glass shortage' };
+  function eventTags(it) {
+    const out = [];
+    for (const e of activeEvents()) {
+      if (e.type === 'viral' && e.item === it.id) out.push(`<span class="ev-tag hot">Viral +${Math.round((e.mult - 1) * 100)}%</span>`);
+      if (e.type === 'vintage' && e.item === it.id) out.push(`<span class="ev-tag hot">In demand +${Math.round((e.mult - 1) * 100)}%</span>`);
+      if (e.type === 'rumor' && e.house === it.house) out.push(`<span class="ev-tag">${owns(it.id) && S.owned[it.id].day < e.start ? 'Older batch +30%' : 'Rumoured reformulation'}</span>`);
+      if (e.type === 'celebrity' && e.family === it.family) out.push('<span class="ev-tag">Celebrity pick</span>');
+    }
+    return out.join('');
+  }
+  const wishBtn = (it) => (owns(it.id) ? '' : `<button class="wish ${wished(it.id) ? 'on' : ''}" data-action="wish" data-id="${it.id}" aria-pressed="${wished(it.id)}" aria-label="${wished(it.id) ? 'Remove from' : 'Add to'} wishlist: ${esc(it.name)}" title="${wished(it.id) ? 'On your wishlist' : 'Add to wishlist'}">♥</button>`);
+  function renderMarketStrip() {
+    const rk = RANKS[rankIndex()][1], left = allowanceLeft(), ev = activeEvents(), d = activeDrop();
+    const next = ALLOWANCE[rankIndex() + 1];
+    const dropHtml = d ? (() => { const it = ITEM_BY_ID[d.id], up = owns(d.id); const price = up ? Math.max(0, d.price - sellPrice(it)) : d.price; return `<article class="panel drop"><div class="drop-art">${bottleSVG(it, 56)}</div><div><p class="eyebrow">Limited drop · until day ${d.end}</p><h3>${esc(itemName(it))}</h3><p class="muted small">Numbered collector’s edition, ${d.of} made: yours would be <b>No. ${d.no}</b>. Worth about 60% more than the standard bottle and climbing.${up ? ' You own the standard bottle: it’s traded in against the price and kept in your stash.' : ''}</p></div><div class="drop-buy"><b>${money(price)}</b><button class="btn btn-primary" data-action="drop-buy"${lack(price)}${!left ? ' disabled title="Your boutique allowance is used up today"' : ''}>${up ? 'Upgrade' : 'Buy'} the edition</button>${togo(price)}</div></article>`; })() : '';
+    $('#market').innerHTML = `<div class="market-row"><p class="allow"><b>${left} of ${allowance()}</b> boutique bottles left today · ${esc(rk)} clients${next ? `; the next rank gets ${next} a day` : ''}.</p>${ev.length ? `<ul class="ev-chips">${ev.map((e) => `<li class="ev-${e.type}" title="${esc(e.text)}"><b>${EV_LABEL[e.type]}</b> ${esc(e.type === 'viral' || e.type === 'vintage' ? ITEM_BY_ID[e.item].name : e.type === 'rumor' ? HOUSE_BY_ID[e.house].name : e.type === 'celebrity' ? FAMILIES[e.family].label : e.type === 'sale' ? e.name : e.type === 'competitor' ? ((S.maison && S.maison.creations.find((c) => c.id === e.cid)) || {}).name || '' : '')}<small>${e.end > S.day ? `${e.end - S.day + 1} days` : 'last day'}</small></li>`).join('')}</ul>` : ''}</div>${dropHtml}`;
+  }
+  function renderRivals() {
+    const l = L(), c = l.challenge;
+    const chal = c ? `<article class="panel challenge ${c.done ? 'done' : ''}"><p class="eyebrow">${c.done ? 'Race finished' : `Race · ends day ${c.end}`}</p><h3>${esc(c.rival)}: ${c.target} ${esc(c.theme)} bottles</h3>
+      <div class="race"><span>You</span>${barX(challengeMine(c), c.target)}<b>${Math.min(challengeMine(c), c.target)}</b><span>${esc(c.rival)}</span>${barX(c.theirs, c.target)}<b>${c.theirs}</b></div><p class="small muted">Bottles bought since day ${c.start} count, from any source. Prize ${money(c.reward)}.</p></article>` : '';
+    const offers = l.offers.filter((o) => o.expires >= S.day);
+    const offersHtml = offers.length ? `<ul class="wants offers">${offers.map((o) => { const it = ITEM_BY_ID[o.item]; return `<li><div>${bottleSVG(it, 30)}<div><small>${esc(o.rival)} ${o.kind === 'buy' ? 'wants to buy' : 'will sell you'}</small><b>${esc(itemName(it))}</b><small>${money(o.price)} · ${o.kind === 'buy' ? `${Math.round((o.price / value(it) - 1) * 100)}% over value` : `${Math.round((o.price / value(it) - 1) * 100)}% over value`} · until day ${o.expires}</small></div></div><div class="row-actions"><button class="btn btn-primary btn-small" data-action="offer-accept" data-id="${o.id}" ${o.kind === 'buy' ? (owns(o.item) ? '' : 'disabled') : lack(o.price)}>${o.kind === 'buy' ? 'Sell' : 'Buy'}</button><button class="btn btn-small" data-action="offer-decline" data-id="${o.id}">Decline</button></div></li>`; }).join('')}</ul>` : '<p class="muted small">No private offers right now. Rivals reach out every few days.</p>';
+    const cards = RIVALS.map((h) => { const inf = RIVAL_INFO[h], st = R(h); const top = st.owned.map((x) => ITEM_BY_ID[x.id]).filter(Boolean).sort((a, b) => value(b) - value(a)).slice(0, 3);
+      return `<article class="rival ${st.met ? '' : 'unmet'}"><div class="rv-head"><b>${esc(h)}</b><span class="rv-level lv-${rivalry(st.grudge).toLowerCase()}">${rivalry(st.grudge)}</span></div><p class="small">${esc(inf.name)} · ${esc(inf.bio)}</p>
+        <p class="tiny muted">${st.owned.length} bottles${st.lost || st.beat ? ` · you’ve beaten them ${st.lost}×, they’ve beaten you ${st.beat}×` : ''}</p>${top.length ? `<p class="tiny">Prizes: ${top.map((it) => esc(it.name)).join(', ')}</p>` : ''}</article>`; }).join('');
+    $('#rivals').innerHTML = `${chal}<h3 class="sub-sm">Private offers</h3>${offersHtml}<h3 class="sub-sm">The collectors</h3><div class="rival-grid">${cards}</div>`;
+  }
+  const barX = (h, n) => `<div class="bar"><i style="width:${Math.min(100, (h / Math.max(1, n)) * 100)}%"></i></div>`;
+  function retailBanner() {
+    const r = L().retail, m = S.maison; if (!r || r.expires < S.day || !m) return '';
+    return `<article class="panel retail"><p class="eyebrow">Wholesale offer · until day ${r.expires}</p><h3>${esc(r.who)} wants to stock your range</h3><p class="muted small">${r.items.map((x) => { const c = m.creations.find((k) => k.id === x.id); return `${x.q} × ${esc(c ? c.name : '?')}`; }).join(', ')} at 55% of retail. More people discover you (+2 reputation), but those bottles leave your own shelves.</p><div class="row-actions"><button class="btn btn-primary" data-action="retail-accept">Accept · ${money(r.total)}</button><button class="btn" data-action="retail-decline">Decline</button></div></article>`;
+  }
+  function newsPanel(limit = 12) {
+    const l = L(), items = l.feed.slice(0, limit);
+    const icon = { market: '◈', rival: '⚔', house: '✦', shop: '★', wish: '♥', you: '●' };
+    return `<article class="panel news"><p class="eyebrow">News${unread() ? ` · ${unread()} new` : ''}</p>${items.length ? `<ul class="feed">${items.map((f) => `<li class="${f.n > (l.seen || 0) ? 'new' : ''} k-${f.kind}"><span class="fi" aria-hidden="true">${icon[f.kind] || '•'}</span><div><small>Day ${f.day}</small><p>${esc(f.text)}</p></div>${f.tab ? `<button class="btn btn-small" data-tab="${f.tab}">View</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted small">Your story starts here. Market events, rival moves and your house’s news appear as they happen.</p>'}</article>`;
+  }
 
   /* ---------- JOURNEY: ambitions, next steps, unlocks, finances ---------- */
   const webOrders = () => { const w = S.maison && S.maison.site; return w ? w.days.reduce((a, d) => a + d.o, 0) + w.today.o : 0; };
@@ -1011,6 +1311,11 @@
     if (m && !m.creations.length) add('Launch your first fragrance', 'Critics review it, it sells every shift and the first bottle unboxes onto your shelf.', 'atelier', 'Create a fragrance');
     if (m) { const out0 = m.creations.find((c) => c.stock <= 0 && ITEM_BY_ID[c.id]); if (out0) add(`Restock ${out0.name}`, 'It’s sold out, so it earns nothing until you produce another batch.', 'atelier', 'Open your range'); }
     if (m && m.creations.length && !m.site && S.cash >= SITE_COST * 0.6) add('Open your website', 'Online customers buy around the clock, with reviews, a What’s hot chart and your own checkout.', 'atelier', 'Open Your House');
+    const l = L(), offers = l.offers.filter((o) => o.expires >= S.day);
+    if (l.retail && l.retail.expires >= S.day && m) add(`Answer ${l.retail.who}`, `They want ${l.retail.items.reduce((s2, x) => s2 + x.q, 0)} bottles for ${money(l.retail.total)} at wholesale. The offer ends day ${l.retail.expires}.`, 'atelier', 'See the offer');
+    if (offers.length) add(`${offers.length} private offer${offers.length === 1 ? '' : 's'} from rival collectors`, offers.map((o) => `${o.rival} ${o.kind === 'buy' ? 'wants your' : 'is selling'} ${ITEM_BY_ID[o.item].name}`).join('; ') + '.', 'vault', 'Open the Vault');
+    if (l.challenge && !l.challenge.done) add(`Race ${l.challenge.rival}: ${l.challenge.target} ${l.challenge.theme} bottles by day ${l.challenge.end}`, `You have ${challengeMine(l.challenge)}, they have ${l.challenge.theirs}. Prize ${money(l.challenge.reward)}.`, 'vault', 'See the race');
+    const dr = activeDrop(); if (dr && !(owns(dr.id) && S.owned[dr.id].edition)) add(`Limited drop: ${ITEM_BY_ID[dr.id].name}`, `A numbered edition worth about 60% more than the standard bottle, until day ${dr.end}.`, 'boutique', 'See the drop');
     const a = AMBITIONS[S.ambition];
     if (a) { const st = a.stages.find((x) => !J().done[x.id]); if (st) { const [h, need] = st.prog(); add(`${a.name}: ${st.goal}`, `Next stage of your ambition${st.reward ? `, worth ${money(st.reward)}` : ''}. ${progressText(h, need)}.`, st.tab, 'Go'); } }
     else add('Choose an ambition', 'It gives you goals, rewards, a perk and an ending to play toward.', 'journey', 'Choose below');
@@ -1054,7 +1359,8 @@
       ${led.length ? `<div class="ledger-wrap"><table class="ledger"><thead><tr><th>Day</th><th>Pay</th><th>Tax</th><th>House</th><th>Desk</th><th>Costs</th><th>Net</th></tr></thead><tbody>${led.map((d) => `<tr><td>${d.day}</td><td>${z(d.wages)}</td><td>${z(d.tax, '−')}</td><td>${z(d.house)}</td><td>${z(d.desk)}</td><td>${z(d.upkeep, '−')}</td><td class="${d.net >= 0 ? 'good' : 'bad'}">${d.net >= 0 ? '+' : '−'}${short(Math.abs(d.net))}</td></tr>`).join('')}</tbody></table></div><p class="tiny muted">Net includes everything else you bought and sold that day.</p>` : '<p class="small muted">Your daily books appear here after your first full day.</p>'}</article>`;
     const how = `<details class="panel how"><summary><span class="eyebrow">How it all connects</span></summary>
       <ol class="welcome-steps"><li><b>Work</b> earns cash. Each job rewards one scent family; wearing a matching signature adds 30%.</li><li><b>Bottles</b> are the key to everything: they unlock jobs (Reviewer at 12, Perfumer at 40, Influencer at 150), the decant desk at 8, your house at 10 and ranks along the way.</li><li><b>Courses</b> cost money but open the high-paying careers.</li><li><b>Your house</b> turns harmony, price and reputation into daily sales; boutiques, factories and perfumers grow it but cost upkeep, and your fragrances compete with each other.</li><li><b>The website</b> adds online customers, reviews and your own checkout.</li><li><b>Running costs</b> come out at the end of each day. Rare bottles gain value but cost insurance; a bigger shelf costs storage.</li></ol></details>`;
-    $('#tab-journey').innerHTML = `<div class="journey">${amb}<div class="journey-grid">${next}${unlocks}${trophies}</div>${fin}${how}</div>`;
+    $('#tab-journey').innerHTML = `<div class="journey">${amb}<div class="journey-grid">${next}${newsPanel()}${unlocks}${trophies}</div>${fin}${how}</div>`;
+    L().seen = L().feedN || 0;
   }
 
   /* ---------- TROPHIES tab ---------- */
@@ -1152,16 +1458,20 @@
   const maxNotes = () => 5 + M().lab;
   const harmonyBonus = () => (M().lab - 1) * 2 + (M().nose ? NOSES[M().nose].bonus : 0) + (S.ambition === 'perfumer' ? 3 : 0);
   const devFee = () => Math.min(50000, 2000 + 1500 * M().creations.length);
-  function unitCost(c) { return Math.round(((c.oilCost * Maison.CONC[c.conc].oil + Maison.designCost(c.design) + 3) * (1 - 0.08 * M().factory) + 3) * 100) / 100; }
-  function fairPrice(c) { return Math.max(10, Math.round((25 + unitCost(c) * 2.2) * Maison.CONC[c.conc].mult * (0.55 + c.harmony / 100) * (0.6 + M().rep / 60) * (1 + Maison.designCost(c.design) / 60))); }
+  function unitCost(c) { return Math.round(((c.oilCost * Maison.CONC[c.conc].oil + Maison.designCost(c.design) + 3) * (1 - 0.08 * M().factory) + 3) * (eventOf('shortage') ? 1.3 : 1) * 100) / 100; }
+  function fairPrice(c) { return Math.max(10, Math.round((25 + unitCost(c) * 2.2) * Maison.CONC[c.conc].mult * (0.55 + c.harmony / 100) * (0.6 + M().rep / 60) * (1 + Maison.designCost(c.design) / 60) * (c.limited ? 1.4 : 1))); }
   const adMult = () => M().ads.filter((a) => a.until >= S.day).reduce((m, a) => m * a.mult, 1);
-  const trendFam = () => { ensureMarket(); return S.market.trend; };
+  const trendFam = () => { ensureMarket(); const c = eventOf('celebrity'); return c ? c.family : S.market.trend; };
   function demand(c) {
-    const m = M(); let d = (4 + m.rep * 1.4 + shopDemand(m.shops)) * Math.pow(c.harmony / 70, 2);
+    const m = M(); let d = (4 + m.rep * 1.4 + shopDemand(m.shops)) * 1.2 * segments(c).total;
     if (c.family === trendFam()) d *= 1.5;
-    d *= Math.min(3, Math.pow(fairPrice(c) / Math.max(1, c.price), 2.2)) * adMult();
+    d *= adMult();
     if (S.day - c.launched < 7) d *= 1.6;
     d *= Math.pow(Math.max(1, m.creations.filter((x) => x.stock > 0).length), -ECON.rangeCompetition);
+    for (const e of activeEvents()) { if (e.type === 'celebrity' && e.family === c.family) d *= 1.6; if (e.type === 'competitor' && e.cid === c.id) d *= 0.7; }
+    // Loyal fans buy again; a new release gets pre-orders from fans of the rest of the range.
+    d += (c.fans || 0) * 0.05;
+    if (S.day - c.launched < 7) d += m.creations.filter((x) => x !== c).reduce((a, x) => a + (x.fans || 0), 0) * 0.03;
     return d;
   }
   // Sales for a fraction of a day; returns { units, revenue }.
@@ -1174,7 +1484,12 @@
       if (n <= 0) continue;
       c.stock -= n; c.sold += n; c.today = (c.today || 0) + n;
       const rv = n * c.price; c.revenue += rv; revenue += rv; units += n; rep += n * (c.harmony - 35) / 4000;
-      if (!c.stock) toast(`<b>${esc(c.name)} sold out</b><span>Produce another batch in Your House.</span>`);
+      if (!c.stock) {
+        toast(`<b>${esc(c.name)} sold out</b><span>${c.limited ? 'Every numbered bottle has found a home.' : 'Produce another batch in Your House.'}</span>`);
+        const best = m.creations.slice().sort((a, b) => b.sold - a.sold)[0];
+        if (c.limited) news('house', `Your limited edition ${c.name} has sold out: all ${c.sold.toLocaleString('en-US')} numbered bottles.`, 'atelier');
+        else if (c === best && m.shops > 0) news('house', `Your ${SHOP_NAMES[m.shops - 1]} has sold out of ${c.name}, your signature scent.`, 'atelier');
+      }
     }
     if (units) {
       S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue; flow().house += revenue;
@@ -1230,7 +1545,7 @@
   function draftAnalysis() { return Maison.analyse(ui.atelier.draft.sel, { maxNotes: maxNotes(), bonus: harmonyBonus() }); }
   function draftCreation() {
     const d = ui.atelier.draft, an = draftAnalysis();
-    return { name: d.name.trim(), conc: d.conc, notes: d.sel, family: an.family, harmony: an.harmony, oilCost: an.oilCost, accords: an.accords.map((a) => a.name), design: d.design, box: d.box, longevity: Maison.longevity(an, d.conc) };
+    return { limited: !!d.limited, name: d.name.trim(), conc: d.conc, notes: d.sel, family: an.family, harmony: an.harmony, oilCost: an.oilCost, accords: an.accords.map((a) => a.name), design: d.design, box: d.box, longevity: Maison.longevity(an, d.conc) };
   }
 
   function stars(n) { return '<span class="stars" aria-label="' + n + ' of 5">' + '★'.repeat(n) + '<i>' + '★'.repeat(5 - n) + '</i></span>'; }
@@ -1274,14 +1589,15 @@
   function renderRange() {
     const m = M();
     if (!m.creations.length) return `<div class="panel empty-house"><h2>Your shelves are bare</h2><p class="muted">Compose your first fragrance: pick top, heart and base notes, design the bottle and box, then launch it.</p><button class="btn btn-primary" data-action="mview" data-v="lab">Create a fragrance</button></div>`;
-    return `<div class="range">${m.creations.map((c, i) => {
+    return `${retailBanner()}<div class="range">${m.creations.map((c, i) => {
       const it = ITEM_BY_ID[c.id], u = unitCost(c), fair = fairPrice(c), avg = c.reviews.length ? Math.round(c.reviews.reduce((x, r) => x + r.stars, 0) / c.reviews.length) : 0;
       return `<article class="panel creation">
         <div class="cr-head">${bottleSVG(it, 40)}<div><p class="house">${esc(Maison.CONC[c.conc].label)} · launched day ${c.launched}</p><h3>${esc(c.name)}</h3><p class="tags"><span class="fam fam-${c.family}">${FAMILIES[c.family].label}</span><span class="tier">Harmony ${c.harmony}</span>${stars(avg)}</p></div></div>
         <p class="muted small">${c.notes.top.concat(c.notes.heart, c.notes.base).map((n) => Maison.NOTE[n].name).join(' · ')}${c.accords.length ? ` — <i>${esc(c.accords.join(', '))}</i>` : ''}</p>
         <dl class="kv compact"><div><dt>In stock</dt><dd>${c.stock.toLocaleString('en-US')}</dd></div><div><dt>Sold yesterday / total</dt><dd>${c.yesterday || 0} / ${c.sold.toLocaleString('en-US')}</dd></div><div><dt>Price · fair · unit cost</dt><dd>${money(c.price)} · ${money(fair)} · ${money(u)}</dd></div><div><dt>Revenue</dt><dd>${short(c.revenue)}</dd></div></dl>
         <div class="row-actions"><button class="btn btn-small" data-action="mprice" data-i="${i}" data-d="-0.1">Price −10%</button><button class="btn btn-small" data-action="mprice" data-i="${i}" data-d="0.1">+10%</button><button class="btn btn-small" data-action="mprice" data-i="${i}" data-d="fair">Set to fair</button></div>
-        <div class="row-actions">${[100, 500, 2000, 10000].map((q) => `<button class="btn btn-small" data-action="mproduce" data-i="${i}" data-q="${q}" ${S.cash < q * u ? 'disabled' : ''}>Make ${q.toLocaleString('en-US')} · ${short(q * u)}</button>`).join('')}</div>
+        ${(() => { const sg = segments(c), pc = (k) => Math.round((sg[k] / sg.total) * 100); return `<dl class="kv compact"><div><dt>Loyal fans</dt><dd>${Math.round(c.fans || 0).toLocaleString('en-US')}</dd></div><div><dt>Satisfaction</dt><dd class="${(c.sat || satisfaction(c)) < 55 ? 'bad' : ''}">${c.sat || satisfaction(c)} / 100</dd></div><div><dt>Who buys it</dt><dd class="small">${pc('enthusiast')}% enthusiasts · ${pc('budget')}% bargain hunters · ${pc('collector')}% collectors · ${pc('casual')}% casual</dd></div></dl>`; })()}
+        <div class="row-actions">${c.limited ? `<p class="small muted">Limited edition: numbered and never restocked.</p>` : [100, 500, 2000, 10000].map((q) => `<button class="btn btn-small" data-action="mproduce" data-i="${i}" data-q="${q}" ${S.cash < q * u ? 'disabled' : ''}>Make ${q.toLocaleString('en-US')} · ${short(q * u)}</button>`).join('')}</div>
         <ul class="reviews">${c.reviews.map((r) => `<li>${stars(r.stars)} <b>${esc(r.who)}</b> “${esc(r.text)}”</li>`).join('')}</ul>
         ${owns(c.id) ? `<button class="btn btn-small" data-action="view3d" data-id="${c.id}">View in the showroom</button>` : ''}
       </article>`;
@@ -1334,7 +1650,8 @@
         <label class="field"><span>Fragrance name</span><input id="ml-name" maxlength="30" value="${esc(d.name)}" placeholder="e.g. Midnight Saffron"></label>
         <label class="field"><span>Retail price (100 ml)</span><input id="ml-price" type="number" min="5" step="5" value="${d.price}"></label>
         <p class="hint">Fair price at today’s reputation: <b>${money(fair)}</b>. Priced above it you sell fewer; far above it and critics take a star.</p>
-        <label class="field"><span>First batch</span><select data-field="qty">${[100, 500, 2000].map((q) => `<option value="${q}" ${q === d.qty ? 'selected' : ''}>${q} bottles · ${money(q * u)}</option>`).join('')}</select></label>
+        <label class="switch"><input type="checkbox" data-field="limited" ${d.limited ? 'checked' : ''}><span><b>Limited edition</b><small>Numbered and never restocked. Collectors pay about 40% more and seek it out; when it’s gone, it’s gone.</small></span></label>
+        <label class="field"><span>${d.limited ? 'Numbered run' : 'First batch'}</span><select data-field="qty">${[100, 500, 2000].map((q) => `<option value="${q}" ${q === d.qty ? 'selected' : ''}>${q} bottles · ${money(q * u)}</option>`).join('')}</select></label>
         <dl class="kv compact"><div><dt>Lab fee</dt><dd>${money(devFee())}</dd></div><div><dt>Unit cost</dt><dd>${money(u)}</dd></div><div><dt>Total</dt><dd>${money(total)}</dd></div></dl>
         <button class="btn btn-primary btn-big" data-action="mlaunch" ${ok && S.cash >= total ? '' : 'disabled'}>Launch ${esc(c.name || 'it')}</button>
         <p class="hint">${!c.name ? 'Give it a name.' : !ok ? 'Fix the formula first (it needs top, heart and base notes) or pick a new name.' : S.cash < total ? `You need ${money(total - S.cash)} more.` : 'The first bottle off the line goes on your own shelf.'}</p>
@@ -1374,6 +1691,8 @@
     c.reviews = makeReviews(c);
     const avg = c.reviews.reduce((x, r) => x + r.stars, 0) / 3; m.rep = Math.max(0, Math.min(100, m.rep + (avg - 3) * 3));
     m.creations.push(c);
+    const fansWaiting = m.creations.filter((x) => x !== c).reduce((a, x) => a + (x.fans || 0), 0);
+    news('house', `You launched ${c.name}${c.limited ? `, a limited edition of ${c.stock.toLocaleString('en-US')} numbered bottles` : ''}. Critics give it ${(c.reviews.reduce((x, r) => x + r.stars, 0) / c.reviews.length).toFixed(1)} stars${fansWaiting >= 20 ? `, and about ${Math.round(fansWaiting * 0.03 * 7)} of your fans are expected to pre-order` : ''}.`, 'atelier');
     const it = Maison.register(m, c);
     S.owned[c.id] = { day: S.day, paid: u, batch: batchCode(S.seed + c.id), from: 'your house' };
     ui.showroomDirty = true; ui.atelier = { view: 'range', step: 0, draft: newDraft(), found: ui.atelier.found };
@@ -1402,7 +1721,7 @@
     { id: 'niche', name: 'Niche box', price: 900, lo: 0.45, hi: 1.9, blurb: 'Something from the niche shelves.' },
     { id: 'haute', name: 'Haute box', price: 8000, lo: 0.4, hi: 2.2, blurb: 'A luxury or haute bottle. Big swings.' },
   ];
-  function mysteryPool(b) { return CATALOG.filter((c) => !c.disc && !c.limited && !owns(c.id) && c.base >= b.price * b.lo && c.base <= b.price * b.hi); }
+  function mysteryPool(b) { return CATALOG.filter((c) => !c.disc && !c.limited && !owns(c.id) && !stockInfo(c).out && c.base >= b.price * b.lo && c.base <= b.price * b.hi); }
   function renderMystery() {
     const el = $('#mystery'); if (!el) return;
     el.innerHTML = MYSTERY.map((b) => { const n = mysteryPool(b).length; return `<article class="panel mystery-box"><div class="mb-art" aria-hidden="true"><span>?</span></div><div><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.blurb)} ${n} possible bottles.</p></div><button class="btn btn-primary" data-action="mystery" data-id="${b.id}" ${!n ? 'disabled title="You own every bottle this box can hold"' : lack(b.price)}>Open · ${money(b.price)}</button></article>`; }).join('');
@@ -2452,7 +2771,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     },
     mlaunch: launchDraft,
     mprice: (el) => { const c = M().creations[Number(el.dataset.i)]; c.price = el.dataset.d === 'fair' ? fairPrice(c) : Math.max(5, Math.round(c.price * (1 + Number(el.dataset.d)))); SFX.play('click'); save(); renderAtelier(); },
-    mproduce: (el) => { const c = M().creations[Number(el.dataset.i)], q = Number(el.dataset.q), cost = Math.round(q * unitCost(c)); if (S.cash < cost) return; S.cash -= cost; S.stats.spent += cost; c.stock += q; SFX.play('buy'); toast(`<b>${q.toLocaleString('en-US')} bottles of ${esc(c.name)}</b><span>Off the line for ${money(cost)}.</span>`, 'good'); save(); renderHeader(); renderAtelier(); },
+    mproduce: (el) => { const c = M().creations[Number(el.dataset.i)], q = Number(el.dataset.q), cost = Math.round(q * unitCost(c)); if (S.cash < cost || c.limited) return; S.cash -= cost; S.stats.spent += cost; c.stock += q; SFX.play('buy'); toast(`<b>${q.toLocaleString('en-US')} bottles of ${esc(c.name)}</b><span>Off the line for ${money(cost)}.</span>`, 'good'); save(); renderHeader(); renderAtelier(); },
     mlab: () => { const m = M(), cost = LAB_COST[m.lab + 1]; if (m.lab >= 5 || S.cash < cost) return; S.cash -= cost; m.lab++; SFX.play('unlock'); save(); renderHeader(); renderAtelier(); },
     mnose: () => { const m = M(); if (m.nose >= 2) return; const n = NOSES[m.nose + 1]; if (S.cash < n.cost) return; S.cash -= n.cost; m.nose++; SFX.play('unlock'); toast(`<b>Hired: ${esc(n.name)}</b><span>+${n.bonus} harmony on new formulas.</span>`, 'good'); save(); renderHeader(); renderAtelier(); },
     mfactory: () => { const m = M(), cost = factoryCost(m.factory); if (m.factory >= 5 || S.cash < cost) return; S.cash -= cost; m.factory++; SFX.play('unlock'); save(); renderHeader(); renderAtelier(); },
@@ -2465,6 +2784,45 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       SFX.play('coins'); toast(`<b>Commission delivered</b><span>${esc(q.who)} paid ${money(pay)} for ${q.qty} bottles of ${esc(c.name)}.</span>`, 'gold');
       checkProgress(); save(); renderHeader(); renderAtelier();
     },
+    wish: (el) => { const l = L(), id = el.dataset.id; l.wish = wished(id) ? l.wish.filter((x) => x !== id) : l.wish.concat(id); SFX.play('click'); save(); renderCurrent(); },
+    'drop-buy': () => {
+      const d = activeDrop(); if (!d || !allowanceLeft()) return; const it = ITEM_BY_ID[d.id], up = owns(d.id), price = up ? Math.max(0, d.price - sellPrice(it)) : d.price;
+      if (S.cash < price) return;
+      S.cash -= price; S.stats.spent += price; const l = L(); if (l.buys.day !== S.day) l.buys = { day: S.day, n: 0 }; l.buys.n++;
+      const prev = S.owned[d.id];
+      S.owned[d.id] = { day: S.day, paid: price, batch: batchCode(S.seed + d.id + 'ED'), from: 'limited drop', edition: { no: d.no, of: d.of, day: S.day }, extra: prev ? (prev.extra || 0) + 1 : 0 };
+      d.gone = true; l.wish = l.wish.filter((x) => x !== d.id); ui.showroomDirty = true; SFX.play('buy');
+      news('you', `You secured No. ${d.no} of ${d.of}: the numbered edition of ${itemName(it)}.`, 'collection');
+      if (!unbox(it)) toast(`<b>No. ${d.no} of ${d.of}</b><span>${esc(itemName(it))} is on your shelf.</span>`, 'gold');
+      checkProgress(); save(); renderHeader(); renderCurrent();
+    },
+    'offer-accept': async (el) => {
+      const l = L(), o = l.offers.find((x) => x.id === el.dataset.id); if (!o) return; const it = ITEM_BY_ID[o.item], st = R(o.rival);
+      if (o.kind === 'buy') {
+        if (!owns(o.item)) return;
+        if (!(await confirmBox({ title: `Sell ${esc(it.name)} to ${esc(o.rival)}?`, body: `They pay ${money(o.price)}, ${Math.round((o.price / value(it) - 1) * 100)}% over today’s value.${S.signature === o.item ? ' It’s your signature scent.' : ''}`, ok: `Sell for ${money(o.price)}` }))) return;
+        delete S.owned[o.item]; if (S.signature === o.item) S.signature = null; S.cash += o.price; S.stats.sold++; rivalAcquire(o.rival, o.item, true); ui.showroomDirty = true;
+        news('rival', `You sold ${itemName(it)} to ${o.rival} for ${money(o.price)}.`, 'vault');
+      } else {
+        if (S.cash < o.price) return;
+        S.cash -= o.price; S.stats.spent += o.price; st.owned = st.owned.filter((x) => x.id !== o.item);
+        S.owned[o.item] = { day: S.day, paid: o.price, batch: batchCode(S.seed + o.item + o.rival), from: 'private sale, ' + o.rival }; ui.showroomDirty = true;
+        news('rival', `You bought ${itemName(it)} from ${o.rival}'s collection for ${money(o.price)}.`, 'collection');
+        l.wish = l.wish.filter((x) => x !== o.item);
+      }
+      st.grudge = Math.max(0, st.grudge - 1); l.offers = l.offers.filter((x) => x !== o); SFX.play('coins');
+      checkProgress(); save(); renderHeader(); renderCurrent();
+    },
+    'offer-decline': (el) => { const l = L(); l.offers = l.offers.filter((x) => x.id !== el.dataset.id); SFX.play('click'); save(); renderCurrent(); },
+    'retail-accept': () => {
+      const l = L(), r = l.retail, m = S.maison; if (!r || !m) return;
+      let total = 0, units = 0;
+      for (const x of r.items) { const c = m.creations.find((k) => k.id === x.id); if (!c) continue; const q = Math.min(x.q, c.stock), amt = q * Math.round(c.price * 0.55); c.stock -= q; c.sold += q; c.today = (c.today || 0) + q; c.revenue += amt; total += amt; units += q; }
+      S.cash += total; S.stats.earned += total; m.stats.sold += units; m.stats.revenue += total; flow().house += total; m.rep = Math.min(100, m.rep + 2);
+      news('house', `${r.who} now stocks your range: ${units} bottles sold wholesale for ${money(total)}.`, 'atelier'); l.retail = null; SFX.play('coins');
+      checkProgress(); save(); renderHeader(); renderCurrent();
+    },
+    'retail-decline': () => { const l = L(); news('house', `You turned down ${l.retail.who}. Your range stays exclusive.`, 'atelier'); l.retail = null; save(); renderCurrent(); },
     'want-sell': (el) => {
       const w = S.market.wants[Number(el.dataset.i)]; if (!w || w.done || !owns(w.id)) return;
       const it = ITEM_BY_ID[w.id], offer = Math.round(value(it) * w.mult);
@@ -2478,10 +2836,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       if (!pool.length || S.cash < b.price) return;
       buy(pick(pool).id, b.price, 'mystery box');
     },
-    'reset-game': (el) => {
-      if (el.dataset.armed !== '1') { el.dataset.armed = '1'; el.textContent = 'Tap again to erase your save'; setTimeout(() => { el.dataset.armed = ''; el.textContent = 'Start over'; }, 3500); return; }
-      adopt(null); ui.work = { phase: 'idle' }; ui.showroomDirty = true; genMarket(); save(); toast('<b>New game</b><span>$250 and a kitchen table. Good luck.</span>'); setTab('work');
-    },
+    'reset-game': () => actions['save-reset'](),
   };
 
   document.addEventListener('click', (e) => {
@@ -2518,6 +2873,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     if (t.id === 'ml-name') { d.name = t.value; return; }
     if (t.id === 'ml-price') { d.price = Number(t.value) || 0; return; }
     const f = t.dataset.field; if (!f) return;
+    if (f === 'limited') { d.limited = t.checked; d.price = 0; renderAtelier(); return; }
     if (f === 'conc' || f === 'qty') { d[f] = f === 'qty' ? Number(t.value) : t.value; if (f === 'conc') d.price = 0; renderAtelier(); return; }
     const [grp, k] = FIELD[f]; d[grp][k] = f === 'foil' ? t.value === 'foil' : t.value;
     if (t.type === 'color') showDraft(); else renderAtelier();
@@ -2617,7 +2973,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       }
     }
     SFX.setSfx(S.settings.sfx); SFX.setMusic(S.settings.music);
-    applyAccess(); flow(); checkProgress();
+    applyAccess(); flow(); liveDaily(); checkProgress();
     if (ui.notice) setTimeout(() => toast(`<b>Save recovered</b><span>${esc(ui.notice)}</span>`, 'bad'), 700);
     if (!saved) setTimeout(openWelcome, 500);
     save(); // writes back a repaired or recovered save straight away
