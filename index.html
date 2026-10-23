@@ -29,10 +29,12 @@
       <button class="icon-btn" id="btn-sfx" data-action="toggle-sfx" aria-pressed="true" title="Sound effects">SFX</button>
       <button class="icon-btn" id="btn-music" data-action="toggle-music" aria-pressed="true" title="Showroom music">Music</button>
       <button class="icon-btn" id="btn-unbox" data-action="toggle-unbox" aria-pressed="true" title="Play the unboxing scene for new bottles">Unbox</button>
+      <button class="icon-btn icon-gear" data-action="open-settings" title="Settings, accessibility and your save" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"/></svg></button>
     </div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Game sections">
+    <button role="tab" data-tab="journey">Journey</button>
     <button role="tab" data-tab="work">Work</button>
     <button role="tab" data-tab="boutique">Boutique</button>
     <button role="tab" data-tab="vault">Vault</button>
@@ -46,6 +48,7 @@
   <p class="goal" id="goal"></p>
 
   <main>
+    <section class="tab" id="tab-journey" hidden></section>
     <section class="tab" id="tab-work" hidden></section>
 
     <section class="tab" id="tab-boutique" hidden>
@@ -142,6 +145,7 @@
 
 <div id="toasts" aria-live="polite"></div>
 <div id="modal" class="modal" hidden></div>
+<div id="dlg" class="modal dlg" hidden></div>
 
 <div id="unbox" class="unbox" hidden>
   <div class="unbox-stage"></div>

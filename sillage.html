@@ -874,8 +874,90 @@ body.unboxing { overflow: hidden; }
 .w-receipt-table th:not(:first-child), .w-receipt-table td:not(:first-child) { text-align: right; }
 @media print { body.print-receipt * { visibility: hidden !important; } body.print-receipt #w-receipt, body.print-receipt #w-receipt * { visibility: visible !important; } body.print-receipt #w-receipt { position: fixed; inset: 0; box-shadow: none; max-width: none; } }
 
+/* ---------- Journey, dialogs, settings and accessibility ---------- */
+.icon-gear svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; display: block; }
+.icon-gear { display: inline-grid; place-items: center; }
+.goal .goal-why { color: var(--muted); }
+.goal .goal-more { white-space: nowrap; }
+.dlg .modal-card { max-height: calc(100vh - 32px); overflow: auto; width: min(620px, 100%); }
+.dlg .dlg-confirm { width: min(460px, 100%); }
+.dlg-title { font-size: var(--step-2); }
+.dlg-actions { justify-content: flex-end; margin-top: 4px; }
+.btn-danger { background: transparent; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 60%, transparent); }
+.btn-danger:hover:not(:disabled) { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.dlg-confirm .btn-danger.dlg-primary { background: var(--bad); color: #1d0b06; border-color: var(--bad); }
+.set-sec { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line-soft); }
+.switch { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; padding: 4px 0; }
+.switch input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--amber); flex: none; }
+.switch span { display: flex; flex-direction: column; }
+.switch small { color: var(--muted); font-size: var(--step--1); }
+.save-code { width: 100%; background: var(--resin); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-family: var(--f-mono); font-size: 0.75rem; color: var(--text); resize: vertical; word-break: break-all; }
+.lede { font-size: var(--step-1); }
+.ending-stats { margin: 6px 0; }
+.dlg-ending { border-color: var(--amber); }
+.welcome-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.welcome-steps li::marker { color: var(--amber); }
+.amb-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+.amb-card { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--counter-2); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.amb-card:hover { border-color: var(--brass); transform: translateY(-2px); }
+.amb-card.on { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+.amb-card b { font-family: var(--f-display); font-size: var(--step-1); font-weight: 500; }
+.amb-card span:not(.amb-icon) { color: var(--muted); font-size: var(--step--1); }
+.amb-card small { color: var(--brass); font-size: 0.75rem; }
+.amb-icon { color: var(--amber); font-size: 1.3rem; }
+.journey { display: flex; flex-direction: column; gap: 16px; }
+.journey-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: start; }
+.ja-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.stages { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+.stages li { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 12px; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--counter-2); opacity: 0.7; }
+.stages li.now { opacity: 1; border-color: var(--brass); }
+.stages li.done { opacity: 1; }
+.stages li div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stages li small { color: var(--muted); font-size: 0.78rem; }
+.stages li em { grid-column: 2; font-style: normal; font-family: var(--f-mono); font-size: 0.75rem; color: var(--brass); }
+.st-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 0.75rem; border: 1px solid var(--line); }
+.stages li.done .st-dot { background: var(--good); color: #0d1a0f; border-color: var(--good); }
+.stages li.now .st-dot { border-color: var(--amber); color: var(--amber); }
+.next-steps, .unlocks, .costs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.next-steps li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); }
+.next-steps li:last-child { border-bottom: 0; padding-bottom: 0; }
+.next-steps li div, .ul-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.next-steps small { color: var(--muted); font-size: var(--step--1); }
+.next-steps .btn { flex: none; }
+.unlocks li { display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); }
+.unlocks li:last-child { border-bottom: 0; }
+.ul-head { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; }
+.ul-head small { grid-column: 1; }
+.ul-head .btn { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+.ul-req { display: grid; grid-template-columns: minmax(0, 1fr) minmax(80px, 40%); gap: 10px; align-items: center; font-size: var(--step--1); color: var(--muted); }
+.ul-req.ok { color: var(--good); grid-template-columns: 1fr; }
+.journey .bar, .stages .bar { height: 6px; background: var(--line-soft); border-radius: 3px; overflow: hidden; }
+.journey .bar i { display: block; height: 100%; background: var(--amber); border-radius: 3px; }
+.costs li { display: flex; justify-content: space-between; gap: 12px; font-size: var(--step--1); }
+.costs li span { display: flex; flex-direction: column; }
+.costs small { color: var(--muted); }
+.ledger-wrap { overflow-x: auto; }
+.ledger { width: 100%; border-collapse: collapse; font-family: var(--f-mono); font-size: 0.78rem; }
+.ledger th { text-align: right; color: var(--muted); font-weight: 400; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.ledger td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line-soft); }
+.ledger th:first-child, .ledger td:first-child { text-align: left; }
+.bad { color: var(--bad); }
+.how summary { cursor: pointer; list-style: none; }
+.how summary::-webkit-details-marker { display: none; }
+.how summary::after { content: ' ›'; color: var(--brass); }
+.how[open] summary::after { content: ' ⌄'; }
+.buy-col { display: flex; flex-direction: column; align-items: flex-end; }
+.need { display: block; color: var(--muted); font-size: 0.72rem; margin-top: 2px; text-align: right; }
+/* Accessibility options (Settings) */
+html.big-text { font-size: 112.5%; }
+html.contrast { --muted: #e2d4c3; --line: #7a6350; --line-soft: #5a4636; --text: #ffffff; --brass: #e2b46a; }
+html.contrast .btn:disabled { opacity: 0.6; }
+html.calm *, html.calm *::before, html.calm *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+
 @media (max-width: 760px) {
   .w-hero, .w-product, .w-cart-grid { grid-template-columns: 1fr; }
+  .next-steps li { flex-direction: column; align-items: flex-start; }
+  .ja-head { flex-direction: column; }
   .w-track { font-size: 0.7rem; }
   .w-done-head { flex-direction: column; align-items: flex-start; }
   .w-receipt { padding: 18px; }
@@ -936,10 +1018,12 @@ body.unboxing { overflow: hidden; }
       <button class="icon-btn" id="btn-sfx" data-action="toggle-sfx" aria-pressed="true" title="Sound effects">SFX</button>
       <button class="icon-btn" id="btn-music" data-action="toggle-music" aria-pressed="true" title="Showroom music">Music</button>
       <button class="icon-btn" id="btn-unbox" data-action="toggle-unbox" aria-pressed="true" title="Play the unboxing scene for new bottles">Unbox</button>
+      <button class="icon-btn icon-gear" data-action="open-settings" title="Settings, accessibility and your save" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"/></svg></button>
     </div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Game sections">
+    <button role="tab" data-tab="journey">Journey</button>
     <button role="tab" data-tab="work">Work</button>
     <button role="tab" data-tab="boutique">Boutique</button>
     <button role="tab" data-tab="vault">Vault</button>
@@ -953,6 +1037,7 @@ body.unboxing { overflow: hidden; }
   <p class="goal" id="goal"></p>
 
   <main>
+    <section class="tab" id="tab-journey" hidden></section>
     <section class="tab" id="tab-work" hidden></section>
 
     <section class="tab" id="tab-boutique" hidden>
@@ -1049,6 +1134,7 @@ body.unboxing { overflow: hidden; }
 
 <div id="toasts" aria-live="polite"></div>
 <div id="modal" class="modal" hidden></div>
+<div id="dlg" class="modal dlg" hidden></div>
 
 <div id="unbox" class="unbox" hidden>
   <div class="unbox-stage"></div>
@@ -12184,13 +12270,27 @@ const Maison = (() => {
     [500, 'Connoisseur'], [900, 'Grand Collector'], [1400, 'Living Legend'], [2200, 'Scent Emperor'],
   ];
 
+  // Taxes and running costs keep money meaningful once you're rich. Tuned with tools/economy_sim.js.
+  const ECON = {
+    taxBrackets: [[0, 1000, 0], [1000, 10000, 0.25], [10000, 1e12, 0.4]], // per shift: [from, to, rate]
+    perBottleCap: 200, // reviewer and influencer pay counts at most this many bottles
+    freeShelf: 60, storagePerBottle: 4, // a day, for each bottle beyond the free shelf
+    insureVintage: 0.002, insureLegendary: 0.003, // share of value a day
+    shopRent: 0.002, factoryUpkeep: 0.003, // share of what you paid, a day
+    noseSalary: [0, 300, 3000],
+    deskBase: 2, deskPerValue: 0.0001, deskValueCap: 400000,
+    rangeCompetition: 0.25, // your fragrances compete: demand × (fragrances on sale)^−0.25
+    shopDemand: [30, 40, 55, 75, 100, 130], // bottles a day each boutique adds; prestige addresses draw more
+  };
+  const shopDemand = (n) => ECON.shopDemand.slice(0, n).reduce((a, x) => a + x, 0);
+  const incomeTax = (pay) => ECON.taxBrackets.reduce((t, [from, to, rate]) => t + Math.max(0, Math.min(pay, to) - from) * rate, 0) * (S.ambition === 'mogul' ? 0.9 : 1);
   const RIVALS = ['@OudBaron', '@BatchCodeBetty', '@NicheNinja', '@SillageSultan', '@DecantDave', '@VintageVera', '@AventusAndy', '@ProjectionPaul'];
 
   /* ---------- state ---------- */
   const SAVE_KEY = 'sillage-save-v1';
   function freshState() {
     return {
-      v: 1, cash: 250, day: 1, shift: 0, job: 'packer', xp: {}, courses: {}, owned: {}, signature: null, desk: 0,
+      v: 2, cash: 250, day: 1, shift: 0, job: 'packer', xp: {}, courses: {}, owned: {}, signature: null, desk: 0,
       stats: { shifts: 0, earned: 0, spent: 0, perfect: 0, sold: 0, matches: 0, auctions: 0 },
       ach: {}, notified: {}, market: null, maison: null, last: Date.now(), seed: Math.random().toString(36).slice(2, 8),
       settings: { sfx: true, music: true, unbox: true },
@@ -12200,11 +12300,8 @@ const Maison = (() => {
 
   function save() {
     S.last = Date.now();
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage may be blocked */ }
-  }
-  function loadSaved() {
-    try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch (e) { /* ignore */ }
-    return null;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); ui.saveFail = false; }
+    catch (e) { if (!ui.saveFail) { ui.saveFail = true; toast('<b>Couldn’t save</b><span>This browser blocked storage or it’s full. Export your save from Settings to keep your progress.</span>', 'bad'); } }
   }
   function adopt(data) {
     const base = freshState();
@@ -12223,6 +12320,119 @@ const Maison = (() => {
     if (!JOB[S.job]) S.job = 'packer';
   }
 
+
+  /* ---------- saves: checked on load, backed up daily, exported and imported ---------- */
+  const BACKUP_KEY = SAVE_KEY + '-backup', SAVE_VERSION = 2;
+  const num = (v, d, lo = -Infinity, hi = Infinity) => (typeof v === 'number' && isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d);
+  const isObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+  // Repairs anything out of shape so one bad value can't break a game; throws if it isn't a save at all.
+  function validate(d) {
+    if (!isObj(d) || !('cash' in d) || !('owned' in d)) throw new Error('This isn’t a Sillage save.');
+    const fixes = [];
+    const n = (k, def, lo, hi, int) => { const v = num(d[k], null, lo, hi); if (v === null) { fixes.push(k); d[k] = def; } else d[k] = int ? Math.floor(v) : v; };
+    n('cash', 250); n('day', 1, 1, 1e6, true); n('shift', 0, 0, 2, true); n('desk', 0, 0, 8, true);
+    if (!isObj(d.owned)) { d.owned = {}; fixes.push('collection'); }
+    for (const [id, o] of Object.entries(d.owned)) if (!isObj(o)) { d.owned[id] = { day: d.day, paid: 0, batch: 'REPAIRED', from: 'repaired' }; fixes.push('bottle'); }
+    for (const k of ['xp', 'courses', 'ach', 'notified', 'stats', 'settings']) if (d[k] != null && !isObj(d[k])) { d[k] = {}; fixes.push(k); }
+    for (const k of Object.keys(d.xp || {})) d.xp[k] = Math.floor(num(d.xp[k], 0, 0));
+    if (d.ledger != null && !Array.isArray(d.ledger)) { d.ledger = []; fixes.push('ledger'); }
+    if (d.maison != null) {
+      const m = d.maison;
+      if (!isObj(m) || (m.creations != null && !Array.isArray(m.creations))) { d.maison = null; fixes.push('house'); }
+      else {
+        m.rep = num(m.rep, 10, 0, 100); m.lab = Math.floor(num(m.lab, 1, 1, 5)); m.nose = Math.floor(num(m.nose, 0, 0, 2)); m.factory = Math.floor(num(m.factory, 0, 0, 5)); m.shops = Math.floor(num(m.shops, 0, 0, 6));
+        const before = (m.creations || []).length;
+        m.creations = (m.creations || []).filter((x) => isObj(x) && x.id && x.name && isObj(x.design) && isObj(x.box) && isObj(x.notes));
+        if (m.creations.length < before) fixes.push('fragrance');
+        for (const x of m.creations) { x.stock = Math.floor(num(x.stock, 0, 0)); x.price = num(x.price, 100, 1); x.sold = num(x.sold, 0, 0); x.revenue = num(x.revenue, 0); x.harmony = num(x.harmony, 50, 5, 99); x.launched = Math.floor(num(x.launched, d.day, 1)); if (!Array.isArray(x.reviews)) x.reviews = []; if (!Array.isArray(x.accords)) x.accords = []; }
+        if (m.site != null && !isObj(m.site)) { m.site = null; fixes.push('website'); }
+      }
+    }
+    d.v = SAVE_VERSION;
+    return fixes;
+  }
+  // Reads a save; falls back to the daily backup if the main save is damaged.
+  function readKey(k) {
+    let raw = null;
+    try { raw = localStorage.getItem(k); } catch (e) { return null; }
+    if (!raw) return null;
+    try { const d = JSON.parse(raw); validate(d); return d; } catch (e) { return { bad: true, raw }; }
+  }
+  function loadSaved() {
+    const main = readKey(SAVE_KEY);
+    if (main && !main.bad) return main;
+    const bak = readKey(BACKUP_KEY);
+    if (main && main.bad) { try { localStorage.setItem(SAVE_KEY + '-damaged', main.raw); } catch (e) { /* keep going */ } }
+    if (bak && !bak.bad) { if (main && main.bad) ui.notice = `Your save was damaged, so the game restored your backup from day ${bak.day}.`; return bak; }
+    if (main && main.bad) ui.notice = 'Your save couldn’t be read and there was no backup, so a new game has started. The damaged save was kept aside.';
+    return null;
+  }
+  function backupNow() { try { localStorage.setItem(BACKUP_KEY, JSON.stringify(S)); } catch (e) { /* storage may be blocked */ } }
+  const backupInfo = () => { const b = readKey(BACKUP_KEY); return b && !b.bad ? b : null; };
+  // Export codes are the save as base64 JSON with a short prefix, safe to paste anywhere.
+  function exportCode() { const bytes = new TextEncoder().encode(JSON.stringify(S)); let bin = ''; bytes.forEach((b) => { bin += String.fromCharCode(b); }); return 'SILLAGE1:' + btoa(bin); }
+  function parseCode(text) {
+    const t = String(text || '').trim(); if (!t) throw new Error('Paste a save code or choose a save file first.');
+    let json = t;
+    if (/^SILLAGE1:/.test(t)) { const bin = atob(t.slice(9).replace(/\s+/g, '')); json = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))); }
+    let d; try { d = JSON.parse(json); } catch (e) { throw new Error('That code is incomplete or damaged. Copy the whole code and try again.'); }
+    const fixes = validate(d);
+    return { d, fixes };
+  }
+  // Swap in another game state and redraw everything.
+  function loadState(data) {
+    if (auction) closeModal();
+    adopt(data); ensureMarket(); applyAccess();
+    ui.showroomDirty = true; ui.work = { phase: 'idle' }; ui.atelier.draft = null; ui.atelier.view = 'range';
+    SFX.setSfx(S.settings.sfx); SFX.setMusic(S.settings.music);
+    save(); renderHeader(); setTab(ui.tab === 'showroom' ? 'journey' : ui.tab, false);
+  }
+
+  /* ---------- dialogs: one layer for settings, confirmations, the welcome and chapter endings ---------- */
+  let dlgResolve = null, dlgReturn = null;
+  function openDlg(html, cls = '') {
+    const d = $('#dlg'); dlgReturn = document.activeElement;
+    d.innerHTML = `<div class="modal-card ${cls}" role="dialog" aria-modal="true">${html}</div>`; d.hidden = false;
+    const f = d.querySelector('[autofocus], .dlg-primary, button, input, textarea'); if (f) f.focus();
+  }
+  function closeDlg(result) {
+    const d = $('#dlg'); if (d.hidden) return;
+    d.hidden = true; d.innerHTML = '';
+    if (dlgResolve) { const r = dlgResolve; dlgResolve = null; r(result); }
+    if (dlgReturn && dlgReturn.isConnected) dlgReturn.focus();
+  }
+  // Every confirmation in the game goes through here: a title, what will happen, and two clear buttons.
+  function confirmBox({ title, body, ok = 'Confirm', cancel = 'Cancel', danger = false }) {
+    return new Promise((res) => {
+      openDlg(`<h2 class="dlg-title">${title}</h2><p class="muted">${body}</p><div class="row-actions dlg-actions"><button class="btn" data-action="dlg-answer" data-v="0">${cancel}</button><button class="btn ${danger ? 'btn-danger' : 'btn-primary'} dlg-primary" data-action="dlg-answer" data-v="1">${ok}</button></div>`, 'dlg-confirm');
+      dlgResolve = res;
+    });
+  }
+  // Accessibility options live on <html> so they reach every tab, the showroom and the website.
+  function applyAccess() {
+    const r = document.documentElement, st = S.settings;
+    r.classList.toggle('calm', !!st.calm); r.classList.toggle('big-text', !!st.big); r.classList.toggle('contrast', !!st.contrast);
+  }
+  const reducedMotion = () => !!S.settings.calm || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function openSettings(panel = 'main') {
+    const st = S.settings, bak = backupInfo();
+    const sw = (k, label, hint) => `<label class="switch"><input type="checkbox" data-setting="${k}" ${st[k] ? 'checked' : ''}><span><b>${label}</b><small>${hint}</small></span></label>`;
+    let body;
+    if (panel === 'export') body = `<h2 class="dlg-title">Export your save</h2><p class="muted">Copy this code somewhere safe, or download it as a file. Paste it into Import on any device to carry on from here.</p>
+      <textarea id="save-code" class="save-code" rows="5" readonly>${esc(exportCode())}</textarea>
+      <div class="row-actions"><button class="btn btn-primary dlg-primary" data-action="save-copy">Copy code</button><button class="btn" data-action="save-download">Download file</button><button class="btn" data-action="settings" data-p="main">Back</button></div><p class="hint" id="save-msg" aria-live="polite"></p>`;
+    else if (panel === 'import') body = `<h2 class="dlg-title">Import a save</h2><p class="muted">Paste an export code, or choose a save file. Your current game is backed up first, so you can restore it from Settings if you change your mind.</p>
+      <textarea id="save-in" class="save-code" rows="5" placeholder="SILLAGE1:…"></textarea><label class="field"><span>Or choose a file</span><input type="file" id="save-file" accept=".txt,.json,text/plain,application/json"></label>
+      <div class="row-actions"><button class="btn btn-primary dlg-primary" data-action="save-import">Check and import</button><button class="btn" data-action="settings" data-p="main">Back</button></div><p class="hint" id="save-msg" aria-live="polite"></p>`;
+    else body = `<h2 class="dlg-title">Settings</h2>
+      <section class="set-sec"><p class="eyebrow">Sound and scenes</p>${sw('sfx', 'Sound effects', 'Glass clinks, sprays, the till and the gavel')}${sw('music', 'Showroom music', 'An ambient score in the showroom')}${sw('unbox', 'Unboxing scenes', 'Open every new bottle’s box in 3D')}</section>
+      <section class="set-sec"><p class="eyebrow">Accessibility</p>${sw('calm', 'Reduce motion', 'Stops animations, auto-rotating covers and camera sweeps')}${sw('big', 'Larger text', 'Everything about 12% bigger')}${sw('contrast', 'High contrast', 'Brighter text and stronger outlines')}</section>
+      <section class="set-sec"><p class="eyebrow">Your save</p><p class="small muted">Saved automatically in this browser · day ${S.day}. A backup is kept each day${bak ? `, the latest from day ${bak.day}` : ''}.</p>
+        <div class="row-actions"><button class="btn" data-action="settings" data-p="export">Export save</button><button class="btn" data-action="settings" data-p="import">Import save</button>${bak ? '<button class="btn" data-action="save-restore">Restore backup</button>' : ''}<button class="btn btn-danger" data-action="save-reset">Start a new game</button></div></section>
+      <div class="row-actions dlg-actions"><button class="btn btn-primary dlg-primary" data-action="dlg-close">Done</button></div>`;
+    openDlg(body, 'dlg-settings');
+  }
+
   /* ---------- economy ---------- */
   const ownedCount = () => Object.keys(S.owned).length;
   const owns = (id) => !!S.owned[id];
@@ -12233,7 +12443,7 @@ const Maison = (() => {
   }
   const dealFor = (id) => (S.market && S.market.deals.find((d) => d.id === id)) || null;
   function shopPrice(item) { const d = dealFor(item.id); return Math.round(value(item) * (d ? 1 - d.off : 1)); }
-  const vaultPrice = (item) => Math.round(value(item) * 1.25);
+  const vaultPrice = (item) => Math.round(value(item) * 1.25 * (S.ambition === 'collector' ? 0.95 : 1));
   const sellPrice = (item) => Math.round(value(item) * (item.disc || item.limited ? 0.95 : 0.7));
   function collectionValue() { let v = 0; for (const id in S.owned) v += value(ITEM_BY_ID[id]); return v; }
   function prestige() { let p = 0; for (const id in S.owned) p += TIERS[ITEM_BY_ID[id].tier].pts; return p; }
@@ -12283,7 +12493,26 @@ const Maison = (() => {
     if (tierB) parts.push([TIERS[it.tier].label + ' bottle', tierB]);
     return { total: parts.reduce((a, p) => a + p[1], 0), parts };
   }
-  function baseWage(job) { return job.wage + (job.perBottle || 0) * ownedCount(); }
+  function baseWage(job) { return job.wage + (job.perBottle || 0) * Math.min(ECON.perBottleCap, ownedCount()); }
+
+  /* ---------- the day's books ---------- */
+  // Money in and out today, by kind; closed into S.ledger at the end of each day.
+  function flow() { if (!S.flow) S.flow = { start: S.cash, wages: 0, tax: 0, house: 0, desk: 0, upkeep: 0 }; return S.flow; }
+  // Daily running costs: storage beyond the free shelf, insurance on rare bottles, and your house's rent, staff, factories and hosting.
+  function upkeep() {
+    const n = ownedCount(), m = S.maison;
+    let insurance = 0; for (const id in S.owned) { const it = ITEM_BY_ID[id]; if (it.limited) insurance += value(it) * ECON.insureLegendary; else if (it.disc) insurance += value(it) * ECON.insureVintage; }
+    const c = {
+      storage: Math.max(0, n - ECON.freeShelf) * ECON.storagePerBottle,
+      insurance: Math.round(insurance),
+      rent: m ? Math.round(Array.from({ length: m.shops }, (_, i) => shopCost(i)).reduce((a, x) => a + x, 0) * ECON.shopRent) : 0,
+      staff: m ? ECON.noseSalary[m.nose] : 0,
+      factory: m ? Math.round(Array.from({ length: m.factory }, (_, i) => factoryCost(i)).reduce((a, x) => a + x, 0) * ECON.factoryUpkeep) : 0,
+      hosting: m && m.site ? HOSTING : 0,
+    };
+    c.total = Object.values(c).reduce((a, x) => a + x, 0);
+    return c;
+  }
 
   /* ---------- requirements ---------- */
   function reqList(job) {
@@ -12350,12 +12579,18 @@ const Maison = (() => {
         toast(`<b>New job open: ${esc(j.title)}</b><span>${money(baseWage(j))} per shift. Apply in Career.</span>`, 'job');
       }
     }
+    journeyCheck();
   }
 
   /* ---------- toasts ---------- */
+  // Buttons you can't afford say so: disabled with a tooltip, and "$X to go" where there's room.
+  const lack = (cost) => (S.cash < cost ? ` disabled title="You need ${money(cost - S.cash)} more"` : '');
+  const togo = (cost) => (S.cash < cost ? `<small class="need">${money(cost - S.cash)} to go</small>` : '');
   function toast(html, kind = '') {
     const t = document.createElement('div'); t.className = 'toast ' + kind; t.innerHTML = html;
-    $('#toasts').appendChild(t);
+    const box = $('#toasts'); box.appendChild(t);
+    // At most five at once: a burst of rewards shouldn't bury the screen.
+    while (box.children.length > 5) box.firstElementChild.remove();
     setTimeout(() => t.classList.add('out'), 4200);
     setTimeout(() => t.remove(), 4800);
   }
@@ -12417,7 +12652,7 @@ const Maison = (() => {
     showroomDirty: true,
     atelier: { view: 'range', step: 0, draft: null, found: { name: '', city: 'Paris', pal: 0 }, aiText: '', ai: { busy: false, msg: '' } },
   };
-  const TABS = ['work', 'boutique', 'vault', 'collection', 'atelier', 'showroom', 'career', 'trophies'];
+  const TABS = ['journey', 'work', 'boutique', 'vault', 'collection', 'atelier', 'showroom', 'career', 'trophies'];
 
   /* ---------- header ---------- */
   function renderHeader() {
@@ -12434,19 +12669,9 @@ const Maison = (() => {
   }
 
   function nextGoal() {
-    const n = ownedCount(); const job = JOB[S.job];
-    const nextJob = JOBS.slice(JOBS.indexOf(job) + 1).find((j) => jobOpen(j));
-    if (n === 0) return 'Next: buy your first bottle in the <a href="#boutique" data-tab="boutique">Boutique</a>. Afnan, Rayhaan and Lattafa start under $50.';
-    if (!S.signature) return 'Next: pick a signature scent in your <a href="#collection" data-tab="collection">Collection</a>. Matching it to your job raises your pay.';
-    if (nextJob) return `Next: a better job is open. Apply as <a href="#career" data-tab="career">${esc(nextJob.title)}</a>.`;
-    if (n >= FOUND_BOTTLES && !S.maison) return `Next: found your own fragrance house in <a href="#atelier" data-tab="atelier">Your House</a> and launch your own scents.`;
-    if (n >= 8 && S.desk === 0) return 'Next: open a decant desk on the <a href="#work" data-tab="work">Work</a> tab for passive income.';
-    const upcoming = JOBS.slice(JOBS.indexOf(job) + 1)[0];
-    if (upcoming) {
-      const missing = reqList(upcoming).filter((r) => !r.ok).map((r) => r.text).join(', ');
-      return `Working toward <b>${esc(upcoming.title)}</b>: ${esc(missing)}.`;
-    }
-    return `Collect them all: ${CATALOG.length - n} bottles left on Earth.`;
+    const x = nextSteps()[0];
+    if (!x) return `Collect them all: ${CATALOG.length - ownedCount()} bottles left on Earth. <a href="#journey" data-tab="journey">Your journey</a>`;
+    return `Next: <a href="#${x.tab}" data-tab="${x.tab}">${esc(x.text)}</a>. <span class="goal-why">${esc(x.why)}</span> <a class="goal-more" href="#journey" data-tab="journey">Your journey ›</a>`;
   }
 
   /* ---------- WORK tab ---------- */
@@ -12512,7 +12737,7 @@ const Maison = (() => {
             <p class="eyebrow">Decant desk</p>
             ${S.desk > 0 ? `<h3>Level ${S.desk}</h3><p class="muted">Selling 5 ml decants from your shelf earns <b>${money(deskRate() * 12)}</b> a minute while you play.</p>`
               : `<p class="muted">Split your bottles into 5 ml samples and sell them online. Unlocks at 8 bottles.</p>`}
-            ${S.desk < 8 ? `<button class="btn" data-action="desk" ${!deskUnlocked || S.cash < deskCost() ? 'disabled' : ''}>${S.desk ? 'Upgrade' : 'Open desk'} · ${money(deskCost())}</button>` : '<p class="muted">Fully upgraded.</p>'}
+            ${S.desk < 8 ? `<button class="btn" data-action="desk" ${!deskUnlocked ? 'disabled title="Own 8 bottles first"' : lack(deskCost())}>${S.desk ? 'Upgrade' : 'Open desk'} · ${money(deskCost())}</button>${deskUnlocked ? togo(deskCost()) : `<small class="need">Own 8 bottles to open it (${ownedCount()} so far)</small>`}` : '<p class="muted">Fully upgraded.</p>'}
           </article>
 
           <article class="panel">
@@ -12533,7 +12758,7 @@ const Maison = (() => {
   function deskRate() {
     if (!S.desk) return 0;
     let v = 0; for (const id in S.owned) { const it = ITEM_BY_ID[id]; if (!it.limited) v += value(it); }
-    return S.desk * (3 + Math.min(v, 400000) * 0.00025);
+    return S.desk * (ECON.deskBase + Math.min(v, ECON.deskValueCap) * ECON.deskPerValue);
   }
 
   let needleRaf = 0;
@@ -12574,12 +12799,14 @@ const Maison = (() => {
     let base = baseWage(job);
     let vol = '';
     if (job.volatile) { const m = 0.35 + Math.random() * 2.2; base *= m; vol = m > 1.4 ? ' Investors loved it.' : m < 0.7 ? ' A rough quarter.' : ''; }
-    const pay = Math.round(base * mult * (1 + sb.total));
+    const gross = Math.round(base * mult * (1 + sb.total)), tax = Math.round(incomeTax(gross)), pay = gross - tax;
     S.cash += pay; S.stats.earned += pay; S.stats.shifts++; S.xp[job.id] = (S.xp[job.id] || 0) + 1;
+    flow().wages += gross; flow().tax += tax;
     if (grade === 'perfect') S.stats.perfect++;
     const parts = [`Base ${money(base)}`];
     if (mult !== 1) parts.push(`×${mult} performance`);
     if (sb.total) parts.push(`+${Math.round(sb.total * 100)}% signature`);
+    if (tax) parts.push(`−${money(tax)} income tax`);
     const ms = maisonTick(1 / 3);
     if (ms.units) parts.push(`your house sold ${ms.units} bottles for ${money(ms.revenue)}`);
     S.shift++;
@@ -12613,9 +12840,16 @@ const Maison = (() => {
   }
 
   function newDay() {
-    S.day++; S.shift = 0; genMarket(); maisonNewDay();
-    const d = S.market.deals[0]; const it = ITEM_BY_ID[d.id];
-    toast(`<b>Day ${S.day}</b><span>New deals in the Boutique. ${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} is ${Math.round(d.off * 100)}% off.</span>`);
+    // Close the day's books: running costs come out, then the day goes into the ledger.
+    const up = upkeep(), due = up.total, paid = Math.min(Math.max(0, S.cash), due);
+    S.cash -= paid; S.stats.spent += paid;
+    const f = flow(); f.upkeep = paid;
+    S.ledger = (S.ledger || []).concat([Object.assign({ day: S.day, net: Math.round(S.cash - f.start), costs: up }, f)]).slice(-14);
+    S.flow = null; flow();
+    backupNow();
+    S.day++; S.shift = 0; genMarket(); maisonNewDay(); checkProgress();
+    const d = S.market.deals[0]; const it = ITEM_BY_ID[d.id], last = S.ledger[S.ledger.length - 1];
+    toast(`<b>Day ${S.day}</b><span>Yesterday ${last.net >= 0 ? '+' : '−'}${money(Math.abs(last.net))}${due ? ` after ${money(paid)} of running costs` : ''}${paid < due ? ` (${money(due - paid)} unpaid)` : ''}. ${esc(HOUSE_BY_ID[it.house].name)} ${esc(it.name)} is ${Math.round(d.off * 100)}% off today.</span>`, paid < due ? 'bad' : '');
   }
 
   /* ---------- BOUTIQUE tab ---------- */
@@ -12637,11 +12871,11 @@ const Maison = (() => {
       const p = shopPrice(it); const d = dealFor(it.id); const v = value(it);
       const trend = v > it.base * 1.03 ? '<span class="trend up" title="Above usual price">▲</span>' : v < it.base * 0.97 ? '<span class="trend down" title="Below usual price">▼</span>' : '';
       priceHtml = `<span class="price">${d ? `<s>${money(v)}</s> ` : ''}${money(p)} ${trend}</span>${d ? `<span class="deal">−${Math.round(d.off * 100)}% today</span>` : ''}`;
-      btn = own ? '<span class="owned-tag">In your collection</span>' : `<button class="btn btn-buy" data-action="buy" data-id="${it.id}" ${S.cash < p ? 'disabled' : ''}>Buy</button>`;
+      btn = own ? '<span class="owned-tag">In your collection</span>' : `<button class="btn btn-buy" data-action="buy" data-id="${it.id}"${lack(p)}>Buy</button>`;
     } else if (mode === 'vault') {
       const p = vaultPrice(it);
       priceHtml = `<span class="price">${money(p)}</span><span class="muted tiny">Grey-market ask</span>`;
-      btn = own ? '<span class="owned-tag">In your collection</span>' : `<button class="btn btn-buy" data-action="vault-buy" data-id="${it.id}" ${S.cash < p ? 'disabled' : ''}>Buy now</button>`;
+      btn = own ? '<span class="owned-tag">In your collection</span>' : `<button class="btn btn-buy" data-action="vault-buy" data-id="${it.id}"${lack(p)}>Buy now</button>`;
     }
     return `<article class="card tier-${it.tier} ${own ? 'is-owned' : ''}">
       <div class="card-art">${bottleSVG(it, 52)}</div>
@@ -12855,7 +13089,7 @@ const Maison = (() => {
             <div class="mini-actions">
               <button class="btn btn-small ${isSig ? 'on' : ''}" data-action="wear" data-id="${it.id}">${isSig ? 'Wearing' : 'Wear'}</button>
               <button class="btn btn-small" data-action="view3d" data-id="${it.id}">View in 3D</button>
-              <button class="btn btn-small btn-sell ${ui.sellConfirm === it.id ? 'confirm' : ''}" data-action="sell" data-id="${it.id}">${ui.sellConfirm === it.id ? 'Confirm ' + short(sp) : 'Sell'}</button>
+              <button class="btn btn-small btn-sell" data-action="sell" data-id="${it.id}" aria-label="Sell ${esc(it.name)} for ${short(sp)}">Sell</button>
             </div>
           </div>
         </div>
@@ -12864,9 +13098,10 @@ const Maison = (() => {
     $('#coll-more').hidden = list.length <= ui.coll.limit;
   }
 
-  function sell(id) {
+  async function sell(id) {
     const it = ITEM_BY_ID[id];
-    if (ui.sellConfirm !== id) { ui.sellConfirm = id; renderCollection(); setTimeout(() => { if (ui.sellConfirm === id) { ui.sellConfirm = null; if (ui.tab === 'collection') renderCollection(); } }, 3500); return; }
+    const ok = await confirmBox({ title: `Sell ${esc(it.name)}?`, body: `You’ll get ${money(sellPrice(it))} (${it.disc || it.limited ? '95%' : '70%'} of today’s value of ${money(value(it))}).${S.signature === id ? ' It’s your signature scent, so you’ll stop wearing it.' : ''}`, ok: `Sell for ${money(sellPrice(it))}` });
+    if (!ok || !S.owned[id]) return;
     const p = sellPrice(it);
     delete S.owned[id]; if (S.signature === id) S.signature = null;
     S.cash += p; S.stats.sold++; ui.sellConfirm = null; ui.showroomDirty = true;
@@ -12886,7 +13121,151 @@ const Maison = (() => {
         ${current ? '<span class="owned-tag">Your current job</span>' : `<button class="btn ${open ? 'btn-primary' : ''}" data-action="take-job" data-id="${j.id}" ${open ? '' : 'disabled'}>${open ? 'Take this job' : 'Locked'}</button>`}
       </article>`;
     }).join('');
-    $('#courses').innerHTML = COURSES.map((c) => `<li class="${S.courses[c.id] ? 'done' : ''}"><div><b>${esc(c.name)}</b><small>${esc(c.note)}</small></div>${S.courses[c.id] ? '<span class="owned-tag">Completed</span>' : `<button class="btn" data-action="course" data-id="${c.id}" ${S.cash < c.cost ? 'disabled' : ''}>Enroll · ${short(c.cost)}</button>`}</li>`).join('');
+    $('#courses').innerHTML = COURSES.map((c) => `<li class="${S.courses[c.id] ? 'done' : ''}"><div><b>${esc(c.name)}</b><small>${esc(c.note)}</small></div>${S.courses[c.id] ? '<span class="owned-tag">Completed</span>' : `<button class="btn" data-action="course" data-id="${c.id}" ${S.cash < c.cost ? `disabled title="You need ${money(c.cost - S.cash)} more"` : ''}>Enroll · ${short(c.cost)}</button>${S.cash < c.cost ? `<small class="need">${money(c.cost - S.cash)} to go</small>` : ''}`}</li>`).join('');
+  }
+
+
+  /* ---------- JOURNEY: ambitions, next steps, unlocks, finances ---------- */
+  const webOrders = () => { const w = S.maison && S.maison.site; return w ? w.days.reduce((a, d) => a + d.o, 0) + w.today.o : 0; };
+  const discOwned = () => Object.keys(S.owned).filter((id) => ITEM_BY_ID[id].disc).length;
+  const critAvg = (c) => (c.reviews.length ? c.reviews.reduce((a, r) => a + r.stars, 0) / c.reviews.length : 0);
+  const sumN = (fn, n) => Array.from({ length: n }, (_, i) => fn(i)).reduce((a, x) => a + x, 0);
+  // What your house would fetch: 60% of what you sank into it, stock at cost and a month of recent profit (sales at a ~45% margin).
+  function houseValue() {
+    const m = S.maison; if (!m) return 0;
+    const invested = FOUND_COST + sumN(shopCost, m.shops) + sumN(factoryCost, m.factory) + [0, 30000, 380000][m.nose];
+    const recent = (S.ledger || []).slice(-7), daily = recent.length ? recent.reduce((a, d) => a + (d.house || 0), 0) / recent.length : 0;
+    return Math.round(invested * 0.6 + m.creations.reduce((a, c) => a + Math.max(0, c.stock) * unitCost(c), 0) + daily * 0.45 * 30);
+  }
+  const netWorth = () => S.cash + collectionValue() + houseValue();
+  const jobAtLeast = (id) => JOBS.indexOf(JOB[S.job]) >= JOBS.indexOf(JOB[id]);
+  const AMBITIONS = {
+    collector: {
+      name: 'The Collector', pitch: 'Own the rarest and most complete collection on Earth.', perk: 'Vault prices 5% lower', icon: '◆',
+      stages: [
+        { id: 'c1', name: 'A shelf of your own', goal: 'Own 25 bottles', prog: () => [ownedCount(), 25], reward: 2000, tab: 'boutique' },
+        { id: 'c2', name: 'House patron', goal: 'Complete every bottle from one house', prog: () => [housesComplete(), 1], reward: 10000, tab: 'collection' },
+        { id: 'c3', name: 'Vintage eye', goal: 'Own 5 discontinued bottles', prog: () => [discOwned(), 5], reward: 25000, tab: 'vault' },
+        { id: 'c4', name: 'Grail hunter', goal: 'Own a legendary bottle', prog: () => [Object.keys(S.owned).filter((id) => ITEM_BY_ID[id].limited).length, 1], reward: 75000, tab: 'vault' },
+        { id: 'c5', name: 'The library', goal: 'Own 300 bottles and complete 10 houses', prog: () => [Math.min(ownedCount(), 300) + Math.min(housesComplete(), 10) * 30, 600], reward: 250000, tab: 'collection' },
+        { id: 'c6', name: 'Every bottle on Earth', goal: `Own all ${CATALOG.length} fragrances`, prog: () => [ownedCount(), CATALOG.length], ending: 'The world’s most complete fragrance collection is yours.', tab: 'collection' },
+      ],
+    },
+    perfumer: {
+      name: 'The Perfumer', pitch: 'Create the most respected fragrance house.', perk: '+3 harmony on every formula', icon: '✦',
+      stages: [
+        { id: 'p1', name: 'A house of your own', goal: 'Found your fragrance house', prog: () => [S.maison ? 1 : 0, 1], reward: 3000, tab: 'atelier' },
+        { id: 'p2', name: 'First launch', goal: 'Launch a fragrance', prog: () => [S.maison ? Math.min(1, S.maison.creations.length) : 0, 1], reward: 8000, tab: 'atelier' },
+        { id: 'p3', name: 'Critics take notice', goal: 'Launch a fragrance with harmony 85 or more', prog: () => [S.maison ? Math.max(0, ...S.maison.creations.map((c) => c.harmony)) : 0, 85], reward: 20000, tab: 'atelier' },
+        { id: 'p4', name: 'A known name', goal: 'Reach house reputation 50', prog: () => [S.maison ? Math.floor(S.maison.rep) : 0, 50], reward: 60000, tab: 'atelier' },
+        { id: 'p5', name: 'Signature range', goal: 'Five fragrances averaging 4 stars or more with critics', prog: () => { const cs = S.maison ? S.maison.creations.filter((c) => critAvg(c) >= 4) : []; return [cs.length, 5]; }, reward: 150000, tab: 'atelier' },
+        { id: 'p6', name: 'A house for the ages', goal: 'A harmony 92 fragrance and reputation 80', prog: () => (S.maison ? [Math.min(92, Math.max(0, ...S.maison.creations.map((c) => c.harmony))) + Math.min(80, Math.floor(S.maison.rep)), 172] : [0, 172]), ending: 'Your house is spoken of with the great names of perfumery.', tab: 'atelier' },
+      ],
+    },
+    mogul: {
+      name: 'The Mogul', pitch: 'Build a global luxury empire.', perk: 'Income tax 10% lower', icon: '▲',
+      stages: [
+        { id: 'm1', name: 'First fortune', goal: 'Earn $100,000 in total', prog: () => [Math.floor(S.stats.earned), 100000], reward: 5000, tab: 'work' },
+        { id: 'm2', name: 'Corner office', goal: 'Become an Investment Banker or higher', prog: () => [jobAtLeast('banker') ? 1 : 0, 1], reward: 20000, tab: 'career' },
+        { id: 'm3', name: 'Retail footprint', goal: 'Open 2 boutiques for your house', prog: () => [S.maison ? S.maison.shops : 0, 2], reward: 60000, tab: 'atelier' },
+        { id: 'm4', name: 'Online empire', goal: 'Take 250 website orders', prog: () => [webOrders(), 250], reward: 120000, tab: 'atelier' },
+        { id: 'm5', name: 'Eight figures', goal: 'Reach a net worth of $10,000,000', prog: () => [Math.floor(netWorth()), 1e7], reward: 400000, tab: 'atelier' },
+        { id: 'm6', name: 'Scent empire', goal: 'Group CEO, 6 boutiques and $50,000,000 net worth', prog: () => [(S.job === 'ceo' ? 1 : 0) + (S.maison ? S.maison.shops / 6 : 0) + Math.min(1, netWorth() / 5e7), 3], ending: 'From a kitchen-table decant business to a global luxury group.', tab: 'career' },
+      ],
+    },
+  };
+  const J = () => (S.journey = S.journey || { done: {}, ended: {} });
+  const stageDone = (st) => { const [have, need] = st.prog(); return have >= need; };
+  function journeyCheck() {
+    const a = AMBITIONS[S.ambition]; if (!a) return;
+    for (const st of a.stages) {
+      if (J().done[st.id]) continue;
+      if (!stageDone(st)) break; // stages unlock in order
+      J().done[st.id] = S.day;
+      if (st.reward) { S.cash += st.reward; toast(`<b>${esc(a.name)}: ${esc(st.name)}</b><span>${esc(st.goal)}. Reward ${money(st.reward)}.</span>`, 'gold'); SFX.play('unlock'); }
+      if (st.ending && !J().ended[S.ambition]) { J().ended[S.ambition] = S.day; setTimeout(() => openEnding(S.ambition), 900); }
+    }
+  }
+  function openEnding(id) {
+    const a = AMBITIONS[id], m = S.maison;
+    const best = m && m.creations.length ? m.creations.slice().sort((x, y) => y.harmony - x.harmony)[0] : null;
+    SFX.play('unlock');
+    openDlg(`<p class="eyebrow">Chapter complete · day ${S.day}</p><h2 class="dlg-title">${esc(a.name)}</h2><p class="lede">${esc(a.stages[a.stages.length - 1].ending)}</p>
+      <dl class="kv compact ending-stats"><div><dt>Bottles</dt><dd>${ownedCount()} of ${CATALOG.length}</dd></div><div><dt>Collection value</dt><dd>${short(collectionValue())}</dd></div><div><dt>Net worth</dt><dd>${short(netWorth())}</dd></div><div><dt>Earned in total</dt><dd>${short(S.stats.earned)}</dd></div><div><dt>Career</dt><dd>${esc(JOB[S.job].title)}</dd></div><div><dt>Trophies</dt><dd>${ACH.filter((x) => S.ach[x.id]).length} of ${ACH.length}</dd></div>${m ? `<div><dt>Your house</dt><dd>${esc(m.name)}, ${m.creations.length} ${m.creations.length === 1 ? 'fragrance' : 'fragrances'}</dd></div>` : ''}${best ? `<div><dt>Finest creation</dt><dd>${esc(best.name)} · harmony ${best.harmony}</dd></div>` : ''}</dl>
+      <p class="muted small">Your game carries on. Take on another ambition from the Journey tab any time; the stages you’ve finished stay finished.</p>
+      <div class="row-actions dlg-actions"><button class="btn" data-action="dlg-close">Keep playing</button><button class="btn btn-primary dlg-primary" data-action="journey-pick-open">Choose another ambition</button></div>`, 'dlg-ending');
+  }
+  function ambitionCards(cur) {
+    return `<div class="amb-cards">${Object.entries(AMBITIONS).map(([id, a]) => `<button class="amb-card ${cur === id ? 'on' : ''}" data-action="journey-pick" data-id="${id}" aria-pressed="${cur === id}"><span class="amb-icon" aria-hidden="true">${a.icon}</span><b>${esc(a.name)}</b><span>${esc(a.pitch)}</span><small>Perk: ${esc(a.perk)}</small>${J().ended[id] ? '<small class="good">Completed</small>' : ''}</button>`).join('')}</div>`;
+  }
+  function openWelcome() {
+    openDlg(`<p class="eyebrow">Welcome to Sillage</p><h2 class="dlg-title">From decant packer to fragrance legend</h2>
+      <ol class="welcome-steps"><li><b>Work shifts</b> on the Work tab to earn money. Better jobs unlock as you gain experience and bottles.</li><li><b>Collect real fragrances</b> in the Boutique and Vault. Your collection unlocks jobs, trophies and your own house.</li><li><b>Found your house</b> at 10 bottles: compose, design and sell your own fragrances, then open a website.</li></ol>
+      <p class="muted">Choose an ambition. It sets your goals, rewards and ending, and gives you a perk. You can change it later in the Journey tab.</p>${ambitionCards(null)}
+      <div class="row-actions dlg-actions"><button class="btn" data-action="journey-later">Decide later</button></div>`, 'dlg-welcome');
+  }
+  // The most useful things to do now, each with the reason it matters.
+  function nextSteps() {
+    const out = [], n = ownedCount(), job = JOB[S.job], m = S.maison;
+    const add = (text, why, tab, cta) => out.push({ text, why, tab, cta });
+    const nextJob = JOBS.slice(JOBS.indexOf(job) + 1).filter((j) => jobOpen(j) && baseWage(j) > baseWage(job)).pop();
+    const an = (w) => (/^[aeiou]/i.test(w) ? 'an ' : 'a ') + w;
+    if (n === 0) add('Buy your first bottle', 'Bottles unlock better jobs, trophies, the decant desk and your own house. Afnan, Rayhaan and Lattafa start under $50.', 'boutique', 'Go to the Boutique');
+    if (n && !S.signature) add('Wear a signature scent', 'Wearing one adds 5%; if its family matches your job’s, you earn 30% more every shift.', 'collection', 'Open your Collection');
+    else if (S.signature && ITEM_BY_ID[S.signature].family !== job.vibe && n) add(`Switch to ${an(FAMILIES[job.vibe].label.toLowerCase())} signature`, `Your job rewards ${FAMILIES[job.vibe].label.toLowerCase()} scents: +30% pay per shift.`, 'collection', 'Choose a scent');
+    if (nextJob) add(`Take the ${nextJob.title} job`, `It pays ${money(baseWage(nextJob))} a shift against ${money(baseWage(job))} now.`, 'career', 'Open Career');
+    const upcoming = JOBS.slice(JOBS.indexOf(job) + 1).find((j) => !jobOpen(j));
+    const course = upcoming && upcoming.req.course && !S.courses[upcoming.req.course] ? COURSE[upcoming.req.course] : null;
+    if (course && S.cash >= course.cost) add(`Enroll in the ${course.name}`, `${course.note}. You can afford it now.`, 'career', 'Open Career');
+    if (n >= 8 && !S.desk && S.cash >= deskCost()) add('Open a decant desk', 'Passive income every minute you play, growing with the value of your shelf.', 'work', 'Go to Work');
+    if (n >= FOUND_BOTTLES && !m) add('Found your own fragrance house', S.cash >= FOUND_COST ? 'Compose, design and sell your own fragrances. It becomes your biggest earner.' : `You have the bottles; it costs ${money(FOUND_COST)} (${money(FOUND_COST - S.cash)} to go).`, 'atelier', 'Open Your House');
+    if (m && !m.creations.length) add('Launch your first fragrance', 'Critics review it, it sells every shift and the first bottle unboxes onto your shelf.', 'atelier', 'Create a fragrance');
+    if (m) { const out0 = m.creations.find((c) => c.stock <= 0 && ITEM_BY_ID[c.id]); if (out0) add(`Restock ${out0.name}`, 'It’s sold out, so it earns nothing until you produce another batch.', 'atelier', 'Open your range'); }
+    if (m && m.creations.length && !m.site && S.cash >= SITE_COST * 0.6) add('Open your website', 'Online customers buy around the clock, with reviews, a What’s hot chart and your own checkout.', 'atelier', 'Open Your House');
+    const a = AMBITIONS[S.ambition];
+    if (a) { const st = a.stages.find((x) => !J().done[x.id]); if (st) { const [h, need] = st.prog(); add(`${a.name}: ${st.goal}`, `Next stage of your ambition${st.reward ? `, worth ${money(st.reward)}` : ''}. ${progressText(h, need)}.`, st.tab, 'Go'); } }
+    else add('Choose an ambition', 'It gives you goals, rewards, a perk and an ending to play toward.', 'journey', 'Choose below');
+    return out;
+  }
+  const progressText = (h, need) => (need >= 1e5 ? `${short(Math.min(h, need))} of ${short(need)}` : `${Math.min(h, need).toLocaleString('en-US')} of ${need.toLocaleString('en-US')}`);
+  const bar = (h, need) => `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(1, h / need) * 100)}"><i style="width:${Math.min(100, (h / need) * 100)}%"></i></div>`;
+  // Progress for trophies that count something, so the closest ones can be shown.
+  const ACH_PROG = {
+    first: () => [ownedCount(), 1], ten: () => [ownedCount(), 10], fifty: () => [ownedCount(), 50], lib: () => [ownedCount(), 150], museum: () => [ownedCount(), 300], all: () => [ownedCount(), CATALOG.length],
+    perfect: () => [S.stats.perfect, 10], seller: () => [S.stats.matches, 25], vintage: () => [discOwned(), 5], oud: () => [countFam('oud'), 15],
+    house5: () => [housesComplete(), 5], house20: () => [housesComplete(), 20], million: () => [Math.floor(collectionValue()), 1e6],
+    range: () => [S.maison ? S.maison.creations.length : 0, 5], kbottles: () => [S.maison ? S.maison.stats.sold : 0, 10000], eshop: () => [webOrders(), 1000], cult: () => [S.maison ? Math.floor(S.maison.rep) : 0, 80],
+  };
+  function renderJourney() {
+    const a = AMBITIONS[S.ambition], steps = nextSteps().slice(0, 4), job = JOB[S.job], m = S.maison;
+    const amb = a ? `<article class="panel journey-amb"><div class="ja-head"><div><p class="eyebrow">Your ambition</p><h2>${a.icon} ${esc(a.name)}</h2><p class="muted">${esc(a.pitch)} · Perk: ${esc(a.perk)}</p></div><button class="btn" data-action="journey-pick-open">Change</button></div>
+        <ol class="stages">${a.stages.map((st, i) => { const done = J().done[st.id], cur = !done && a.stages.slice(0, i).every((x) => J().done[x.id]); const [h, need] = st.prog();
+          return `<li class="${done ? 'done' : cur ? 'now' : ''}"><span class="st-dot" aria-hidden="true">${done ? '✓' : i + 1}</span><div><b>${esc(st.name)}</b><small>${esc(st.goal)}</small>${cur ? bar(h, need) + `<small>${progressText(h, need)}</small>` : ''}${done ? `<small class="good">Day ${done}</small>` : ''}</div><em>${st.ending ? 'Ending' : short(st.reward)}</em></li>`; }).join('')}</ol></article>`
+      : `<article class="panel journey-amb"><p class="eyebrow">Choose your ambition</p><h2>What kind of legend will you be?</h2><p class="muted">Each ambition sets goals with rewards, gives a perk and ends with its own finale. You can switch any time.</p>${ambitionCards(null)}</article>`;
+    const next = `<article class="panel"><p class="eyebrow">Recommended next</p><ul class="next-steps">${steps.map((x) => `<li><div><b>${esc(x.text)}</b><small>${esc(x.why)}</small></div><button class="btn btn-small" data-tab="${x.tab}">${esc(x.cta)}</button></li>`).join('') || '<li class="muted">You’re on top of everything. Keep collecting.</li>'}</ul></article>`;
+    // Unlocks coming up, with what's still missing.
+    const ups = [];
+    const lockedJob = JOBS.slice(JOBS.indexOf(job) + 1).find((j) => !jobOpen(j));
+    if (lockedJob) ups.push({ name: lockedJob.title, why: `${money(baseWage(lockedJob))} a shift`, reqs: reqList(lockedJob).map((r) => ({ label: r.text, ok: r.ok, h: r.n ? r.have : r.ok ? 1 : 0, n: r.n || 1 })), tab: 'career' });
+    if (!S.desk) ups.push({ name: 'Decant desk', why: 'Passive income while you play', reqs: [{ label: 'Own 8 bottles', ok: ownedCount() >= 8, h: ownedCount(), n: 8 }, { label: `${money(deskCost())} to open`, ok: S.cash >= deskCost(), h: Math.min(S.cash, deskCost()), n: deskCost() }], tab: 'work' });
+    if (!m) ups.push({ name: 'Your own house', why: 'Make and sell your own fragrances', reqs: [{ label: `Own ${FOUND_BOTTLES} bottles`, ok: ownedCount() >= FOUND_BOTTLES, h: ownedCount(), n: FOUND_BOTTLES }, { label: `${money(FOUND_COST)} to found`, ok: S.cash >= FOUND_COST, h: Math.min(S.cash, FOUND_COST), n: FOUND_COST }], tab: 'atelier' });
+    else if (!m.site) ups.push({ name: 'House website', why: 'Sell online around the clock', reqs: [{ label: 'Launch a fragrance', ok: m.creations.length > 0, h: Math.min(1, m.creations.length), n: 1 }, { label: `${money(SITE_COST)} to launch`, ok: S.cash >= SITE_COST, h: Math.min(S.cash, SITE_COST), n: SITE_COST }], tab: 'atelier' });
+    const rk = RANKS.find(([t]) => t > ownedCount()); if (rk) ups.push({ name: `Rank: ${rk[1]}`, why: 'Your standing among collectors', reqs: [{ label: `Own ${rk[0]} bottles`, ok: false, h: ownedCount(), n: rk[0] }], tab: 'boutique' });
+    const unlocks = `<article class="panel"><p class="eyebrow">Coming up</p><ul class="unlocks">${ups.map((u) => `<li><div class="ul-head"><b>${esc(u.name)}</b><small class="muted">${esc(u.why)}</small><button class="btn btn-small" data-tab="${u.tab}">Go</button></div>${u.reqs.map((r) => `<div class="ul-req ${r.ok ? 'ok' : ''}"><span>${r.ok ? '✓' : '○'} ${esc(r.label)}</span>${r.ok ? '' : bar(r.h, r.n)}</div>`).join('')}</li>`).join('') || '<li class="muted">Everything is unlocked.</li>'}</ul></article>`;
+    // The closest trophies.
+    const near = ACH.filter((x) => !S.ach[x.id] && ACH_PROG[x.id]).map((x) => { const [h, n] = ACH_PROG[x.id](); return { x, h, n, r: h / n }; }).filter((t) => t.r < 1).sort((p, q) => q.r - p.r).slice(0, 3);
+    const trophies = `<article class="panel"><p class="eyebrow">Nearly there</p><ul class="unlocks">${near.map((t) => `<li><div class="ul-head"><b>${esc(t.x.name)}</b><small class="muted">${esc(t.x.desc)} · ${short(t.x.reward)}</small></div><div class="ul-req">${bar(t.h, t.n)}<span class="small muted">${progressText(t.h, t.n)}</span></div></li>`).join('') || '<li class="muted">Every countable trophy is done.</li>'}</ul></article>`;
+    // The books: the last week and today's running costs.
+    const up = upkeep(), led = (S.ledger || []).slice(-7).reverse(), z = (v, sign = '') => (v ? sign + short(v) : '—');
+    const COST_WHY = { storage: `$${ECON.storagePerBottle} a day for each bottle beyond your free shelf of ${ECON.freeShelf}`, insurance: 'Discontinued bottles 0.2% and legendary bottles 0.3% of their value a day', rent: 'Your house’s boutiques, 0.2% of what you paid a day', staff: 'Your perfumer’s salary', factory: 'Factory upkeep, 0.3% of what you paid a day', hosting: 'Website hosting' };
+    const fin = `<article class="panel journey-fin"><p class="eyebrow">Your finances</p>
+      <dl class="kv compact"><div><dt>Net worth</dt><dd>${short(netWorth())}</dd></div><div><dt>Cash</dt><dd>${money(S.cash)}</dd></div><div><dt>Collection</dt><dd>${short(collectionValue())}</dd></div>${m ? `<div><dt>Your house</dt><dd>${short(houseValue())}</dd></div>` : ''}<div><dt>Running costs</dt><dd>${money(up.total)} a day</dd></div></dl>
+      ${up.total ? `<ul class="costs">${Object.entries(up).filter(([k, v]) => k !== 'total' && v).map(([k, v]) => `<li><span>${k[0].toUpperCase() + k.slice(1)}<small>${COST_WHY[k]}</small></span><b>${money(v)}</b></li>`).join('')}</ul>` : '<p class="small muted">No running costs yet. Storage starts beyond 60 bottles; rare bottles and your house’s premises cost upkeep.</p>'}
+      <p class="small muted">Shift pay is taxed: nothing on the first ${money(ECON.taxBrackets[1][0])}, 25% up to ${money(ECON.taxBrackets[2][0])}, 40% above${S.ambition === 'mogul' ? ' (10% less as a Mogul)' : ''}.</p>
+      ${led.length ? `<div class="ledger-wrap"><table class="ledger"><thead><tr><th>Day</th><th>Pay</th><th>Tax</th><th>House</th><th>Desk</th><th>Costs</th><th>Net</th></tr></thead><tbody>${led.map((d) => `<tr><td>${d.day}</td><td>${z(d.wages)}</td><td>${z(d.tax, '−')}</td><td>${z(d.house)}</td><td>${z(d.desk)}</td><td>${z(d.upkeep, '−')}</td><td class="${d.net >= 0 ? 'good' : 'bad'}">${d.net >= 0 ? '+' : '−'}${short(Math.abs(d.net))}</td></tr>`).join('')}</tbody></table></div><p class="tiny muted">Net includes everything else you bought and sold that day.</p>` : '<p class="small muted">Your daily books appear here after your first full day.</p>'}</article>`;
+    const how = `<details class="panel how"><summary><span class="eyebrow">How it all connects</span></summary>
+      <ol class="welcome-steps"><li><b>Work</b> earns cash. Each job rewards one scent family; wearing a matching signature adds 30%.</li><li><b>Bottles</b> are the key to everything: they unlock jobs (Reviewer at 12, Perfumer at 40, Influencer at 150), the decant desk at 8, your house at 10 and ranks along the way.</li><li><b>Courses</b> cost money but open the high-paying careers.</li><li><b>Your house</b> turns harmony, price and reputation into daily sales; boutiques, factories and perfumers grow it but cost upkeep, and your fragrances compete with each other.</li><li><b>The website</b> adds online customers, reviews and your own checkout.</li><li><b>Running costs</b> come out at the end of each day. Rare bottles gain value but cost insurance; a bigger shelf costs storage.</li></ol></details>`;
+    $('#tab-journey').innerHTML = `<div class="journey">${amb}<div class="journey-grid">${next}${unlocks}${trophies}</div>${fin}${how}</div>`;
   }
 
   /* ---------- TROPHIES tab ---------- */
@@ -12982,17 +13361,18 @@ const Maison = (() => {
   const factoryCost = (n) => Math.round(20000 * Math.pow(3, n));
   const shopCost = (n) => Math.round(50000 * Math.pow(2.6, n));
   const maxNotes = () => 5 + M().lab;
-  const harmonyBonus = () => (M().lab - 1) * 2 + (M().nose ? NOSES[M().nose].bonus : 0);
+  const harmonyBonus = () => (M().lab - 1) * 2 + (M().nose ? NOSES[M().nose].bonus : 0) + (S.ambition === 'perfumer' ? 3 : 0);
   const devFee = () => Math.min(50000, 2000 + 1500 * M().creations.length);
   function unitCost(c) { return Math.round(((c.oilCost * Maison.CONC[c.conc].oil + Maison.designCost(c.design) + 3) * (1 - 0.08 * M().factory) + 3) * 100) / 100; }
   function fairPrice(c) { return Math.max(10, Math.round((25 + unitCost(c) * 2.2) * Maison.CONC[c.conc].mult * (0.55 + c.harmony / 100) * (0.6 + M().rep / 60) * (1 + Maison.designCost(c.design) / 60))); }
   const adMult = () => M().ads.filter((a) => a.until >= S.day).reduce((m, a) => m * a.mult, 1);
   const trendFam = () => { ensureMarket(); return S.market.trend; };
   function demand(c) {
-    const m = M(); let d = (4 + m.rep * 1.4 + m.shops * 30) * Math.pow(c.harmony / 70, 2);
+    const m = M(); let d = (4 + m.rep * 1.4 + shopDemand(m.shops)) * Math.pow(c.harmony / 70, 2);
     if (c.family === trendFam()) d *= 1.5;
     d *= Math.min(3, Math.pow(fairPrice(c) / Math.max(1, c.price), 2.2)) * adMult();
     if (S.day - c.launched < 7) d *= 1.6;
+    d *= Math.pow(Math.max(1, m.creations.filter((x) => x.stock > 0).length), -ECON.rangeCompetition);
     return d;
   }
   // Sales for a fraction of a day; returns { units, revenue }.
@@ -13008,7 +13388,7 @@ const Maison = (() => {
       if (!c.stock) toast(`<b>${esc(c.name)} sold out</b><span>Produce another batch in Your House.</span>`);
     }
     if (units) {
-      S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue;
+      S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue; flow().house += revenue;
       m.todayUnits = (m.todayUnits || 0) + units; m.todayRev = (m.todayRev || 0) + revenue;
       m.rep = Math.max(0, Math.min(100, m.rep + Math.min(3 * frac, rep)));
     }
@@ -13077,7 +13457,7 @@ const Maison = (() => {
             <label class="field"><span>House name</span><input id="mf-name" maxlength="28" value="${esc(f.name)}" placeholder="Maison …"></label>
             <label class="field"><span>Home city</span><select id="mf-city">${Maison.CITIES.map((c) => `<option ${c === f.city ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
             <div class="field"><span>House colours</span><div class="palettes">${Maison.PALETTES.map(([bg, fg, nm], i) => `<button class="pal ${f.pal === i ? 'on' : ''}" data-action="pal" data-i="${i}" title="${nm}" style="--bg:${bg};--fg:${fg}"><b>Aa</b><small>${nm}</small></button>`).join('')}</div></div>
-            <div class="row-actions"><button class="btn btn-primary btn-big" data-action="found" ${ok && S.cash >= FOUND_COST ? '' : 'disabled'}>Found the house · ${money(FOUND_COST)}</button></div>
+            <div class="row-actions"><button class="btn btn-primary btn-big" data-action="found" ${!ok ? 'disabled' : lack(FOUND_COST)}>Found the house · ${money(FOUND_COST)}</button>${ok ? togo(FOUND_COST) : ''}</div>
             <p class="hint">${ok ? (S.cash >= FOUND_COST ? 'Registering the name, a small lab and your first raw materials.' : `You need ${money(FOUND_COST - S.cash)} more.`) : `Own ${FOUND_BOTTLES} bottles first so you know what the market smells like (${ownedCount()}/${FOUND_BOTTLES}).`}</p>
           </article>
           <article class="panel found-preview" style="--bg:${Maison.PALETTES[f.pal][0]};--fg:${Maison.PALETTES[f.pal][1]}"><p class="fp-name">${esc((f.name || 'Your house').toUpperCase())}</p><p class="fp-city">${esc(f.city.toUpperCase())}</p></article>
@@ -13176,14 +13556,14 @@ const Maison = (() => {
 
   function renderBiz() {
     const m = M(); ensureComms();
-    const up = (name, desc, lvl, max, cost, act) => `<li><div><b>${esc(name)}</b><small>${esc(desc)}</small></div>${lvl >= max ? '<span class="owned-tag">Maxed</span>' : `<button class="btn" data-action="${act}" ${S.cash < cost ? 'disabled' : ''}>Upgrade · ${short(cost)}</button>`}</li>`;
+    const up = (name, desc, lvl, max, cost, act) => `<li><div><b>${esc(name)}</b><small>${esc(desc)}</small></div>${lvl >= max ? '<span class="owned-tag">Maxed</span>' : `<span class="buy-col"><button class="btn" data-action="${act}"${lack(cost)}>Upgrade · ${short(cost)}</button>${togo(cost)}</span>`}</li>`;
     const active = m.ads.filter((x) => x.until >= S.day);
     return `<div class="biz-grid">
       <article class="panel"><p class="eyebrow">Upgrades</p><ul class="courses">
         ${up(`Laboratory · level ${m.lab}`, `Up to ${maxNotes()} notes per formula, +${(m.lab - 1) * 2} harmony`, m.lab, 5, LAB_COST[m.lab + 1] || 0, 'mlab')}
-        ${up(`Perfumer · ${m.nose ? NOSES[m.nose].name : 'just you'}`, m.nose < 2 ? `Hire: ${NOSES[m.nose + 1].name} for +${NOSES[m.nose + 1].bonus} harmony` : 'The best nose money can buy', m.nose, 2, m.nose < 2 ? NOSES[m.nose + 1].cost : 0, 'mnose')}
-        ${up(`Factory · level ${m.factory}`, `Unit costs −${m.factory * 8}%`, m.factory, 5, factoryCost(m.factory), 'mfactory')}
-        ${up(`Boutiques · ${m.shops}`, m.shops < 6 ? `Open: ${SHOP_NAMES[m.shops]} (+30 bottles a day of demand)` : 'Stores on every continent', m.shops, 6, shopCost(m.shops), 'mshop')}
+        ${up(`Perfumer · ${m.nose ? NOSES[m.nose].name : 'just you'}`, m.nose < 2 ? `Hire: ${NOSES[m.nose + 1].name} for +${NOSES[m.nose + 1].bonus} harmony (salary ${money(ECON.noseSalary[m.nose + 1])} a day)` : 'The best nose money can buy', m.nose, 2, m.nose < 2 ? NOSES[m.nose + 1].cost : 0, 'mnose')}
+        ${up(`Factory · level ${m.factory}`, `Unit costs −${m.factory * 8}%${m.factory < 5 ? `; next level −${(m.factory + 1) * 8}%, upkeep ${money(Math.round(factoryCost(m.factory) * ECON.factoryUpkeep))} a day` : ''}`, m.factory, 5, factoryCost(m.factory), 'mfactory')}
+        ${up(`Boutiques · ${m.shops}`, m.shops < 6 ? `Open: ${SHOP_NAMES[m.shops]} (+${ECON.shopDemand[m.shops]} bottles a day of demand, rent ${money(Math.round(shopCost(m.shops) * ECON.shopRent))} a day)` : 'Stores on every continent', m.shops, 6, shopCost(m.shops), 'mshop')}
       </ul></article>
       <article class="panel"><p class="eyebrow">Marketing</p><ul class="courses">${ADS.map((x) => `<li><div><b>${esc(x.name)}</b><small>Demand ×${x.mult} for ${x.days} days</small></div><button class="btn" data-action="mad" data-id="${x.id}" ${S.cash < x.cost ? 'disabled' : ''}>Run · ${short(x.cost)}</button></li>`).join('')}</ul>
         <p class="hint">${active.length ? 'Running: ' + active.map((x) => `${esc(x.name)} until day ${x.until}`).join(', ') : 'No campaign running.'}</p></article>
@@ -13236,7 +13616,7 @@ const Maison = (() => {
   function mysteryPool(b) { return CATALOG.filter((c) => !c.disc && !c.limited && !owns(c.id) && c.base >= b.price * b.lo && c.base <= b.price * b.hi); }
   function renderMystery() {
     const el = $('#mystery'); if (!el) return;
-    el.innerHTML = MYSTERY.map((b) => { const n = mysteryPool(b).length; return `<article class="panel mystery-box"><div class="mb-art" aria-hidden="true"><span>?</span></div><div><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.blurb)} ${n} possible bottles.</p></div><button class="btn btn-primary" data-action="mystery" data-id="${b.id}" ${S.cash < b.price || !n ? 'disabled' : ''}>Open · ${money(b.price)}</button></article>`; }).join('');
+    el.innerHTML = MYSTERY.map((b) => { const n = mysteryPool(b).length; return `<article class="panel mystery-box"><div class="mb-art" aria-hidden="true"><span>?</span></div><div><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.blurb)} ${n} possible bottles.</p></div><button class="btn btn-primary" data-action="mystery" data-id="${b.id}" ${!n ? 'disabled title="You own every bottle this box can hold"' : lack(b.price)}>Open · ${money(b.price)}</button></article>`; }).join('');
   }
 
   /* ---------- AI designer: describe a bottle or box and Claude fills in the designer ---------- */
@@ -13445,7 +13825,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       if (Math.random() < 0.08) addReview(c, Math.random, { who: ord.who, city: ord.city, size: ord.items[0].size });
       if (Math.random() < 0.3) w.subs++;
     }
-    if (units) { const m = M(); S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue; }
+    if (units) { const m = M(); S.cash += revenue; S.stats.earned += revenue; m.stats.sold += units; m.stats.revenue += revenue; flow().house += revenue; }
     return { units, revenue };
   }
   function webNewDay() {
@@ -13453,7 +13833,6 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     deliverMyOrders();
     w.days.push({ day: S.day - 1, v: Math.round(w.today.v), o: w.today.o, r: Math.round(w.today.r) }); w.days = w.days.slice(-14);
     w.today = { v: 0, o: 0, r: 0 };
-    S.cash -= HOSTING;
     const r = rng(S.seed + ':inbox:' + S.day), cs = liveCreations();
     const n = r() < 0.6 ? 1 : r() < 0.85 ? 2 : 0;
     for (let i = 0; i < n && cs.length; i++) {
@@ -13842,7 +14221,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
         <p class="muted">A real storefront for your house: a home page, a shop, product pages with your bottles and boxes, a bag and checkout, a journal and a contact page. Online customers buy from the same stock as your boutiques, around the clock.</p>
         <label class="field"><span>Domain</span><div class="domain"><span>www.</span><input id="ws-domain" maxlength="24" value="${esc(dom)}"><span>.com</span></div></label>
         <label class="field"><span>Look</span><select id="ws-template">${opt(TEMPLATES, site.template || 'luxe')}</select></label>
-        <button class="btn btn-primary btn-big" data-action="ws-launch" ${ok && S.cash >= SITE_COST ? '' : 'disabled'}>Launch the website · ${money(SITE_COST)}</button>
+        <button class="btn btn-primary btn-big" data-action="ws-launch" ${!ok ? 'disabled title="Launch a fragrance first"' : lack(SITE_COST)}>Launch the website · ${money(SITE_COST)}</button>
         <p class="hint">${ok ? (S.cash >= SITE_COST ? `Hosting costs ${money(HOSTING)} a day.` : `You need ${money(SITE_COST - S.cash)} more.`) : 'Launch your first fragrance before opening a shop.'}</p></article>`;
     }
     const sw = `<div class="subnav site-switch"><button class="${site.mode === 'visit' ? 'on' : ''}" data-action="ws-mode" data-m="visit">Visit your site</button><button class="${site.mode === 'admin' ? 'on' : ''}" data-action="ws-mode" data-m="admin">Dashboard${w.inbox.some((x) => !x.done) ? ` <span class="pill">${w.inbox.filter((x) => !x.done).length}</span>` : ''}</button></div>`;
@@ -13927,11 +14306,11 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   }
   function heroTimer() {
     clearInterval(annT); annT = null;
-    if ($('#w-ann-text') && !site.annPaused) annT = setInterval(() => { const b = $('.w-ann-bar'); if (!b || !b.isConnected) { clearInterval(annT); annT = null; return; } if (!b.matches(':hover')) showAnn(site.ann + 1); }, 5000);
+    if ($('#w-ann-text') && !site.annPaused && !reducedMotion()) annT = setInterval(() => { const b = $('.w-ann-bar'); if (!b || !b.isConnected) { clearInterval(annT); annT = null; return; } if (!b.matches(':hover')) showAnn(site.ann + 1); }, 5000);
     clearInterval(heroT); heroT = null;
     const cv = $('.w-cover'); if (!cv) return;
     cv.style.setProperty('--cover-fg', ($('.w-slide.on') || {}).dataset ? $('.w-slide.on').dataset.fg : '');
-    if ($$('.w-slide').length < 2 || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    if ($$('.w-slide').length < 2 || reducedMotion()) return;
     heroT = setInterval(() => { const c = $('.w-cover'); if (!c || !c.isConnected) { clearInterval(heroT); heroT = null; return; } if (c.matches(':hover') || c.querySelector(':focus-visible')) return; showSlide(site.slide + 1); }, 6500);
   }
   function fillSnaps() {
@@ -14072,6 +14451,7 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   function renderCurrent() {
     renderHeader();
     switch (ui.tab) {
+      case 'journey': renderJourney(); break;
       case 'work': renderWork(); break;
       case 'boutique': renderBoutique(); break;
       case 'vault': renderVault(); break;
@@ -14113,8 +14493,51 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       toast(`<b>New job: ${esc(j.title)}</b><span>${money(baseWage(j))} per shift. This job rewards ${FAMILIES[j.vibe].label.toLowerCase()} scents.</span>`, 'job');
       checkProgress(); save(); renderCurrent();
     },
-    course: (el) => {
+    'open-settings': () => { SFX.play('click'); openSettings(); },
+    settings: (el) => openSettings(el.dataset.p),
+    'dlg-close': () => closeDlg(false),
+    'dlg-answer': (el) => closeDlg(el.dataset.v === '1'),
+    'save-copy': () => {
+      const t = $('#save-code'), msg = $('#save-msg'); if (!t) return;
+      const done = () => { if (msg) msg.textContent = 'Copied. Keep it somewhere safe.'; };
+      try { navigator.clipboard.writeText(t.value).then(done, () => { t.select(); document.execCommand('copy'); done(); }); } catch (e) { t.select(); try { document.execCommand('copy'); done(); } catch (e2) { if (msg) msg.textContent = 'Select the code and copy it by hand.'; } }
+    },
+    'save-download': () => {
+      const msg = $('#save-msg');
+      try {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([exportCode()], { type: 'text/plain' })); a.download = `sillage-save-day-${S.day}.txt`;
+        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        if (msg) msg.textContent = 'Download started. If nothing appears, use Copy code instead.';
+      } catch (e) { if (msg) msg.textContent = 'Downloads are blocked here. Use Copy code instead.'; }
+    },
+    'save-import': async () => {
+      const msg = $('#save-msg'), text = ($('#save-in') || {}).value;
+      let parsed; try { parsed = parseCode(text); } catch (e) { if (msg) msg.textContent = e.message; SFX.play('error'); return; }
+      const d = parsed.d;
+      const ok = await confirmBox({ title: 'Replace your current game?', body: `This save is on day ${d.day} with ${Object.keys(d.owned).length} bottles and ${money(d.cash)}.${parsed.fixes.length ? ` ${parsed.fixes.length} damaged value${parsed.fixes.length === 1 ? ' was' : 's were'} repaired.` : ''} Your current game is backed up first, so you can restore it from Settings.`, ok: 'Import and play' });
+      if (!ok) return openSettings('import');
+      backupNow(); loadState(d); toast(`<b>Save imported</b><span>Welcome back to day ${S.day}.</span>`, 'good');
+    },
+    'save-restore': async () => {
+      const b = backupInfo(); if (!b) return;
+      if (!(await confirmBox({ title: 'Restore your backup?', body: `Go back to your backup from day ${b.day} (${Object.keys(b.owned).length} bottles, ${money(b.cash)}). Anything since then is lost.`, ok: 'Restore backup', danger: true }))) return openSettings();
+      loadState(b); toast(`<b>Backup restored</b><span>You’re back on day ${S.day}.</span>`, 'good');
+    },
+    'save-reset': async () => {
+      if (!(await confirmBox({ title: 'Start a new game?', body: 'Your whole collection, career and house will be wiped. Your current game is kept as the backup, so you can still restore it from Settings until the next day ends.', ok: 'Start over', danger: true }))) return openSettings();
+      backupNow(); loadState(null); setTab('journey'); setTimeout(openWelcome, 300);
+    },
+    'journey-pick': (el) => {
+      const first = !S.ambition; S.ambition = el.dataset.id; closeDlg(true); SFX.play('unlock');
+      toast(`<b>${esc(AMBITIONS[S.ambition].name)}</b><span>${esc(AMBITIONS[S.ambition].pitch)} Perk: ${esc(AMBITIONS[S.ambition].perk)}.</span>`, 'gold');
+      checkProgress(); save(); if (first || ui.tab === 'journey') setTab('journey'); else renderCurrent();
+    },
+    'journey-pick-open': () => openDlg(`<h2 class="dlg-title">Choose your ambition</h2><p class="muted">Finished stages stay finished if you switch. Perks follow your current ambition.</p>${ambitionCards(S.ambition)}<div class="row-actions dlg-actions"><button class="btn" data-action="dlg-close">Cancel</button></div>`, 'dlg-welcome'),
+    'journey-later': () => { closeDlg(false); setTab('journey'); },
+    course: async (el) => {
       const c = COURSE[el.dataset.id]; if (S.cash < c.cost || S.courses[c.id]) return;
+      if (c.cost >= 50000 && !(await confirmBox({ title: `Enroll in the ${esc(c.name)}?`, body: `It costs ${money(c.cost)}, leaving ${money(S.cash - c.cost)}. ${esc(c.note)}.`, ok: `Enroll · ${short(c.cost)}` }))) return;
+      if (S.cash < c.cost || S.courses[c.id]) return;
       S.cash -= c.cost; S.courses[c.id] = S.day; SFX.play('good');
       toast(`<b>Enrolled and graduated</b><span>${esc(c.name)} complete.</span>`, 'good');
       checkProgress(); save(); renderCurrent();
@@ -14310,6 +14733,17 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
     const [grp, k] = FIELD[f]; d[grp][k] = f === 'foil' ? t.value === 'foil' : t.value;
     if (t.type === 'color') showDraft(); else renderAtelier();
   });
+  // Settings switches and the import file picker live in the dialog layer.
+  document.addEventListener('change', (e) => {
+    const t = e.target; if (!t.closest || !t.closest('#dlg')) return;
+    if (t.dataset.setting) {
+      const k = t.dataset.setting; S.settings[k] = t.checked;
+      if (k === 'sfx') SFX.setSfx(t.checked);
+      if (k === 'music') { SFX.setMusic(t.checked); if (t.checked && ui.tab === 'showroom') SFX.startMusic(); }
+      applyAccess(); heroTimer(); save(); renderHeader(); return;
+    }
+    if (t.id === 'save-file' && t.files && t.files[0]) t.files[0].text().then((txt) => { const box = $('#save-in'); if (box) box.value = txt.trim(); const msg = $('#save-msg'); if (msg) msg.textContent = 'File loaded. Press Check and import.'; });
+  });
   document.addEventListener('change', (e) => { if (e.target.id === 'ml-name' || e.target.id === 'ml-price') renderAtelier(); });
 
   // Website and dashboard forms (Enter submits, like a real site).
@@ -14345,23 +14779,33 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
   document.addEventListener('submit', (e) => { const f = e.target.closest && e.target.closest('form[data-form]'); if (!f || !FORMS[f.dataset.form]) return; e.preventDefault(); FORMS[f.dataset.form](); });
 
   document.addEventListener('keydown', (e) => {
+    if (!$('#dlg').hidden) {
+      if (e.key === 'Escape') closeDlg(false);
+      if (e.key === 'Tab') { // keep focus inside the dialog
+        const f = $$('#dlg button:not([disabled]), #dlg input, #dlg textarea, #dlg select'); if (!f.length) return;
+        const i = f.indexOf(document.activeElement), n = e.shiftKey ? (i <= 0 ? f.length - 1 : i - 1) : (i === f.length - 1 ? 0 : i + 1);
+        e.preventDefault(); f[n].focus();
+      }
+      return;
+    }
     if (typeof Unbox !== 'undefined' && Unbox.busy) {
       if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); Unbox.open(); }
       if (e.key === 'Escape') Unbox.skip();
       return;
     }
     if (e.code === 'Space' && ui.tab === 'work' && ui.work.phase === 'timing' && !e.target.closest('input,select,textarea')) { e.preventDefault(); spritz(); }
+    if (e.key === 'Escape' && !$('#dlg').hidden) { closeDlg(false); return; }
     if (e.key === 'Escape' && !$('#modal').hidden) closeModal();
   });
 
   /* ---------- passive income + boot ---------- */
   function passiveTick() {
     if (S.desk > 0) {
-      const amt = deskRate(); S.cash += amt; S.stats.earned += amt;
+      const amt = deskRate(); S.cash += amt; S.stats.earned += amt; flow().desk += amt;
       renderHeader();
       if (ui.tab === 'boutique' || ui.tab === 'vault') {
         // Re-enable buy buttons the player can now afford without re-rendering the grid.
-        $$('[data-action="buy"],[data-action="vault-buy"]').forEach((b) => { const it = ITEM_BY_ID[b.dataset.id]; const p = b.dataset.action === 'buy' ? shopPrice(it) : vaultPrice(it); b.disabled = S.cash < p; });
+        $$('[data-action="buy"],[data-action="vault-buy"]').forEach((b) => { const it = ITEM_BY_ID[b.dataset.id]; const p = b.dataset.action === 'buy' ? shopPrice(it) : vaultPrice(it); b.disabled = S.cash < p; b.title = S.cash < p ? `You need ${money(p - S.cash)} more` : ''; });
       }
     }
     save();
@@ -14384,11 +14828,16 @@ box "paper" (board colour), "ink" (print colour): hex; box "foil": true or false
       }
     }
     SFX.setSfx(S.settings.sfx); SFX.setMusic(S.settings.music);
+    applyAccess(); flow(); checkProgress();
+    if (ui.notice) setTimeout(() => toast(`<b>Save recovered</b><span>${esc(ui.notice)}</span>`, 'bad'), 700);
+    if (!saved) setTimeout(openWelcome, 500);
+    save(); // writes back a repaired or recovered save straight away
+    if (saved && !ui.notice) backupNow();
     $('#catalog-count').textContent = `${CATALOG.length} real fragrances from ${HOUSES.length} houses`;
     initBoutiqueControls();
     $('#c-sort').addEventListener('input', (e) => { ui.coll.sort = e.target.value; renderCollection(); });
     const tab = (location.hash || '').slice(1);
-    setTab(TABS.includes(tab) ? tab : 'work', false);
+    setTab(TABS.includes(tab) ? tab : saved ? 'work' : 'journey', false);
     setInterval(passiveTick, 5000);
     window.addEventListener('beforeunload', save);
     if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => S);
